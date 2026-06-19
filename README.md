@@ -17,4 +17,5 @@ Run `/plugins`, add `clay-run/agent-plugins`, then install **clay**.
 
 ### Cursor
 
-Search **clay** in the [Cursor marketplace](https://cursor.com/marketplace) and click Install.
+Teams/Enterprise: Settings → Plugins → Add Marketplace → Import from Repo → `clay-run/agent-plugins`.
+Otherwise: clone this repo into `~/.cursor/plugins/local/` and reload Cursor.
