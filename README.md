@@ -13,7 +13,11 @@ Build with Clay in your AI coding agent — skills, MCP tools, and the Clay CLI.
 
 ### Codex
 
-Run `/plugins`, add `clay-run/agent-plugins`, then install **clay**.
+```
+codex plugin marketplace add clay-run/agent-plugins
+```
+
+Then open **Plugins** and install **clay**.
 
 ### Cursor
 
