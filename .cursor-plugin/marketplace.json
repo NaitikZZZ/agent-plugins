@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "plugins": [
+    {
+      "name": "clay",
+      "source": "./terracotta",
+      "description": "Build with Clay in Cursor"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "clay-plugins",
+  "interface": {
+    "displayName": "Clay"
+  },
+  "plugins": [
+    {
+      "name": "clay",
+      "source": {
+        "source": "local",
+        "path": "./terracotta"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
+    }
+  ]
+}

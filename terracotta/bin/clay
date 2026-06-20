@@ -3,7 +3,7 @@
 # it from the plugin's GitHub release on first use and caching it.
 set -eu
 
-REPO="clay-run/claude-plugins"
+REPO="clay-run/agent-plugins"
 
 # Bootstrap failures must honor the CLI's output contract (apps/cli/AGENTS.md):
 # a JSON error envelope on stderr and a categorical exit code, so an agent that
