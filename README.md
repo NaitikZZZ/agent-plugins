@@ -45,10 +45,12 @@ Verify with `clay whoami` — exit 0 prints your user and workspace; exit 3 mean
 
 ## Using the `clay` CLI
 
-In **Claude Code** the bundled `clay` CLI is added to the agent's PATH automatically. **Codex and Cursor do not add a plugin's `bin/` to PATH**, so make `clay` available yourself — e.g. symlink the plugin's `bin/clay` into a directory already on your PATH:
+In **Claude Code** the bundled `clay` CLI is on the agent's PATH automatically. **Codex and Cursor do not add a plugin's `bin/` to PATH** — the simplest fix is to ask the agent to run the bundled **`setup` skill**, which installs `clay` for you (no npm). To do it by hand, drop a forwarder — *not* a symlink, since the launcher locates its own files by path — into a directory on your PATH:
 
 ```
-ln -s "<plugin dir>/terracotta/bin/clay" ~/.local/bin/clay
+mkdir -p ~/.local/bin
+printf '#!/bin/sh\nexec "<plugin dir>/terracotta/bin/clay" "$@"\n' > ~/.local/bin/clay
+chmod +x ~/.local/bin/clay
 ```
 
 The CLI still needs `CLAY_API_KEY` in the environment (see above).
