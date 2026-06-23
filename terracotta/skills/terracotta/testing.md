@@ -35,11 +35,6 @@ clay workflows runs steps <workflowId> <runId> --node-id <nodeId>
 clay workflows runs pause <workflowId> <runId>
 clay workflows runs resume <workflowId> <runId>
 
-# Download a file written by a code node from the run's sandbox.
-# The sandbox cwd is /home/daytona (NOT /home/user).
-clay workflows runs download-file <workflowId> <runId> --path /home/daytona/output.csv
-clay workflows runs download-file <workflowId> <runId> --path /home/daytona/report.pdf --output ./report.pdf
-
 # List all workflows
 clay workflows list
 
