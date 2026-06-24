@@ -8,7 +8,7 @@
       "name": "clay",
       "source": {
         "source": "local",
-        "path": "./terracotta"
+        "path": "./clay"
       },
       "policy": {
         "installation": "AVAILABLE",

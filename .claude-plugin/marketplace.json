@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "clay",
-      "source": "./terracotta",
+      "source": "./clay",
       "description": "Build with Clay in Claude Code"
     }
   ]
