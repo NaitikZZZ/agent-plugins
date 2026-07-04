@@ -12,8 +12,11 @@ Analyze the current workflow and suggest changes to reduce credit consumption an
 
 1. **Read the workflow** using `read` (full mode) to get all node details
 2. **Identify cost drivers** — LLM calls, Clay action usage, model selection
-3. **Present optimization opportunities** with estimated impact
+3. **Present optimization opportunities** with estimated impact, alongside a render of the **current graph** (`clay workflows diagram <workflowId>`) with the expensive nodes called out so the user can see where the cost lives
 4. **Apply changes** after user approval
+5. **Show the result** — after applying, run `validate_workflow` with `prettier=true` and render the **updated graph** so the change is visible
+
+Narrate throughout and prefer the diagram over raw node JSON — see `workflows/presenting.md`.
 
 ## Cost Drivers in Clay Workflows
 
@@ -74,6 +77,6 @@ For each optimization opportunity, present:
 4. **Estimated impact** — qualitative (high/medium/low) cost reduction
 5. **Risk** — any quality trade-offs
 
-Prioritize suggestions by impact (highest savings first).
+Prioritize suggestions by impact (highest savings first). Pair the list with the current-graph render, with the expensive nodes called out, so each is easy to locate.
 
-After presenting all suggestions, ask the user which to apply. Execute using `edit_node` and validate with `validate_workflow`.
+After presenting all suggestions, ask the user which to apply. Execute using `edit_node`, validate with `validate_workflow` (`prettier=true`), and show the updated graph so the user can see the before/after difference.

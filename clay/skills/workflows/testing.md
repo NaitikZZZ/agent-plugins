@@ -45,8 +45,11 @@ clay workflows get <workflowId>
 clay workflows create --name "My Workflow"
 ```
 
-If you create a new workflow for users, include the link from `clay workflows
-create`/`clay workflows get` output (the `url` field) in your response.
+When you create a new workflow, share its link (the `url` field from `clay
+workflows create`/`clay workflows get`) as soon as it exists, so the user can
+open the editor and follow along in the UI as you build. This is most useful in
+a headless environment where the user has no Clay tab already open; the
+in-product assistant's user is already viewing the workflow.
 
 ## Watching a run to completion
 
@@ -83,11 +86,24 @@ clay workflows runs steps <workflowId> <runId> --status failed | jq '.data[].err
 clay workflows runs get <workflowId> <runId> --node-id <nodeId> | jq '.nodes[0]'
 ```
 
+## Tell the user what the run actually did
+
+Don't dump raw run JSON at the user. After a run, **narrate the trace node-by-node**: for each node, what it received, what it produced, and (if it failed) why. `--verbose` gives you the untruncated inputs/outputs to do this from:
+
+```bash
+clay workflows runs get <workflowId> <runId> --verbose | jq '.nodes'
+```
+
+Structure the recap as a short per-node walkthrough (or a small table: node → inputs → output/result → status), then call out any failures and what you'll change. Reserve raw JSON for when the user explicitly asks for it.
+
+**Locate results in the graph, don't just list them.** Pair the walkthrough with a `clay workflows diagram <workflowId>` render and overlay the run status onto it, so the user sees _where_ each result (or failure) came from — either annotate each node's label with a status marker or put a small "node → status" table beside the diagram. See `presenting.md` for the status markers and the annotation convention. Pull each node's status from `runs get --nodes` (or the per-step statuses from `runs steps`) to build the overlay.
+
 ## Example workflow
 
 1. Start a test: `echo '{}' | clay workflows runs test wf_abc --input -`
 2. Watch progress with the poll loop above until `status` is `completed`/`failed`.
 3. Inspect failures: `clay workflows runs steps wf_abc wfr_xyz --status failed | jq '.data[].errors'`
+4. Walk the user through the trace node-by-node (see "Tell the user what the run actually did" above), not as raw JSON.
 
 ## Testing & exploration MCP tools
 

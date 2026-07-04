@@ -6,12 +6,11 @@ allowed-tools: Bash(clay *), Bash(grep *), Bash(cat *), Bash(wc *), Bash(jq *), 
 
 # Discovering Clay actions
 
-
 This skill helps you find available Clay actions for use in Clay workflow nodes,
 via the `clay` CLI. (In Codex/Cursor, run the `setup` skill once if `clay` is not
 yet on your PATH.)
 
-Not to be confused with `clay tools` — that lists workspace *function tools*, a
+Not to be confused with `clay tools` — that lists workspace _function tools_, a
 different concept. For workflow building blocks, use `clay workflows actions`.
 
 ## Actions catalog
@@ -19,6 +18,7 @@ different concept. For workflow building blocks, use `clay workflows actions`.
 The catalog is fetched live from the workspace's action catalog API. It includes all available actions with workspace-specific configuration (configured tools, app accounts, credit costs).
 
 Each catalog entry has:
+
 - `actionKey` — unique identifier for the action
 - `packageId` — the package this action belongs to
 - `displayName` / `name` — human-readable names
@@ -40,6 +40,7 @@ the node will silently fail to bind.
 ### Using catalog data when adding tools
 
 When adding a tool to a node, you can either:
+
 1. **Reuse an existing tool** — pass `toolId` from `configuredTools`:
    ```json
    { "toolType": "clay_action", "toolId": "tct_abc123" }
@@ -72,6 +73,14 @@ jq -r '.data[] | select(.name | test("email";"i")) | "\(.priorityTier) \(.packag
 ```
 
 Prefer actions with lower `priorityTier` values and existing `configuredTools`.
+
+### When several actions fit, ask the user — don't pick silently
+
+The catalog almost always has multiple actions that do roughly the same job (several email finders, several company-enrichment providers, waterfalls vs. single providers, etc.). These differ in coverage, credit cost, and required credentials, and the "right" one is a judgment call the user should make. **When more than one candidate fits a step, present the shortlist and ask which they want before wiring it.**
+
+- Refer to each option by its **human-readable `displayName`** (e.g. "Find Work Email (Clay)"), never the internal `actionKey`.
+- For each option, surface the details that drive the decision: `whyUseful` / `dataStrengths`, `creditCost`, whether a `configuredTool` or `availableAppAccount` already exists, and `priorityTier`.
+- Recommend a default (usually the lowest `priorityTier` with an existing configured tool) but let the user override it.
 
 ## Getting action input schemas
 

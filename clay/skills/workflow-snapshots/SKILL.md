@@ -1,7 +1,7 @@
 ---
 name: workflow-snapshots
 description: Clay workflows — version history: view snapshots, see what changed, and restore or undo a previous state. Use when the user mentions snapshots or asks to undo an edit.
-allowed-tools: Bash(clay *), Bash(jq *)
+allowed-tools: Bash(clay *), Bash(jq *), Read
 ---
 
 # Workflow snapshots & version history
@@ -43,13 +43,34 @@ Returns the full captured graph: `nodes` (with types, prompts, code, tools) and
 
 ### Diff two snapshots
 
-There is no built-in diff. Fetch both and compare with `jq`:
+There is no built-in diff. Fetch both and compare with `jq` — but this raw `diff`
+is the underlying mechanism, not the thing you show the user:
 
 ```bash
 clay workflows snapshots get <workflowId> <oldSnapshotId> | jq '.nodes' > old.json
 clay workflows snapshots get <workflowId> <newSnapshotId> | jq '.nodes' > new.json
 diff <(jq -S . old.json) <(jq -S . new.json)
 ```
+
+**Translate the diff into a plain-language change summary** rather than pasting the
+raw `diff` output — e.g. "Node _Find Email_'s prompt changed; the edge _Research →
+Draft_ was removed; a new _Score Lead_ agent node was added." When the change alters
+the graph's structure (nodes or edges added/removed/rewired), render before/after
+Mermaid diagrams so the user can see it, not just read it (see `workflows/presenting.md`).
+
+The only built-in diagram command always renders the workflow's **current** graph:
+
+```bash
+clay workflows diagram <workflowId> | jq -r '.diagram'   # always the current graph
+```
+
+There's no diagram command for an arbitrary snapshot id, so hand-write a small
+node/edge list from that snapshot's `nodes`/`edges` for its side. Label the diagrams
+by the direction of the change: "before" is the state you're changing *from*, "after"
+is the state you're ending up *with* — and use the command above for whichever side is
+the current graph. When previewing a restore (see "Restore to a snapshot" below), the
+restore overwrites the current graph with the snapshot, so the current graph is the
+"before" and the snapshot you're restoring to is the "after".
 
 ### Restore to a snapshot
 
@@ -63,6 +84,12 @@ does NOT snapshot the current graph first — the pre-restore state is recoverab
 only if it was already captured (snapshots are taken automatically before each
 edit and at run start). If the current graph has unsnapshotted changes you might
 want back, run `snapshots list` first and note the latest snapshot id.
+
+**Before restoring, show the user what will change.** Summarize the difference
+between the current graph and the target snapshot in plain language, and — when the
+structure differs — show before/after diagrams (see "Diff two snapshots" above),
+so the user can confirm the revert before it destructively overwrites the current
+state. After restoring, render the restored graph so they can see the result.
 
 ## Common workflows
 

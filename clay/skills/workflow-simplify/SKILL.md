@@ -12,8 +12,11 @@ Analyze the current workflow and suggest concrete simplifications to reduce comp
 
 1. **Read the workflow** using `read` (full mode) to get all node details
 2. **Analyze each node** against the simplification checklist below
-3. **Present findings** as a prioritized list of suggestions with specific changes
+3. **Present findings** as a prioritized list of suggestions with specific changes, alongside a render of the **current graph** (`clay workflows diagram <workflowId>`) so the user can see which nodes each suggestion affects
 4. **Apply changes** after user approval, using `edit_node` for efficiency
+5. **Show the result** — after applying, run `validate_workflow` with `prettier=true` and render the **updated graph** so the simplification is visible, not just described
+
+Narrate throughout and prefer the diagram over raw node JSON — see `workflows/presenting.md`.
 
 ## Simplification Checklist
 
@@ -60,4 +63,4 @@ Present suggestions as:
 2. **Why** — what complexity or cost this removes
 3. **How** — the concrete edit (new node type, merged prompt, code snippet)
 
-After presenting all suggestions, ask the user which ones to apply. Then execute them using `edit_node` and run `validate_workflow` with `prettier=true`.
+Pair the suggestion list with the current-graph render so each affected node is easy to locate. After presenting all suggestions, ask the user which ones to apply. Then execute them using `edit_node`, run `validate_workflow` with `prettier=true`, and show the updated graph so the user can see the before/after difference.
