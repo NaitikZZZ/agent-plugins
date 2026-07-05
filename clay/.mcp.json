@@ -1,11 +1,8 @@
 {
   "mcpServers": {
     "clay": {
-      "type": "http",
-      "url": "${CLAY_API_URL:-https://api.clay.com}/v3/mcp/terracotta",
-      "headers": {
-        "Authorization": "Bearer ${CLAY_API_KEY}"
-      }
+      "command": "${CLAUDE_PLUGIN_ROOT}/bin/clay",
+      "args": ["mcp"]
     }
   }
 }

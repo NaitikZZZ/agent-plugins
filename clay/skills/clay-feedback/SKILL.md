@@ -62,7 +62,7 @@ The transcript is the **current conversation**, so confirm with the user before 
 
    - If `includedTranscript` is `false` and `transcriptError` is set, the report was **still sent** — only the transcript was skipped. Tell the user; double-check the path from step 2 before retrying.
    - `validation_error` (exit 2) — the stdin message was empty or nothing was piped. Make sure the temp file has the feedback text and is redirected in (`< /tmp/clay-feedback.txt`).
-   - `auth_missing_api_key` (exit 3) — Clay isn't authenticated. Run the `setup` skill or `clay login`, then retry.
+   - `auth_required` (exit 3) — Clay isn't authenticated. Run the `setup` skill or `clay login`, then retry.
    - `rate_limited` (exit 4) — too many reports recently; surface `details.retryAfter` and try again later.
 
 6. Tell the user it was sent, noting whether the transcript was included. If cancelled, do nothing.
