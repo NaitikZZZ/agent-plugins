@@ -32,16 +32,12 @@ cp -R agent-plugins/clay ~/.cursor/plugins/local/clay
 
 ## Configuration
 
-The `clay` CLI and the Clay MCP server both authenticate with a Clay API key. Create one in Clay under **Settings → Account** (the workspace is resolved from the key — there is no workspace id to set), then expose it as `CLAY_API_KEY`:
+Sign in once with `clay login` — it opens a browser to authorize the CLI, and the Clay MCP server (`clay mcp`, a local proxy the plugin registers for you automatically) uses that same session. One login covers both surfaces; there's no key to paste into an environment variable or an MCP config file.
 
-- **Claude Code** — run the bundled `setup` skill, which saves the key and verifies it with `clay whoami`.
-- **Codex / Cursor** — export it in your shell so both the CLI and the MCP server read it:
+- **Claude Code / Codex / Cursor** — run `clay login` yourself, or ask the agent to run it for you. It opens your browser, you sign in and pick a workspace, and the CLI stores the session locally. (On Codex/Cursor, if you get `clay: command not found`, see [Using the `clay` CLI](#using-the-clay-cli) below to put it on PATH first.) **Restart the agent afterwards** — it already spawned the `clay mcp` process, so it won't pick up a session created after it started.
+- **Headless / CI** — create a key in Clay under **Settings → Account**, then either pipe it into `clay login --stdin` or export it as `CLAY_API_KEY` (which works without running `clay login` at all). Both are a legacy fallback for non-interactive contexts — prefer `clay login` wherever a browser is available.
 
-  ```
-  export CLAY_API_KEY="<your key>"
-  ```
-
-Verify with `clay whoami` — exit 0 prints your user and workspace; exit 3 means the key is missing or invalid.
+Verify with `clay whoami` — exit 0 prints your user and workspace; exit 3 means you aren't signed in or the credential is invalid.
 
 ## Using the `clay` CLI
 
@@ -54,7 +50,7 @@ printf '#!/bin/sh\nexec "%s" "$@"\n' "$launcher" > ~/.local/bin/clay
 chmod +x ~/.local/bin/clay
 ```
 
-The CLI still needs `CLAY_API_KEY` in the environment (see above).
+The CLI still needs to be signed in — run `clay login` (see [Configuration](#configuration)).
 
 ## Choosing the right Clay primitive
 
