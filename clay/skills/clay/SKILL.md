@@ -61,7 +61,7 @@ Before running a credit-consuming routine, check its per-item `estimatedCreditCo
 | `public-api`    | Building services and applications on top of Clay over HTTP.                                                  |
 | `workflows`     | Building and editing net-new Clay workflows (multi-step automations).                                         |
 | `tables`        | Reading, querying, and exporting data from an existing Clay table (creating tables is not supported).         |
-| `search`        | Finding people, companies, or job postings in Clay's GTM database from a natural language query.              |
+| `search`        | Finding people or companies in Clay's GTM database from structured filters.                                   |
 | `clay-feedback` | Sending a bug report or product feedback to the Clay team.                                                    |
 
 ## If another Clay MCP is connected

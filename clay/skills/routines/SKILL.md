@@ -11,7 +11,7 @@ getting its results — not building one.
 
 - To **build or edit** a workflow, use the `workflows` skill.
 - To **query data** out of a Clay table, use the `tables` skill.
-- To **find the records** to run a routine over (people, companies, or jobs from Clay's GTM
+- To **find the records** to run a routine over (people or companies from Clay's GTM
   database), use the `search` skill (`skills/search/SKILL.md`) first, then feed the results
   in here.
 - To run a routine **over HTTP** from a service or app (not a one-off shell task), use
@@ -125,6 +125,11 @@ clay routines runs list           # recent runs and their statuses
 
 Per-item results come back with a status (`complete` / `failed`) and either a `result`
 or an `error`.
+
+`clay routines runs get` returns a single page of inline results. Since an inline run
+has at most 100 items, `--limit 100` returns every result in one page. If you use a
+smaller page size, the response includes a top-level `cursor` when more results remain —
+pass it back via `--cursor` to fetch the next page.
 
 ## Authoritative details
 

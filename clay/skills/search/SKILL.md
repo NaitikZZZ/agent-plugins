@@ -1,24 +1,25 @@
 ---
 name: search
-description: Clay search — find people, companies, or job postings in Clay's GTM database from a natural language query, and page through the matches. Use when the user wants to search Clay for prospects/accounts/jobs, not query an existing table.
+description: Clay search — find people or companies in Clay's GTM database from structured filters, and page through the matches. Use when the user wants to search Clay for prospects/accounts, not query an existing table.
 allowed-tools: Bash(clay *), Bash(jq *)
 ---
 
 # Clay search
 
-Search Clay's GTM database with a natural language query. Clay turns the query into
-structured filters and returns matching records — people, companies, or job postings.
+Search Clay's GTM database with structured filters and return matching records —
+people or companies.
 
 This is different from `tables` (which queries data already in a Clay table) and from
 `workflows` (multi-step automations). Reach for search when the user wants to _find_
-prospects, accounts, or jobs.
+prospects or accounts.
 
 ## How it works
 
-A search is a two-step, forward-only iterator:
+A search is a three-step, forward-only iterator:
 
-1. **Create** the search from a query + source type — you get back a `searchId`.
-2. **Advance** it with `next` to pull the next page of records. Repeat while `hasMore`
+1. **Discover** valid filters for the source type with `fields`.
+2. **Create** the search from structured filters + source type — you get back a `searchId`.
+3. **Advance** it with `next` to pull the next page of records. Repeat while `hasMore`
    is `true`.
 
 There is no cursor: the iterator's position lives server-side and can't be replayed, so
@@ -34,11 +35,13 @@ authoritative flags and output shapes.
 ### Start a search
 
 ```bash
-clay search create --query "<natural language>" --source-type <people|companies|jobs>
+clay search fields --source-type <people|companies>
+clay search create --source-type <people|companies> --filters '<json>'
 ```
 
-Returns `{ "searchId": <string> }`. `--source-type` is one of `people`, `companies`, or
-`jobs`.
+The fields command returns the allowed filter names, types, enum values, and guidance.
+Create returns `{ "searchId": <string> }`. `--source-type` is one of `people` or
+`companies`.
 
 ### Get the next page
 
@@ -54,14 +57,15 @@ to use the server default. Call again while `hasMore` is `true` to keep paging.
 ### Search and grab the first page
 
 ```bash
-sid=$(clay search create --query "growth engineers in San Francisco" --source-type people | jq -r '.searchId')
+clay search fields --source-type people | jq '.fields[].name'
+sid=$(clay search create --source-type people --filters '{"job_title_keywords":["growth engineer"],"location_cities_include":["San Francisco"]}' | jq -r '.searchId')
 clay search next "$sid" --limit 25 | jq '.data'
 ```
 
 ### Page through all results
 
 ```bash
-sid=$(clay search create --query "seed-stage fintech startups" --source-type companies | jq -r '.searchId')
+sid=$(clay search create --source-type companies --filters '{"industries":["Software Development"],"funding_amounts":["1m_5m","5m_10m","10m_25m"]}' | jq -r '.searchId')
 while :; do
   page=$(clay search next "$sid" --limit 50)
   echo "$page" | jq -c '.data[]'
@@ -85,7 +89,8 @@ clay routines list
 clay routines get <id>
 
 # 2. Find people, then read the searchId from the output and page through records
-clay search create --query "growth engineers in San Francisco" --source-type people
+clay search fields --source-type people
+clay search create --source-type people --filters '{"job_title_keywords":["growth engineer"],"location_cities_include":["San Francisco"]}'
 
 # 3. Pull a page of records and pipe them straight into a run with the proper input schema
 clay search next <searchId> --limit 25 | jq '{items: [.data[] | {id: .id, inputs: {name: .name}}]}' |
