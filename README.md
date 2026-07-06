@@ -32,7 +32,7 @@ cp -R agent-plugins/clay ~/.cursor/plugins/local/clay
 
 ## Configuration
 
-Sign in once with `clay login` — it opens a browser to authorize the CLI, and the Clay MCP server (`clay mcp`, a local proxy the plugin registers for you automatically) uses that same session. One login covers both surfaces; there's no key to paste into an environment variable or an MCP config file.
+Sign in once with `clay login` — it opens a browser to authorize the CLI, and the Clay MCP server (`clay mcp`, a local proxy the plugin registers for you automatically) uses that same session.
 
 - **Claude Code / Codex / Cursor** — run `clay login` yourself, or ask the agent to run it for you. It opens your browser, you sign in and pick a workspace, and the CLI stores the session locally. (On Codex/Cursor, if you get `clay: command not found`, see [Using the `clay` CLI](#using-the-clay-cli) below to put it on PATH first.) **Restart the agent afterwards** — it already spawned the `clay mcp` process, so it won't pick up a session created after it started.
 - **Headless / CI** — create a key in Clay under **Settings → Account**, then either pipe it into `clay login --stdin` or export it as `CLAY_API_KEY` (which works without running `clay login` at all). Both are a legacy fallback for non-interactive contexts — prefer `clay login` wherever a browser is available.
