@@ -130,41 +130,7 @@ clay login &
 clay whoami; echo "exit_code=$?"   # poll this until exit_code=0
 ```
 
-If the browser can't be reached from this environment (a headless box, a remote
-sandbox, CI), fall back to a pasted API key — create one in Clay under
-**Settings → Account**, then:
-
-```bash
-echo "<the key>" | clay login --stdin
-```
-
-`clay login --stdin` is refused with `conflict` if a browser session is already
-active — run `clay logout` first to switch. If piping a key in isn't practical
-either (e.g. the key needs to reach a different process's environment than the one
-you're scripting in), export it as `CLAY_API_KEY` instead — the CLI and `clay mcp`
-both fall back to it without requiring `clay login` at all, but treat this as a
-last-resort fallback, not the default:
-
-- **Claude Code** — merge it into `.claude/settings.local.json` (gitignored) under
-  `env`, preserving existing settings, so the spawned MCP server subprocess sees it
-  too:
-
-  ```json
-  { "env": { "CLAY_API_KEY": "<the key>" } }
-  ```
-
-  Then tell the user to restart so it loads: `/exit`, then `claude --continue`.
-
-- **Codex / Cursor** — export it in the shell profile so both the CLI and the MCP
-  server pick it up, then restart the agent:
-
-  ```bash
-  echo 'export CLAY_API_KEY="<the key>"' >> "$HOME/.zshrc"   # or ~/.bashrc
-  export CLAY_API_KEY="<the key>"
-  ```
-
-Whichever method is used, **restart the agent** afterward — see the note above on
-why a freshly-spawned `clay mcp` process is required to pick up the new session.
+**Restart the agent afterward** so the running MCP server picks up this session.
 
 ## 4. Verify both surfaces
 
