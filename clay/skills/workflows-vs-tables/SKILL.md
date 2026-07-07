@@ -40,11 +40,10 @@ Compared to tables, workflows:
 - Can be built with the help of AI coding agents, including this plugin's `workflows` skill
 
 Native list processing is coming soon, which will let workflows handle lists directly without
-needing to round-trip through a table.
+needing to split a flow into multiple workflows.
 
-Workflows is an early-stage product — say so when it comes up, so customers can calibrate
-expectations for rough edges. (Elsewhere in this plugin, `clay/SKILL.md` tags Workflows "Alpha" —
-same caveat, different word.)
+Workflows is an alpha-stage product — say so when it comes up, so customers can calibrate
+expectations for rough edges.
 
 ## Which one should a customer use?
 
