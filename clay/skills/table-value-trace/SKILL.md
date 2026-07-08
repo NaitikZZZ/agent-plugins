@@ -29,7 +29,7 @@ On the table the row lives in. Build the dependency catalog with the token-extra
 You need every cell's `status`, `value`, `fields`, and `error` on this row. If you located the row via `tables query`, its result already carries all of that — use it directly. Otherwise (the `rows list` path, or you already hold a `rec_...` id), fetch it with `clay tables rows get`:
 
 ```bash
-clay tables rows get $TABLE $ROW | jq .
+clay tables rows get <tableId> <rowId> | jq .
 ```
 
 For any column you visit, read `status`, `value`, `fields`, and `error` (a message string) per cell — under `.cells["f_xxx"]` in a `rows get` result, or `["f_xxx"]` directly in a `tables query` row.

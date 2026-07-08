@@ -43,6 +43,26 @@ The fields command returns the allowed filter names, types, enum values, and gui
 Create returns `{ "searchId": <string> }`. `--source-type` is one of `people` or
 `companies`.
 
+### When the user asks to filter on a field that isn't a built-in filter
+
+Search only accepts the filters returned by `clay search fields` for that source type.
+When the user wants to narrow by an attribute that isn't in that list — e.g. "companies
+using React", "people who recently changed jobs", "accounts with a specific tech in their
+stack", or any derived/enriched signal — **do not invent a filter name or force it into an
+existing filter.** Search cannot evaluate it.
+
+Instead, split the request into what search _can_ do and what a routine does:
+
+1. Search on the closest available built-in filters to get a candidate set (e.g. industry,
+   size, or title filters that approximate the intent).
+2. Feed those results into a saved routine that enriches or scores each record for the
+   attribute the user actually asked about, then filter or act on that routine's output.
+
+Tell the user the field isn't a native search filter and offer this search → routine path
+rather than returning nothing. Read the `routines` skill (`skills/routines/SKILL.md`) for how
+to find and run one, and see the "Next: enrich or act on the results" section below for the
+handoff command.
+
 ### Get the next page
 
 ```bash
@@ -56,22 +76,38 @@ to use the server default. Call again while `hasMore` is `true` to keep paging.
 
 ### Search and grab the first page
 
+Run these one at a time, reading the `searchId` from the `create` output and passing it
+literally to `next`:
+
 ```bash
 clay search fields --source-type people | jq '.fields[].name'
-sid=$(clay search create --source-type people --filters '{"job_title_keywords":["growth engineer"],"location_cities_include":["San Francisco"]}' | jq -r '.searchId')
-clay search next "$sid" --limit 25 | jq '.data'
+```
+
+```bash
+clay search create --source-type people --filters '{"job_title_keywords":["growth engineer"],"location_cities_include":["San Francisco"]}'
+```
+
+`create` prints `{ "searchId": "srch_..." }`. Take that id and page:
+
+```bash
+clay search next srch_abc123 --limit 25 | jq '.data'
 ```
 
 ### Page through all results
 
+Paging is just repeated `next` calls with the same `searchId`. Run `next`, read `hasMore`
+from its output, and if it's `true` run the exact same command again — the server advances
+the iterator for you.
+
 ```bash
-sid=$(clay search create --source-type companies --filters '{"industries":["Software Development"],"funding_amounts":["1m_5m","5m_10m","10m_25m"]}' | jq -r '.searchId')
-while :; do
-  page=$(clay search next "$sid" --limit 50)
-  echo "$page" | jq -c '.data[]'
-  [ "$(echo "$page" | jq -r '.hasMore')" = "true" ] || break
-done
+clay search create --source-type companies --filters '{"industries":["Software Development"],"funding_amounts":["1m_5m","5m_10m","10m_25m"]}'
 ```
+
+```bash
+clay search next srch_abc123 --limit 50 | jq -c '.data[]'
+```
+
+Repeat that `next` line while the page's `hasMore` is `true`; stop when it's `false`.
 
 ## Next: enrich or act on the results
 
@@ -84,15 +120,19 @@ goal — the user wants the found records enriched or acted on. After returning 
 default to offering this next step rather than stopping at the raw matches.
 
 ```bash
-# 1. Pick the routine first and check what inputs it expects (its input schema)
 clay routines list
-clay routines get <id>
+```
 
-# 2. Find people, then read the searchId from the output and page through records
-clay search fields --source-type people
+```bash
+clay routines get function:tbl_abc123
+```
+
+```bash
 clay search create --source-type people --filters '{"job_title_keywords":["growth engineer"],"location_cities_include":["San Francisco"]}'
+```
 
-# 3. Pull a page of records and pipe them straight into a run with the proper input schema
-clay search next <searchId> --limit 25 | jq '{items: [.data[] | {id: .id, inputs: {name: .name}}]}' |
-clay routines runs start <id> --input -
+Then read the `searchId` from that output and pull a page straight into a run:
+
+```bash
+clay search next srch_abc123 --limit 25 | jq '{items: [.data[] | {id: .id, inputs: {name: .name}}]}' | clay routines runs start function:tbl_abc123 --input -
 ```

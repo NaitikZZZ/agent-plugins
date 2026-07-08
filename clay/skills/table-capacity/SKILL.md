@@ -23,20 +23,21 @@ So the table is constrained if **`rowCount` OR any source's `numSourceRecords`**
 
 1. Resolve the table to a `tbl_...` id — `clay tables list`, filtered client-side with `jq` on `.name` / `.workbook.name` (don't use `--query-enabled`; it hides non-synced tables). If the user named no table or workbook, ask rather than sweeping the workspace.
 2. Run **`clay tables get`** for `rowCount`, and **`clay tables columns list`** for the source counts (shapes in each command's `--help`). Two commands — no row scan needed.
-3. Read the numbers against the default ceiling (source counts live on source columns):
+3. Read the numbers against the default ceiling (source counts live on source columns), with two separate commands.
+
+Read the table's own row total:
 
 ```bash
-ROWCOUNT=$(clay tables get $TABLE | jq '.rowCount')
-clay tables columns list $TABLE \
-  | jq --argjson rowCount "$ROWCOUNT" '
-    [ .data[] | select(.type == "source") | .sources[] | {name, numSourceRecords} ] as $sources
-    | {
-        rowCount: $rowCount,
-        sources: $sources,
-        peak: (([$rowCount] + [$sources[].numSourceRecords]) | max),
-        defaultCeiling: 50000
-      }'
+clay tables get <tableId> | jq .rowCount
 ```
+
+Read each source's count:
+
+```bash
+clay tables columns list <tableId> | jq '[ .data[] | select(.type == "source") | .sources[] | {name, numSourceRecords} ]'
+```
+
+Then compare `rowCount` and every source's `numSourceRecords` against the default ceiling (50,000) yourself — the table is constrained if any of them is at or above it.
 
 ## Interpreting the numbers
 

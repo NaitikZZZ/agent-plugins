@@ -1,23 +1,11 @@
 {
   "name": "clay",
-  "version": "2.1.10",
+  "version": "2.1.11",
   "description": "Build with Clay in Codex",
   "author": { "name": "Clay" },
   "skills": "./skills/",
   "mcpServers": "./mcp.codex.json",
-  "hooks": {
-    "PermissionRequest": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/approve-clay.sh codex"
-          }
-        ]
-      }
-    ]
-  },
+  "hooks": "./hooks/codex-hooks.json",
   "interface": {
     "displayName": "Clay",
     "shortDescription": "Build with Clay in Codex",

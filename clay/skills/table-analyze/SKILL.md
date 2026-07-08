@@ -17,7 +17,7 @@ A Clay table is a column DAG: `source` and input `basic` columns are roots; `bas
 (The output is discriminated on `type` — shape in `clay tables get --help`.) Read off the frame the workflow sits in:
 
 ```bash
-clay tables get $TABLE | jq .
+clay tables get <tableId> | jq .
 ```
 
 - `type` — `"archive"` means this is an archive companion (its `parentTableId` points at the regular table); analyze the parent instead, the archive has no workflow of its own.
@@ -28,7 +28,7 @@ Where data **enters** and at what scale comes from the columns (step 2): `source
 
 ## 2. Build the dependency catalog — `clay tables columns get`
 
-This is where the graph lives. Run the token-extraction recipe in `tables/dependency-catalog.md` over `clay tables columns get $TABLE`. It yields one entry per column — `{ id, name, type, role, integration, gate, dependsOn: [names] }` — resolving every `{{f_xxx}}` edge (including those in `formulaWaterfall` and `formulaMap` keys) to a column name. `dependsOn` are the upstream columns; `gate` (when set) is the condition under which an action runs.
+This is where the graph lives. Run the token-extraction recipe in `tables/dependency-catalog.md` over `clay tables columns get <tableId>`. It yields one entry per column — `{ id, name, type, role, integration, gate, dependsOn: [names] }` — resolving every `{{f_xxx}}` edge (including those in `formulaWaterfall` and `formulaMap` keys) to a column name. `dependsOn` are the upstream columns; `gate` (when set) is the condition under which an action runs.
 
 ## 3. Stage the graph
 
@@ -45,13 +45,7 @@ This left-to-right order ≈ the column order in the Clay UI and gives you the p
 `clay tables rows list … --limit 10` (no separate sample command) for a rough per-column status read — which columns mostly run vs sit idle or error:
 
 ```bash
-clay tables rows list $TABLE --limit 10 \
-  | jq '
-    [ .data[].cells | to_entries[] ]
-    | group_by(.key)
-    | map({ col: .[0].key,
-            n: length,
-            statuses: (group_by(.value.status) | map({ (.[0].value.status): length }) | add) })'
+clay tables rows list <tableId> --limit 10 | jq '[ .data[].cells | to_entries[] ] | group_by(.key) | map({ col: .[0].key, n: length, statuses: (group_by(.value.status) | map({ (.[0].value.status): length }) | add) })'
 ```
 
 Map `col` ids to names from the catalog. This is a **sample of ≤10 rows**, so treat it as indicative, not a true rate — say so. Statuses are lowercase (`success`, `empty`, `error`, `queued`/`running`/…). If a stage shows heavy `error`, offer to hand off to `/table-error-sweep` for the real picture. On a query-enabled table, `tables query` group-bys can add exact value distributions to the narrative — statuses still come from the sample (they aren't queryable).

@@ -57,14 +57,11 @@ There is no `watch` command — poll `runs get` until the run leaves a non-termi
 state. `status` is one of `pending` / `running` / `paused` / `waiting` /
 `completed` / `failed`; `progress.percentage` tracks progress.
 
+Poll by re-running this command every few seconds and reading `.status`, until it's
+`completed` or `failed`:
+
 ```bash
-# Poll every 5s until the run finishes, then print final status
-while :; do
-  status=$(clay workflows runs get <workflowId> <runId> | jq -r '.status')
-  echo "status: $status"
-  case "$status" in completed|failed) break ;; esac
-  sleep 5
-done
+clay workflows runs get <workflowId> <runId> | jq -r '.status'
 ```
 
 ## Inspecting what a run did (instead of "logs")
@@ -101,7 +98,7 @@ Structure the recap as a short per-node walkthrough (or a small table: node → 
 ## Example workflow
 
 1. Start a test: `echo '{}' | clay workflows runs test wf_abc --input -`
-2. Watch progress with the poll loop above until `status` is `completed`/`failed`.
+2. Watch progress by re-running the `runs get … | jq -r '.status'` poll above until `status` is `completed`/`failed`.
 3. Inspect failures: `clay workflows runs steps wf_abc wfr_xyz --status failed | jq '.data[].errors'`
 4. Walk the user through the trace node-by-node (see "Tell the user what the run actually did" above), not as raw JSON.
 
@@ -119,7 +116,7 @@ Structure the recap as a short per-node walkthrough (or a small table: node → 
 
 ## Pro tips
 
-- Poll `runs get` in a loop (above) to monitor a run while you work.
+- Poll `runs get` by re-running it (above) to monitor a run while you work.
 - Pipe to `jq` for filtering: `clay workflows runs steps <workflowId> <runId> | jq '.data[] | select(.status=="failed")'`
-- Save output for later analysis: `clay workflows runs get <workflowId> <runId> --verbose > run.json`
+- To save output for later analysis, capture `clay workflows runs get <workflowId> <runId> --verbose` with your file-writing tool.
 - `--verbose` returns untruncated inputs/outputs; prefer it over reconstructing logs.

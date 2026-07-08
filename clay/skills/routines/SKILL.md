@@ -31,6 +31,26 @@ clay routines get <id>        # full config, integrations, and input schema
 `clay routines get <id>` is important before running: it shows the routine's **input
 schema** so you know exactly which fields each item needs.
 
+### Link the user to the underlying function or workflow
+
+Whenever you show the user a routine — from `clay routines list` or `clay routines get` —
+give them a link to open its underlying object in the Clay app so they can inspect or edit
+it. This matters most in a headless environment (Claude Code, Cursor, a shell) where the
+user has no Clay tab open.
+
+A routine id encodes the object it wraps: `function:<tableId>` wraps a table,
+`workflow:<workflowId>` wraps a workflow. Split off the id after the `:` and combine it
+with the workspace id (`clay whoami | jq -r '.workspace.id'`) to build the link:
+
+- **Function** (`function:<tableId>`) → `https://app.clay.com/workspaces/<workspaceId>/tables/<tableId>`
+- **Workflow** (`workflow:<workflowId>`) → `https://app.clay.com/workspaces/<workspaceId>/terracotta/tc-workflows/<workflowId>`
+
+For **function** routines, both `list` and `get` return a `source` (`managed` for a
+Clay-managed default function, `custom` for one built in this workspace) and, for custom
+functions, a `createdBy` (`{ id, name, email }`; `null` for managed ones). Use these to tell
+the user which functions are Clay-managed vs. their team's own, and who authored a custom
+one — e.g. group them by `source`, or note the author when disambiguating similar functions.
+
 ### Create a routine from an existing function or workflow
 
 If no routine exists yet for a function (a table) or a workflow, expose it as a runnable

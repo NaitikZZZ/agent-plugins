@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Clay setup — authenticate both the `clay` CLI and the Clay MCP server (both are required to use the plugin). Use when `clay` is not found on PATH, `clay whoami` fails, the MCP tools (`read`, `edit_node`) error on auth, CLAY_API_KEY is missing, or the user wants to configure Clay.
+description: Clay setup — authenticate both the `clay` CLI and the Clay MCP server (both are required to use the plugin). Use when `clay` is not found on PATH or the `clay` found in the PATH is the wrong version, `clay whoami` fails, the MCP tools (`read`, `edit_node`) error on auth, the CLI isn't signed in, or the user wants to configure Clay.
 allowed-tools: Bash, Read, Edit, Write
 ---
 
@@ -11,12 +11,16 @@ allowed-tools: Bash, Read, Edit, Write
 1. **The `clay` CLI** — runs tests, searches actions, manages runs.
 2. **The Clay MCP server** — provides the in-editor tools (`read`, `edit_node`, `validate_workflow`, `execute_clay_action`).
 
-Both authenticate with the **same `CLAY_API_KEY`** (the workspace is resolved from the
-key — there is no workspace id to set), but they read it at different times: the CLI
-reads it per command, while the MCP server reads it **once, when the harness launches
-it**. So setting the key is not enough for the MCP — the agent (Claude Code / Codex /
-Cursor) must be **restarted** for the MCP server to pick up a newly-set key, and
-`clay whoami` succeeding does **not** by itself prove the MCP is authenticated.
+Both authenticate the same way: **`clay login`** opens a browser once, and the
+resulting session is shared by the CLI and by `clay mcp` — the local proxy the plugin
+registers as the MCP server, which forwards to Clay using that same session (no
+separate key to hand the MCP server). The catch is _when_ each side picks up a
+session: the CLI re-reads it on every command, but `clay mcp` is a long-running
+process the agent's harness spawns once and only resolves the session at startup. So
+signing in is not enough by itself — the agent (Claude Code / Codex / Cursor) must be
+**restarted** for its already-running MCP server to see a session created after it
+launched, and `clay whoami` succeeding does **not** by itself prove the MCP is
+authenticated.
 
 ## 1. Check current state
 
@@ -45,9 +49,9 @@ clay whoami; echo "exit_code=$?"
   step 2, then step 3.
 - **exit_code=3** (`auth_*`) → the CLI works but isn't authenticated. Skip to step 3.
 - **exit_code=5** (`network_*`) → a connection problem. Check `CLAY_API_URL` and the
-  network; do not re-collect the key.
+  network; do not restart the sign-in flow.
 
-## 2. Put `clay` on your PATH (if it was "command not found", or lacked `mcp`)
+## 2. Put `clay` on your PATH (if it was "command not found", lacked `mcp`, or is an outdated version)
 
 Claude Code adds the plugin's `bin/` to PATH automatically, so this step is only
 needed in Codex and Cursor.
@@ -109,34 +113,27 @@ Tell the user to fully quit and reopen the agent — a simple retry or reload ma
 not re-spawn the MCP server's process environment — then re-run the check in
 step 1.
 
-**Restart required:** a running Codex or Cursor process resolved its PATH (and,
-for Cursor's MCP server, spawned `clay` via that PATH) before this step ran, so
-it won't see the newly-created `~/.local/bin/clay` entry until it's restarted.
-Tell the user to fully quit and reopen the agent — a simple retry or reload may
-not re-spawn the MCP server's process environment — then re-run the check in
-step 1.
+## 3. Sign in
 
-## 3. Credentials
+Run `clay login`. It opens a browser, the user signs in and picks a workspace, and
+the CLI stores the session locally on disk — used by both the CLI and by `clay mcp`,
+so there's nothing separate to configure for the MCP server. The flow waits up to 5
+minutes for the browser round-trip. If your shell tool lets you set a per-command
+timeout, request at least 5 minutes and just run it directly and block on it:
 
-Create a key in Clay under **Settings → Account**, then make it available as
-`CLAY_API_KEY`:
+```bash
+clay login   # request a timeout of at least 5 minutes if your tool supports one
+```
 
-- **Claude Code** — merge it into `.claude/settings.local.json` (gitignored) under
-  `env`, preserving existing settings:
+If your tool's timeout can't be raised past 5 minutes and it doesn't support
+backgrounding a long-running command, ask the user to run `clay login` in their own
+terminal instead, then poll:
 
-  ```json
-  { "env": { "CLAY_API_KEY": "<the key>" } }
-  ```
+```bash
+clay whoami; echo "exit_code=$?"   # poll this until exit_code=0
+```
 
-  Then tell the user to restart so it loads: `/exit`, then `claude --continue`.
-
-- **Codex / Cursor** — export it in the shell profile so both the CLI and the MCP
-  server pick it up, then restart the agent:
-
-  ```bash
-  echo 'export CLAY_API_KEY="<the key>"' >> "$HOME/.zshrc"   # or ~/.bashrc
-  export CLAY_API_KEY="<the key>"
-  ```
+**Restart the agent afterward** so the running MCP server picks up this session.
 
 ## 4. Verify both surfaces
 
@@ -150,6 +147,7 @@ clay whoami; echo "exit_code=$?"
 
 **MCP server:** after restarting the agent, confirm the `clay` MCP server is connected
 and its tools respond — e.g. call `read` on a workflow. If the MCP tools return an auth
-error while `clay whoami` succeeds, the key was set but the agent wasn't restarted (or
-the key isn't visible where the harness launches the MCP server) — set it as in step 3
-and restart again. Setup is complete only when **both** the CLI and the MCP tools work.
+error while `clay whoami` succeeds, you signed in but the agent wasn't restarted (or
+the credential isn't visible where the harness launches the MCP server) — redo the
+restart from step 3 and recheck. Setup is complete only when **both** the CLI and the
+MCP tools work.

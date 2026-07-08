@@ -20,30 +20,31 @@ If `{id}` is already a `rec_...` row id and the table is known, skip discovery a
 
 For each in-scope table:
 
-- **`clay tables columns list $TABLE`** — find the column that holds this kind of identifier by matching names (`Email` for an email, `HSID`/`HubSpot ID` for a HubSpot id, etc.). Cache the `f_id → name` map and note column types. The match column must be `basic` to value-filter on it. If several columns could match, or none does, show the columns and ask which to search.
-- **`clay tables get $TABLE`** — read `archive`. If `archive` is non-null, resolve `archive.searchableFieldFormula` (a `{{f_xxx}}`) to its column via the columns list. Plan to search the archive **only if** `{id}` is the value of that indexed column; otherwise the archive isn't searchable by this identifier.
+- **`clay tables columns list <tableId>`** — find the column that holds this kind of identifier by matching names (`Email` for an email, `HSID`/`HubSpot ID` for a HubSpot id, etc.). Cache the `f_id → name` map and note column types. The match column must be `basic` to value-filter on it. If several columns could match, or none does, show the columns and ask which to search.
+- **`clay tables get <tableId>`** — read `archive`. If `archive` is non-null, resolve `archive.searchableFieldFormula` (a `{{f_xxx}}`) to its column via the columns list. Plan to search the archive **only if** `{id}` is the value of that indexed column; otherwise the archive isn't searchable by this identifier.
 
 ## 3. Search for the record
 
 **If the active table is `queryEnabled`, locate the record with `tables query`** — its server-side filter is more forgiving (`contains`, case-insensitive matching) and scales, so it's the primary tool when query is on. The result carries each matching row's full cell content — value, `fields`, `status`, and any `error` message — so it doubles as the state snapshot; no follow-up call needed:
 
 ```bash
-echo '{"tables":[{"id":"'$TABLE'"}],"filter":{"field":"f_abc123","op":"contains","value":"jane@acme.com"}}' \
-  | clay tables query --query - | jq .
+echo '{"tables":[{"id":"tbl_abc123"}],"filter":{"field":"f_abc123","op":"contains","value":"jane@acme.com"}}' | clay tables query --query - | jq .
 ```
 
 **Otherwise, use `clay tables rows list`** with a value filter on the identifier column (shape in the command's `--help`):
 
 ```bash
-clay tables rows list $TABLE --filter f_abc123="jane@acme.com" | jq .
+clay tables rows list <tableId> --filter f_abc123="jane@acme.com" | jq .
 ```
 
 `rows list --filter` is exact match, **case-sensitive**. If it comes back empty (`{ "data": [] }`), retry **once** with a single predictable variant (lowercase for emails/domains, trim whitespace, or the casing a row sample shows), then stop guessing — say it wasn't found in this table and ask the user to confirm exact spelling/casing.
 
+Always locate by identifier, never by position: the order `rows list` returns rows in is not the order they appear in the Clay app, so "the 3rd row" in the output tells you nothing about what the user sees on screen.
+
 Where the archive applies (step 2), search it with `rows list` — archives are never query-enabled, so `tables query` is not an option; they're searchable only on the fixed `f_archive_index` column. Filter it by its indexed value (single filter; single capped page, no cursor; values over 255 characters are rejected — pass the first 255):
 
 ```bash
-clay tables rows list $ARCHIVE --filter f_archive_index="jane@acme.com" | jq .
+clay tables rows list <archiveTableId> --filter f_archive_index="jane@acme.com" | jq .
 ```
 
 Respect the rate limits — batch in small groups, back off on exit 4.
@@ -58,8 +59,7 @@ If you located via `tables query`, you already have the full snapshot from step 
 - the user asked for actual values / enrichment output — `fields` (structured action output) is only populated on `rows get`.
 
 ```bash
-clay tables rows get $TABLE $ROW \
-  | jq '.cells | to_entries | map({col: .key, status: .value.status, value: .value.value, err: .value.error})'
+clay tables rows get <tableId> <rowId> | jq '.cells | to_entries | map({col: .key, status: .value.status, value: .value.value, err: .value.error})'
 ```
 
 Map `col` ids to names from step 2. (`err` is the message string, present only on `error` cells.)

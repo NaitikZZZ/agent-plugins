@@ -93,6 +93,10 @@ The CLI reads a table two ways; pick by how much querying power you need:
 
 Reach for `query` the moment a plain `rows list --filter` can't express what you need — a range or text match, an OR, a join, sorting, grouping, or a large ordered pull. Otherwise a direct `rows list` is faster and needs no setup.
 
+### Row ordering
+
+Both `rows list` and `tables query` return rows in a stable, consistent order that roughly tends to follow the order rows were created — but treat that as a loose tendency only, never a guarantee. It's approximate, the two commands don't necessarily order rows the same way as each other, and neither matches the order rows appear in the Clay app. So don't rely on position for anything: don't map a row's position in the output to what the user sees on screen, and don't read "the first / most recent N rows" from position. To find a **specific record**, filter by an identifier (`rows list --filter`, or a `tables query` filter) rather than relying on position. `tables query` is the only place order is caller-controllable — pass `order_by` to impose one, but a custom `order_by` returns a single page (it can't be combined with cursor paging).
+
 ### List tables
 
 Discover tables and their ids. Each row carries a `queryEnabled` flag for whether the table is enabled for querying.
@@ -100,7 +104,7 @@ Discover tables and their ids. Each row carries a `queryEnabled` flag for whethe
 ```bash
 clay tables list                       # { data: [{ id, name, description, workbook, queryEnabled }], cursor? }
 clay tables list --query-enabled       # only tables enabled for querying
-clay tables list --limit 50 --cursor "$CURSOR"
+clay tables list --limit 50 --cursor cursor_abc123    # cursor_abc123 = the `cursor` token from a previous page
 ```
 
 ### Enable a table for querying
@@ -124,7 +128,7 @@ Unlike the MCP tool's natural language (single table, ≤ 100 rows), the CLI tak
 ```bash
 clay tables query --query ./query.json | jq '.data | length'
 echo '{"tables":[{"id":"tbl_abc123"}]}' | clay tables query --query - --limit 100
-clay tables query --query ./query.json --limit 100 --cursor "$CURSOR"
+clay tables query --query ./query.json --limit 100 --cursor cursor_abc123
 ```
 
 - The `--query` payload is the query itself (what to fetch); pagination is separate. Minimal shape: `{ "tables": [{ "id": "tbl_..." }] }`. Beyond `tables`, it may include `filter`, `select`, `join`, `order_by`, `group_by`, and `field_mode`. Field references can use ids or names. See `clay tables query --help` for the most up to date information
@@ -135,12 +139,12 @@ Typical flow: `clay tables list --query-enabled` to find the id → (if needed) 
 
 ## Example: combine both surfaces to query across tables
 
-A common pattern uses **both** surfaces together: the CLI to discover tables and run the query, the MCP `table` tool to learn each table's schema so you build the query with real field ids and types. For example, "join our Accounts and Contacts tables and pull the 500 contacts at companies with more than 100 employees":
+A common pattern uses **both** surfaces together: the CLI to discover tables and run the query, the MCP `table` tool to learn each table's schema so you build the query with real field ids and types. For example, "join our Accounts and Contacts tables and pull the contacts at software companies":
 
 **1. List tables via CLI to get their ids.**
 
 ```bash
-clay tables list --query-enabled | jq -r '.data[] | "\(.id)\t\(.name)"'
+clay tables list --query-enabled | jq -r '.data[] | [.id, .name] | @tsv'
 # tbl_accounts123   Accounts
 # tbl_contacts456   Contacts
 ```
@@ -152,34 +156,28 @@ table(tableId: "tbl_accounts123", mode: "schema")
 table(tableId: "tbl_contacts456", mode: "schema")
 ```
 
-Say the schemas show `Accounts` has `f_employees` (number) and `f_account_id`, and `Contacts` has `f_company` that references the account.
+Say the schemas show `Accounts` has `f_industry` (text) and `f_account_id`, and `Contacts` has `f_company` that references the account.
 
 **3. Build a structured query from those field ids and run it via CLI.** The join and >100-row read are why this goes through the CLI rather than the MCP tool. Enable querying first if `queryEnabled` was `false` for either table — and note that a freshly enabled table isn't queryable instantly, so give it a moment (or retry) before the `query` returns full results.
 
 ```bash
 clay tables update tbl_accounts123 --query-enabled true
-clay tables update tbl_contacts456 --query-enabled true
-
-# A freshly enabled table isn't queryable instantly — give it time (or retry) before the query returns full results.
-query='{
-  "tables": [{ "id": "tbl_contacts456" }, { "id": "tbl_accounts123" }],
-  "join": [{ "table": "tbl_accounts123", "on": { "left": "f_company", "right": "f_account_id" } }],
-  "filter": { "field": "f_employees", "op": ">", "value": 100 }
-}'
-
-echo "$query" | clay tables query --query - --limit 100 | jq '.data | length'
 ```
 
-**4. Page past 100 rows** by following the returned `cursor` until it's gone:
+```bash
+clay tables update tbl_contacts456 --query-enabled true
+```
+
+A freshly enabled table isn't queryable instantly — give it time (or retry) before the query returns full results.
 
 ```bash
-cursor=""
-while :; do
-  page=$(echo "$query" | clay tables query --query - --limit 100 ${cursor:+--cursor "$cursor"})
-  echo "$page" | jq -c '.data[]'
-  cursor=$(echo "$page" | jq -r '.cursor // empty')
-  [ -n "$cursor" ] || break
-done
+echo '{"tables": [{ "id": "tbl_contacts456" }, { "id": "tbl_accounts123" }], "join": [{ "table": "tbl_accounts123", "on": { "left": "f_company", "right": "f_account_id" } }], "filter": { "field": "f_industry", "op": "contains", "value": "software" }}' | clay tables query --query - --limit 100 | jq '.data | length'
+```
+
+**4. Page past 100 rows** by passing the `cursor` from the previous response's output back in via `--cursor`. Repeat with each new `cursor` until the response no longer returns one:
+
+```bash
+echo '{"tables": [{ "id": "tbl_contacts456" }, { "id": "tbl_accounts123" }], "join": [{ "table": "tbl_accounts123", "on": { "left": "f_company", "right": "f_account_id" } }], "filter": { "field": "f_industry", "op": "contains", "value": "software" }}' | clay tables query --query - --limit 100 --cursor CURSOR_FROM_PREVIOUS_RESPONSE | jq -c '.data[]'
 ```
 
 `clay tables query --help` lists the top-level query keys (`filter`, `select`, `join`, `order_by`, `group_by`, `field_mode`) and the pagination flags; the exact inner shape — `join`'s `table` / `on.left` / `on.right`, and a filter's `field` / `op` / `value` — comes from the schema and the developer docs below. Use the field ids you read from the MCP schema in step 2 rather than guessing.
@@ -191,13 +189,13 @@ https://claydevelopers.mintlify.app/llms.txt
 
 Beyond querying data, the CLI's read commands (`clay tables get`, `columns list|get`, `rows list|get`) support diagnostic work: what a table's workflow does, what happened to a record, and why. These need no query sync — they read the table directly. Each investigation is a focused skill; match the question and use that skill:
 
-| The user wants… | Skill |
-|-----------------|-------|
-| "what does this table do?" / "explain the {table} workflow" | `/table-analyze` |
-| "trace {id}" / "where is {id} and what state is it in?" | `/table-trace` |
+| The user wants…                                                    | Skill                |
+| ------------------------------------------------------------------ | -------------------- |
+| "what does this table do?" / "explain the {table} workflow"        | `/table-analyze`     |
+| "trace {id}" / "where is {id} and what state is it in?"            | `/table-trace`       |
 | "what's erroring in {table}?" / "show failed rows" (no identifier) | `/table-error-sweep` |
-| "why is {id} stuck/failing?" / "where did {value} come from?" | `/table-value-trace` |
-| "why aren't new rows being added / why is the import stuck?" | `/table-capacity` |
+| "why is {id} stuck/failing?" / "where did {value} come from?"      | `/table-value-trace` |
+| "why aren't new rows being added / why is the import stuck?"       | `/table-capacity`    |
 
 Each `/table-*` skill is self-contained. `/table-analyze` and `/table-value-trace` share one helper — the column-DAG extraction recipe in `tables/dependency-catalog.md`.
 

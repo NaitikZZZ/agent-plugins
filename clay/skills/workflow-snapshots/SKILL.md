@@ -6,7 +6,6 @@ allowed-tools: Bash(clay *), Bash(jq *), Read
 
 # Workflow snapshots & version history
 
-
 Snapshots are immutable, point-in-time captures of the entire workflow graph — nodes, edges, prompts, scripts, tools, and positions.
 
 ## Key concepts
@@ -66,8 +65,8 @@ clay workflows diagram <workflowId> | jq -r '.diagram'   # always the current gr
 
 There's no diagram command for an arbitrary snapshot id, so hand-write a small
 node/edge list from that snapshot's `nodes`/`edges` for its side. Label the diagrams
-by the direction of the change: "before" is the state you're changing *from*, "after"
-is the state you're ending up *with* — and use the command above for whichever side is
+by the direction of the change: "before" is the state you're changing _from_, "after"
+is the state you're ending up _with_ — and use the command above for whichever side is
 the current graph. When previewing a restore (see "Restore to a snapshot" below), the
 restore overwrites the current graph with the snapshot, so the current graph is the
 "before" and the snapshot you're restoring to is the "after".

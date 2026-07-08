@@ -1,0 +1,9 @@
+{
+  "name": "@clay-plugin/skills",
+  "version": "0.0.0",
+  "private": true,
+  "sideEffects": false,
+  "engines": {
+    "node": "^22.21.0"
+  }
+}

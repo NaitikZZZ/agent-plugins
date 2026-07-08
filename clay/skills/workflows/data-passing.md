@@ -24,6 +24,7 @@ When Node A transitions to Node B, the LLM fills in `company_name`,
 immediately preceding agent node has all the context needed.
 
 **Limitations:**
+
 - Non-deterministic — the LLM may fill values slightly differently each run
 - No type validation — everything is a string
 - Only works node-to-immediate-successor — for data from 2+ hops back, pin the input (Method 2)
@@ -82,6 +83,7 @@ Use `sourcePath`, not `path`.
 equivalent to the full form above. Either works; the shorthand is terser.
 
 **`automapInputs`** (boolean, top-level):
+
 - `true` (default) — the LLM fills any inputs at runtime and may override pins
 - `false` — inputs resolve only from their `sourceNodeId`/`sourcePath`; pin every input you care about
 
@@ -104,9 +106,9 @@ Tool nodes (`nodeType: "tool"`) do **not** wire action inputs through
       "actionPackageId": "a2584689-...",
       "toolType": "clay_action",
       "inputMappingConfig": {
-        "objectTypeId":            { "type": "static",    "value": "0-2" },
-        "fields|domain":           { "type": "reference", "expression": "{{domain}}" },
-        "fields|fieldsToFilterBy": { "type": "static",    "value": ["domain"] }
+        "objectTypeId": { "type": "static", "value": "0-2" },
+        "fields|domain": { "type": "reference", "expression": "{{domain}}" },
+        "fields|fieldsToFilterBy": { "type": "static", "value": ["domain"] }
       }
     }
   ]
@@ -115,12 +117,12 @@ Tool nodes (`nodeType: "tool"`) do **not** wire action inputs through
 
 Each value is one of:
 
-| `type`      | shape                                              | meaning |
-|-------------|----------------------------------------------------|---------|
-| `static`    | `{ "type": "static", "value": … }`                 | fixed value baked into the node |
+| `type`      | shape                                              | meaning                                                           |
+| ----------- | -------------------------------------------------- | ----------------------------------------------------------------- |
+| `static`    | `{ "type": "static", "value": … }`                 | fixed value baked into the node                                   |
 | `reference` | `{ "type": "reference", "expression": "{{var}}" }` | pull from an available variable (upstream output / trigger input) |
-| `llm`       | `{ "type": "llm" }`                                 | let the LLM fill it at runtime |
-| `skip`      | `{ "type": "skip" }`                               | leave the parameter unset |
+| `llm`       | `{ "type": "llm" }`                                | let the LLM fill it at runtime                                    |
+| `skip`      | `{ "type": "skip" }`                               | leave the parameter unset                                         |
 
 **Pipe keys (`parent|sub`):** grouped/nested action parameters are addressed
 with a pipe. A `fields` group with `domain` and `fieldsToFilterBy` sub-fields is
@@ -157,7 +159,9 @@ agent node pins one (`sourceNodeId` + `sourcePath`) and reference it by name in
   },
   "tools": [
     {
-      "toolType": "clay_action", "actionKey": "hubspot-create-object", "actionPackageId": "a2584689-...",
+      "toolType": "clay_action",
+      "actionKey": "hubspot-create-object",
+      "actionPackageId": "a2584689-...",
       "inputMappingConfig": { "fields|name": { "type": "reference", "expression": "{{owner_name}}" } }
     }
   ]
@@ -183,6 +187,7 @@ The actual top-level keys of an enrich (tool) node's outputs are always `toolRes
 Everything the Clay action returned is inside `toolResult.result.*`.
 
 To discover the exact field names, either:
+
 1. Check the `recentOutputPaths` field on the node (populated from the most recent run), or
 2. Run the action once with `execute_clay_action` and look at the returned fields — those keys
    will be available as `$.toolResult.result.<field>`.
@@ -200,13 +205,11 @@ hits the live integration, so pass the connected account:
 
 ```bash
 # 1. resolve a dependent dropdown's values (the "driver")
-clay workflows actions dynamic-fields <packageId> <actionKey> objectTypeId \
-  --type select --account <appAccountId>
+clay workflows actions dynamic-fields pkg_abc123 hubspot-create-object objectTypeId --type select --account acct_abc123
 #   → [{ "value": "2-36617481", "displayName": "Pet" }, ...]
 
 # 2. with the driver chosen, resolve the fields it reveals
-clay workflows actions dynamic-fields <packageId> <actionKey> fields \
-  --type input --account <appAccountId> --inputs '{"objectTypeId":"2-36617481"}'
+clay workflows actions dynamic-fields pkg_abc123 hubspot-create-object fields --type input --account acct_abc123 --inputs '{"objectTypeId":"2-36617481"}'
 #   → field objects; each "name" is already pipe-namespaced: "fields|name", "fields|age", ...
 ```
 
@@ -222,12 +225,12 @@ clay workflows actions dynamic-fields <packageId> <actionKey> fields \
 
 ## Choosing a method
 
-| Scenario | Method |
-|----------|--------|
-| Free-form text from the immediately preceding agent | LLM variable filling |
+| Scenario                                             | Method                                                               |
+| ---------------------------------------------------- | -------------------------------------------------------------------- |
+| Free-form text from the immediately preceding agent  | LLM variable filling                                                 |
 | Numeric scores, IDs, booleans into an **agent** node | Pinned inputs (`sourceNodeId`/`sourcePath` + `automapInputs: false`) |
-| Data from 2+ hops back into an **agent** node | Pinned inputs |
-| Any input into a **tool** node | `inputMappingConfig` (`static` / `reference`) |
+| Data from 2+ hops back into an **agent** node        | Pinned inputs                                                        |
+| Any input into a **tool** node                       | `inputMappingConfig` (`static` / `reference`)                        |
 
 You can mix on an agent node: pin the critical typed inputs and let the LLM fill
 supplementary text variables in the same prompt (`automapInputs: true`).

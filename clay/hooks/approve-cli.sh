@@ -12,14 +12,20 @@
 # "allow" only skips the prompt; deny/ask rules (including managed deny lists)
 # still take precedence, so this can't punch through an admin block. Conservative
 # by design: any command that chains, redirects, or substitutes another program
-# (`;`, `&`, `&&`, `||`, `>`, `<`, backticks, `$(…)`) falls through to the normal
-# prompt rather than being approved.
+# or expands the environment (`;`, `&`, `&&`, `||`, `>`, `<`, backticks, `$(…)`,
+# any `$` parameter expansion like `$VAR`/`${VAR}`, or a backslash escape `\`)
+# falls through to the normal prompt rather than being approved.
 
 agent="${1:-claude}"
 
 # Pipeline helpers allowed to follow `clay`. Read-only by intent; this is the
-# security-relevant surface, kept in one place for review.
-allowed_helpers="jq cat head tail wc grep sort uniq column tr"
+# security-relevant surface, kept in one place for review. `echo`/`printf` only
+# emit their literal arguments (they never open a file or socket), so they are
+# exempt from the path/file-flag guards below -- see the awk pass.
+allowed_helpers="jq cat head tail wc grep sort uniq column tr echo printf"
+
+# Credential/egress `clay` subcommands that never auto-approve
+gated_subcommands="feedback login logout api-keys webhooks"
 
 # Harden: no globbing, and unset variables are errors so a typo can't silently
 # widen approval.
@@ -60,34 +66,58 @@ cmd_stripped="$(printf '%s' "$cmd" | sed -E '
 ')"
 
 # Reject command chaining / redirection / substitution outright. Runs on the raw
-# (quoted) string so even a quoted `;`/`>`/etc. is conservatively refused.
+# (quoted) string so even a quoted `;`/`>`/etc. is conservatively refused. The
+# backslash is rejected too: the segment splitter below is not backslash-aware,
+# so a `\"`/`\|` would let awk and the shell disagree on where segments start
+# and end (a total allowlist bypass). Refusing any `\` closes that desync.
 case "$cmd_stripped" in
-  *';'* | *'&'* | *'<'* | *'>'* | *'`'* | *'$('*) exit 0 ;;
+  *';'* | *'&'* | *'<'* | *'>'* | *'`'* | *'$'* | *'\'*) exit 0 ;;
 esac
 
 # Reject multi-line commands (heredocs, embedded scripts).
 [ "$(printf '%s' "$cmd_stripped" | wc -l | tr -d ' ')" = "0" ] || exit 0
 
+# Bound the input so the char-by-char awk pass below can't be forced to scan an
+# unbounded string.
+[ "${#cmd_stripped}" -le 10000 ] || exit 0
+
 # Validate the pipeline in a single quote-aware pass. awk splits on unquoted
-# pipes (so a `|` inside jq/grep args or a quoted clay arg is not a separator),
-# strips leading `VAR=value ` and surrounding whitespace per segment, then:
+# pipes (so a `|` inside jq/grep args or a quoted clay arg is not a separator;
+# the `\`-reject guard above keeps this splitter in sync with the shell), trims
+# surrounding whitespace per segment, then:
+#   - any segment that leads with a `VAR=value` env-var assignment is rejected
+#     outright -- we never vet the variable, so a prefix like `LD_PRELOAD=`,
+#     `CLAY_API_URL=`, or `CLAY_CONFIG_HOME=` must not ride in as a plain call;
 #   - at least one segment must be `clay` (its own path/URL args are left
 #     alone), so the pipeline stays anchored to a clay call wherever it sits;
+#   - the `clay` segment's first non-flag word is refused if it is a
+#     credential/egress subcommand (feedback, login, logout, api-keys,
+#     webhooks) so those never auto-approve; ordinary read/write subcommands
+#     (whoami, tables, routines, workflows, ...) still do;
 #   - every other segment's command must be in the allowlist (membership is an
 #     exact key lookup, so a token like `*` can't wildcard its way in); and
 #   - every other segment must not reference a path (`/`, `~`) or a read/write
-#     file flag (-o/--output, -f/--file) -- helpers must transform stdin, not
-#     open files. These checks apply to helpers on both sides of clay, so
-#     neither `cat /etc/passwd | clay` nor `clay | cat /etc/passwd` slips by;
-#     quoted text is scanned too, so cat "/etc/passwd" can't either.
-# Residual, knowingly accepted: bare cwd-relative names (e.g. `cat .env`) and
-# combined short flags aren't caught; since no allowlisted helper can reach the
-# network or redirect, such a read stays in the agent's context and still can't
-# be exfiltrated without a separate, non-approved (prompted) command.
-verdict="$(printf '%s' "$cmd_stripped" | awk -v helpers="$allowed_helpers" '
+#     file flag (long `--output`/`--file` or short clusters containing `o`/`f`,
+#     attached value or not) -- helpers must transform stdin, not open files.
+#     These checks apply to helpers on both sides of clay, so neither
+#     `cat /etc/passwd | clay` nor `clay | cat /etc/passwd` slips by, and
+#     `clay | sort -oPWNED.txt` can't write a cwd file; quoted text is scanned
+#     too, so cat "/etc/passwd" can't either. `echo` and `printf` are exempt
+#     from these path/flag guards: they only print literal arguments and can't
+#     open a file, so a `/` or `~` in their args is data (JSON, a URL) being fed
+#     to clay's stdin, not a file read. The `$`-reject guard above is what makes
+#     those args literal -- otherwise `printf "$SECRET"` would expand an env var
+#     into clay's stdin under this exemption.
+# Residual, knowingly accepted: bare cwd-relative names (e.g. `cat .env`) aren't
+# caught; since no allowlisted helper can reach the network or redirect, such a
+# read stays in the agent's context and still can't be exfiltrated without a
+# separate, non-approved (prompted) command.
+verdict="$(printf '%s' "$cmd_stripped" | awk -v helpers="$allowed_helpers" -v gated="$gated_subcommands" '
   BEGIN {
     n = split(helpers, a, " ")
     for (i = 1; i <= n; i++) H[a[i]] = 1
+    nd = split(gated, d, " ")
+    for (i = 1; i <= nd; i++) D[d[i]] = 1
     sq = sprintf("%c", 39)
   }
   {
@@ -106,16 +136,34 @@ verdict="$(printf '%s' "$cmd_stripped" | awk -v helpers="$allowed_helpers" '
       t = seg[s]
       sub(/^[ \t]+/, "", t)
       sub(/[ \t]+$/, "", t)
-      while (t ~ /^[A-Za-z_][A-Za-z0-9_]*=[^ \t]* /) sub(/^[A-Za-z_][A-Za-z0-9_]*=[^ \t]* /, "", t)
+      if (t ~ /^[A-Za-z_][A-Za-z0-9_]*=/) exit
       tok = t
       sub(/[ \t].*$/, "", tok)
       if (tok == "clay") {
         saw_clay = 1
+        # Gate credential/egress subcommands: resolve the first non-flag word
+        # after `clay` and refuse it if it is in the dangerous set.
+        rest = t
+        sub(/^clay([ \t]+|$)/, "", rest)
+        m = split(rest, w, /[ \t]+/)
+        sc = ""
+        for (j = 1; j <= m; j++) {
+          if (w[j] == "") continue
+          if (substr(w[j], 1, 1) == "-") continue
+          sc = w[j]; break
+        }
+        gsub(/"/, "", sc); gsub(sq, "", sc)
+        # Refuse any globbable subcommand token.
+        if (sc ~ /[][*?]/) exit
+        if (sc in D) exit
       } else {
         if (!(tok in H)) exit
-        if (index(t, "/") > 0) exit
-        if (index(t, "~") > 0) exit
-        if (t ~ /(^|[ \t])(-o|--output|-f|--file)([ \t]|=|$)/) exit
+        if (tok != "echo" && tok != "printf") {
+          if (index(t, "/") > 0) exit
+          if (index(t, "~") > 0) exit
+          if (t ~ /(^|[ \t])--(output|file)([ \t]|=|$)/) exit
+          if (t ~ /(^|[ \t])-[A-Za-z]*[of]/) exit
+        }
       }
     }
     if (saw_clay) print "allow"
