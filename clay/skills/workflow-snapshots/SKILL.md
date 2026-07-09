@@ -18,8 +18,8 @@ Snapshots are immutable, point-in-time captures of the entire workflow graph —
 ## CLI reference
 
 Use the `clay` CLI. (In Codex/Cursor, run the `setup` skill once if `clay` isn't
-found.) It needs only `CLAY_API_KEY`; the workspace is resolved from the key.
-Output is JSON — pipe it to `jq`.
+found or `clay whoami` fails on auth.) Authenticate with `clay login`; the workspace
+is resolved from the stored session. Output is JSON — pipe it to `jq`.
 
 ### List recent snapshots
 

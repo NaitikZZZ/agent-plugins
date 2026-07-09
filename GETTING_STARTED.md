@@ -11,6 +11,8 @@ Build with Clay in your AI coding agent — skills, MCP tools, and the Clay CLI.
 
 ### Claude Code
 
+Requires **Claude Code v2.1.91+**.
+
 ```
 /plugin marketplace add clay-run/agent-plugins
 /plugin install clay@clay-plugins
@@ -26,44 +28,38 @@ Then open **Plugins** and install **clay**.
 
 ### Cursor
 
-Teams/Enterprise: Settings → Plugins → Add Marketplace → Import from Repo → [`clay-run/agent-plugins`](https://github.com/clay-run/agent-plugins).
-
-Otherwise (local install): the repo root is a *marketplace*, so clone it and copy the plugin itself — the `clay/` folder, which holds the plugin manifest — into your Cursor plugins dir, then reload Cursor:
-
-```
-git clone https://github.com/clay-run/agent-plugins.git
-cp -R agent-plugins/clay ~/.cursor/plugins/local/clay
-rm -rf agent-plugins
-```
-
-## Put `clay` on your PATH
-
-In **Claude Code** the bundled `clay` CLI is on the agent's PATH automatically — skip this section.
-
-**Codex and Cursor do not add a plugin's `bin/` to PATH.** The simplest fix is to ask the agent to run the bundled **`setup` skill**, which handles this — and signing in — for you. To do it by hand, drop a forwarder — *not* a symlink, since the launcher locates its own files by path — into a directory on your PATH:
+A plain local copy into `~/.cursor/plugins/local/clay` can silently fail on Teams/Enterprise org
+policy — don't guess. Clone the marketplace repo, then hand off to the bundled **`setup` skill**,
+which reads the effective policy and picks a path that works (see the skill's own **Cursor
+only** step for why and how):
 
 ```
-mkdir -p ~/.local/bin
-launcher="$(find ~/.codex ~/.cursor ~/.claude ~/.config -type f -path '*/bin/clay' 2>/dev/null | sort | tail -1)"
-printf '#!/bin/sh\nexec "%s" "$@"\n' "$launcher" > ~/.local/bin/clay
-chmod +x ~/.local/bin/clay
+git clone https://github.com/clay-run/agent-plugins.git /tmp/clay-agent-plugins
 ```
 
-## Sign in
+Then read `/tmp/clay-agent-plugins/clay/skills/setup/SKILL.md` and follow it like a runbook —
+see [Run the `setup` skill](#run-the-setup-skill) below. Once setup finishes, delete the clone
+(`rm -rf /tmp/clay-agent-plugins`) — whichever path the skill picked already copied what it
+needs to a permanent location.
 
-Already ran the bundled `setup` skill above? You're signed in too — skip to **What's next**.
+## Run the `setup` skill
 
-The `clay` CLI and the Clay MCP server (`clay mcp`, the local proxy the plugin registers) share one session:
+Once installed, run the bundled **`setup` skill** now, in this session, before anything else below. It puts `clay` on PATH (needed on Codex and Cursor), signs you in, and verifies both the CLI and the MCP server work.
 
-```
-clay login
-```
+**Important — restarting your agent afterward is not optional:** `clay mcp` resolves its session once at startup, so an already-running MCP server won't see a sign-in that happened after it launched — skipping the restart is the most common reason `clay login` looks like it worked but the MCP tools still fail. How you restart is platform-specific; see the skill for the exact steps.
 
-This opens a browser, you sign in and pick a workspace, and the session is stored on disk — there's nothing separate to configure for the MCP server. The flow waits up to 5 minutes for the browser round-trip; if your shell tool's timeout is shorter, background the command and poll `clay whoami`, or run `clay login` in your own terminal instead.
+- Try invoking the plugin's `setup` skill directly by its fully qualified name, `clay:setup` — Claude Code's Skill tool supports this, and Codex or Cursor may too depending on version.
+- If it doesn't, or the skill doesn't show up right after installing (some platforms don't register a newly installed plugin until restarted), locate `SKILL.md` yourself and follow it like a runbook:
 
-**Restart your agent afterward** — `clay mcp` resolves its session once at startup, so an already-running MCP server won't see a session created after it launched.
+  ```
+  find ~/.codex ~/.cursor ~/.claude ~/.config -type f -path '*/skills/setup/SKILL.md' 2>/dev/null | sort | tail -n1
+  ```
 
-Verify with `clay whoami` — exit 0 prints your user and workspace; exit 3 means you're not signed in.
+  Read the path that prints and carry out its steps directly.
+
+If something doesn't work, the skill's own **Troubleshooting** table covers the common
+symptoms — a plugin that never appears, greyed-out marketplace import options, tools missing
+after install, and auth failures.
 
 ## What's next
 

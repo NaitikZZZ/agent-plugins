@@ -25,7 +25,7 @@ Don't assume a routine id. List what exists and match the user's request to one:
 
 ```bash
 clay routines list            # routines in this workspace
-clay routines get <id>        # full config, integrations, and input schema
+clay routines get <id>        # full config and input schema
 ```
 
 `clay routines get <id>` is important before running: it shows the routine's **input
@@ -54,23 +54,22 @@ one — e.g. group them by `source`, or note the author when disambiguating simi
 ### Create a routine from an existing function or workflow
 
 If no routine exists yet for a function (a table) or a workflow, expose it as a runnable
-routine with `create`. This registers the underlying object as a routine and controls which
-integrations (`api`, `mcp`, `claygent`) it's available on:
+routine with `create`. This registers the underlying object as a routine.
 
 ```bash
-clay routines create function <tableId> --name "My contact routine" --entity-type contact --integrations api,mcp
-clay routines create workflow <workflowId> --name "My workflow routine" --integrations api,mcp
+clay routines create function <tableId> --name "My contact routine" --entity-type contact
+clay routines create workflow <workflowId> --name "My workflow routine"
 ```
 
 - `type` is `function` or `workflow`; `objectId` is the table id (function) or workflow id.
-- `--name` and `--integrations` are **required** for both types.
+- `--name` is **required** for both types.
 - `--entity-type` (`contact` or `company`) is **required** for function routines and rejected
   for workflow routines.
 - The routine id is built from the type and object id, e.g. `function:tbl_abc`.
 
-Use `clay routines update <id>` to change a routine's name, description, entity-type, or
-integrations later. See `clay routines create --help` / `clay routines update --help` for the
-full flags and JSON shape.
+Use `clay routines update <id>` to change a routine's name, description, or entity-type
+later. See `clay routines create --help` / `clay routines update --help` for the full flags
+and JSON shape.
 
 ## 2. Check the cost and your balance before running
 
@@ -162,4 +161,4 @@ clay routines <cmd> --help
 ```
 
 Full developer documentation (CLI reference, Public API reference, concepts) lives at:
-https://claydevelopers.mintlify.app/llms.txt
+https://developers.clay.com/llms.txt

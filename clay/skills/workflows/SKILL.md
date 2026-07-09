@@ -22,7 +22,7 @@ You should also understand **triggers** — how a workflow gets launched (audien
 
 ## Setup required
 
-Anything that uses the `clay` CLI (running tests, searching actions, viewing snapshots, managing runs) requires the CLI on your PATH and a Clay API key. If a `clay` command returns `command not found`, do not conclude it's unavailable or fall back to other tools: retry once (a transient PATH-init race can briefly hide it), and if it's still missing, run the `setup` skill to install it. If `CLAY_API_KEY` is unset or `clay whoami` fails on auth, the `setup` skill fixes that too. This only needs to be done once. The workspace is resolved from the key — there is no workspace id to set.
+Anything that uses the `clay` CLI (running tests, searching actions, viewing snapshots, managing runs) requires the CLI on your PATH and a signed-in session (`clay login`; run the `setup` skill if `clay whoami` fails on auth). If a `clay` command returns `command not found`, do not conclude it's unavailable or fall back to other tools: retry once (a transient PATH-init race can briefly hide it), and if it's still missing, run the `setup` skill to install it. This only needs to be done once. The workspace is resolved from the stored session — there is no workspace id to set.
 
 ## Your capabilities
 

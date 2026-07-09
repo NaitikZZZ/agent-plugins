@@ -19,24 +19,25 @@ A search is a three-step, forward-only iterator:
 
 1. **Discover** valid filters for the source type with `fields`.
 2. **Create** the search from structured filters + source type — you get back a `searchId`.
-3. **Advance** it with `next` to pull the next page of records. Repeat while `hasMore`
+3. **Run** it to pull the next page of records. Repeat while `hasMore`
    is `true`.
 
 There is no cursor: the iterator's position lives server-side and can't be replayed, so
-each `next` call returns the records after the previous one.
+each `run` call returns the records after the previous one.
 
 ## CLI reference
 
-Use the `clay` CLI. (In Codex/Cursor, run the `setup` skill once if `clay` isn't found.)
-It needs only `CLAY_API_KEY`; the workspace is resolved from the key. Output is JSON —
-pipe it to `jq`. Run `clay search --help` (and `clay search <cmd> --help`) for the
-authoritative flags and output shapes.
+Use the `clay` CLI. (In Codex/Cursor, run the `setup` skill once if `clay` isn't found
+or `clay whoami` fails on auth.) Authenticate with `clay login`; the workspace is
+resolved from the stored session. Output is JSON — pipe it to `jq`. Run
+`clay search --help` (and `clay search <cmd> --help`) for the authoritative flags and
+output shapes.
 
 ### Start a search
 
 ```bash
-clay search fields --source-type <people|companies>
-clay search create --source-type <people|companies> --filters '<json>'
+clay search filters-mode fields --source-type <people|companies>
+clay search filters-mode create --source-type <people|companies> --filters '<json>'
 ```
 
 The fields command returns the allowed filter names, types, enum values, and guidance.
@@ -45,7 +46,7 @@ Create returns `{ "searchId": <string> }`. `--source-type` is one of `people` or
 
 ### When the user asks to filter on a field that isn't a built-in filter
 
-Search only accepts the filters returned by `clay search fields` for that source type.
+Search only accepts the filters returned by `clay search filters-mode fields` for that source type.
 When the user wants to narrow by an attribute that isn't in that list — e.g. "companies
 using React", "people who recently changed jobs", "accounts with a specific tech in their
 stack", or any derived/enriched signal — **do not invent a filter name or force it into an
@@ -63,10 +64,10 @@ rather than returning nothing. Read the `routines` skill (`skills/routines/SKILL
 to find and run one, and see the "Next: enrich or act on the results" section below for the
 handoff command.
 
-### Get the next page
+### Run the search
 
 ```bash
-clay search next <searchId> [--limit <n>]
+clay search filters-mode run <searchId> [--limit <n>]
 ```
 
 Returns `{ "data": [ ... ], "hasMore": <boolean> }`. `--limit` is the page size; omit it
@@ -77,37 +78,37 @@ to use the server default. Call again while `hasMore` is `true` to keep paging.
 ### Search and grab the first page
 
 Run these one at a time, reading the `searchId` from the `create` output and passing it
-literally to `next`:
+literally to `run`:
 
 ```bash
-clay search fields --source-type people | jq '.fields[].name'
+clay search filters-mode fields --source-type people | jq '.fields[].name'
 ```
 
 ```bash
-clay search create --source-type people --filters '{"job_title_keywords":["growth engineer"],"location_cities_include":["San Francisco"]}'
+clay search filters-mode create --source-type people --filters '{"job_title_keywords":["growth engineer"],"location_cities_include":["San Francisco"]}'
 ```
 
 `create` prints `{ "searchId": "srch_..." }`. Take that id and page:
 
 ```bash
-clay search next srch_abc123 --limit 25 | jq '.data'
+clay search filters-mode run srch_abc123 --limit 25 | jq '.data'
 ```
 
 ### Page through all results
 
-Paging is just repeated `next` calls with the same `searchId`. Run `next`, read `hasMore`
+Paging is just repeated `run` calls with the same `searchId`. Run `run`, read `hasMore`
 from its output, and if it's `true` run the exact same command again — the server advances
 the iterator for you.
 
 ```bash
-clay search create --source-type companies --filters '{"industries":["Software Development"],"funding_amounts":["1m_5m","5m_10m","10m_25m"]}'
+clay search filters-mode create --source-type companies --filters '{"industries":["Software Development"],"funding_amounts":["1m_5m","5m_10m","10m_25m"]}'
 ```
 
 ```bash
-clay search next srch_abc123 --limit 50 | jq -c '.data[]'
+clay search filters-mode run srch_abc123 --limit 50 | jq -c '.data[]'
 ```
 
-Repeat that `next` line while the page's `hasMore` is `true`; stop when it's `false`.
+Repeat that `run` line while the page's `hasMore` is `true`; stop when it's `false`.
 
 ## Next: enrich or act on the results
 
@@ -128,11 +129,11 @@ clay routines get function:tbl_abc123
 ```
 
 ```bash
-clay search create --source-type people --filters '{"job_title_keywords":["growth engineer"],"location_cities_include":["San Francisco"]}'
+clay search filters-mode create --source-type people --filters '{"job_title_keywords":["growth engineer"],"location_cities_include":["San Francisco"]}'
 ```
 
 Then read the `searchId` from that output and pull a page straight into a run:
 
 ```bash
-clay search next srch_abc123 --limit 25 | jq '{items: [.data[] | {id: .id, inputs: {name: .name}}]}' | clay routines runs start function:tbl_abc123 --input -
+clay search filters-mode run srch_abc123 --limit 25 | jq '{items: [.data[] | {id: .id, inputs: {name: .name}}]}' | clay routines runs start function:tbl_abc123 --input -
 ```

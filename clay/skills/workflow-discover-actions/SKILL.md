@@ -10,8 +10,9 @@ This skill helps you find available Clay actions for use in Clay workflow nodes,
 via the `clay` CLI. (In Codex/Cursor, run the `setup` skill once if `clay` is not
 yet on your PATH.)
 
-Not to be confused with `clay tools` — that lists workspace _function tools_, a
-different concept. For workflow building blocks, use `clay workflows actions`.
+Not to be confused with `clay routines` — that lists saved function/workflow
+routines in the workspace, a different concept from workflow actions. For
+workflow building blocks, use `clay workflows actions`.
 
 ## Actions catalog
 

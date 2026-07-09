@@ -6,8 +6,9 @@ description: Clay CLI — the primary scripting surface (JSON output, typed erro
 # The `clay` CLI
 
 The `clay` CLI is Clay's primary programmatic surface, optimized for agents: JSON
-output and typed error codes. It authenticates with a Clay API key (`CLAY_API_KEY`,
-set up via the `setup` skill or `clay login`); the workspace is resolved from the key.
+output and typed error codes. It authenticates via **`clay login`** (browser OAuth;
+run the `setup` skill once if `clay whoami` fails). The workspace is resolved from
+the stored session — there is no workspace id to pass.
 
 ## Discovering what you can do
 
@@ -37,4 +38,4 @@ Use the CLI for scripting and agent-driven tasks in a shell. To build a service,
 or integration that talks to Clay over HTTP, use the **Public API** (`public-api` skill).
 
 Full developer documentation (CLI reference, Public API reference, concepts, OpenAPI
-spec) lives at: https://claydevelopers.mintlify.app/llms.txt
+spec) lives at: https://developers.clay.com/llms.txt

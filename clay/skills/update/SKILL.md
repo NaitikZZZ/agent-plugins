@@ -75,10 +75,13 @@ fetch is the same on every harness (`bin/` is shared). What differs is whether t
 
 - **Claude Code** adds the plugin's `bin/` to PATH and repoints it to the new version
   automatically, so the next `clay` call runs the updated shim.
-- **Codex / Cursor** use the `~/.local/bin/clay` forwarder the `setup` skill wrote,
-  which execs an absolute path to the plugin-version directory that existed when setup
-  ran. After a plugin update that path can be stale, so `clay` keeps running the old
-  pinned CLI — re-run the `setup` skill (and restart) to repoint the forwarder.
+- **Codex / Cursor** use the `~/.local/bin/clay` forwarder the `setup` skill wrote.
+  The current forwarder re-resolves the newest bundled launcher on every call, so a
+  plugin update is picked up automatically once you restart the agent — no need to
+  repoint it. One exception: an older, hard-coded forwarder (from before setup wrote
+  the self-resolving kind) execs a stale plugin-version path and keeps running the
+  old pinned CLI. If `clay --version` stays on the old version after updating and
+  restarting, re-run the `setup` skill once to replace it.
 
 Then re-check — the first `clay --version` is also what pulls the newly-pinned binary:
 

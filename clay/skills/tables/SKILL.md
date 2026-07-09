@@ -11,9 +11,10 @@ Clay is a GTM (go-to-market) data and automation product. Clay tables are simila
 - **Records (rows)**: Usually represent companies or people
 - **Sources**: Add rows to tables from external data (APIs, CSV imports, webhooks, Clay's database of 850m+ people and 60m+ companies)
 
-## Not supported: creating tables
+## Not supported:
 
-These surfaces only **read** from tables that already exist — inspect the schema, query data, and export it. **Creating a new table (or adding fields/columns to one) is not supported** via the `table` MCP tool or the `clay tables` CLI. If a user asks to create a table, tell them it isn't supported here and that they'll need to create the table in the Clay app first; you can then work with it once it exists.
+- **Creating tables**: These surfaces only **read** from tables that already exist — inspect the schema, query data, and export it. **Creating a new table (or adding fields/columns to one) is not supported** via the `table` MCP tool or the `clay tables` CLI. If a user asks to create a table, tell them it isn't supported here and that they'll need to create the table in the Clay app first; you can then work with it once it exists.
+- **Pushing data to tables**: These surfaces only **read** from tables — they cannot insert new rows, update cell values, or trigger enrichments. **Adding or updating records is not supported** via the `table` MCP tool, the `clay tables` CLI, or the Public API (its tables surface is query/list-only). `clay tables update` toggles whether a table is queryable (`--query-enabled`); it does not write data. If a user asks to load a list into a table or push results back into one, tell them it isn't supported here and that rows must enter through Clay app.
 
 ## Two ways to work with tables
 
@@ -80,7 +81,7 @@ Example flow:
 
 ## CLI: `clay tables`
 
-The `clay` CLI is Clay's programmatic surface: JSON to stdout, typed errors, and per-command `--help` that documents the exact output shape. It authenticates with a Clay API key (`CLAY_API_KEY`); the workspace is resolved from the key. If `clay` isn't found or `clay whoami` fails on auth, run the `setup` skill once.
+The `clay` CLI is Clay's programmatic surface: JSON to stdout, typed errors, and per-command `--help` that documents the exact output shape. Authenticate with `clay login` (run the `setup` skill once if `clay` isn't found or `clay whoami` fails on auth); the workspace is resolved from the stored session.
 
 `clay tables --help` (and `clay tables <cmd> --help`) is the authoritative spec — read it for exact flags, JSON shapes, and error codes.
 
@@ -183,7 +184,7 @@ echo '{"tables": [{ "id": "tbl_contacts456" }, { "id": "tbl_accounts123" }], "jo
 `clay tables query --help` lists the top-level query keys (`filter`, `select`, `join`, `order_by`, `group_by`, `field_mode`) and the pagination flags; the exact inner shape — `join`'s `table` / `on.left` / `on.right`, and a filter's `field` / `op` / `value` — comes from the schema and the developer docs below. Use the field ids you read from the MCP schema in step 2 rather than guessing.
 
 Full developer documentation (CLI reference, Public API reference, concepts) lives at:
-https://claydevelopers.mintlify.app/llms.txt
+https://developers.clay.com/llms.txt
 
 ## Investigating tables
 

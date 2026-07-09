@@ -6,8 +6,9 @@ You have access to the `clay` CLI for running and inspecting workflow test runs.
 Invoke it as `clay …` (no path prefix, no `python3`). In Claude Code it is on your
 PATH automatically; in Codex/Cursor, run the `setup` skill once to install it.
 
-Requires the `CLAY_API_KEY` environment variable. The workspace is resolved from
-the key, so there is no workspace id to pass. If `clay whoami` fails, run `/setup`.
+Requires a signed-in session (`clay login`; run the `setup` skill if `clay whoami`
+fails on auth). The workspace is resolved from the stored session, so there is no
+workspace id to pass.
 
 Every command prints JSON to stdout on success and a typed error envelope to
 stderr on failure, with categorical exit codes (0 ok, 2 validation, 3 auth,
