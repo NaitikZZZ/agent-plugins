@@ -61,30 +61,3 @@ curl -fsSL https://raw.githubusercontent.com/clay-run/agent-plugins/main/GETTING
 
 Then follow the instructions in that fetched document for your agent
 environment.
-
-## Feedback
-
-- **Claude:** `/plugin marketplace add clay-run/agent-plugins` then `/plugin install clay`
-- **Codex:** add the `clay-run/agent-plugins` marketplace, then install `clay`
-- **Cursor:** install from the Cursor marketplace (listing requires a one-time
-  submission at `cursor.com/marketplace/publish`)
-
-Requires **Claude Code v2.1.91+** (the plugin ships `clay` on the Bash PATH via
-`bin/`; in Codex/Cursor, run the `setup` skill to put it on PATH). On first `clay`
-call the `bin/clay` selector reads `bin/cli-version`, downloads that version's binary
-from its `clay-cli-v<version>` release, verifies it against the committed
-`checksums.txt`, and caches it. `clay --version` reports `<cliVersion>+<commit>`, so
-a reported version maps to exact source. The bundled CLI version (`bin/cli-version`)
-and the plugin version are independent; the CLI's npm release is documented in
-`apps/cli/README.md`.
-
-### Publishing credentials
-
-`publish-plugin.yml` authenticates as the **Clay Deploy** GitHub App via the
-client id Iv23liuwmICkPmJbkY1q and the `DEPLOY_APP_PRIVATE_KEY` secret, and fails the job if
-either is missing. The app must be installed on `clay-run/agent-plugins` with
-`Contents: write`.
-
-The `update-sculptor-agent` job needs extra secrets (`ANTHROPIC_AI_API_KEY`,
-`MANAGED_AGENT_CLI_ID`, `NPM_TOKEN`); the workflow's `secrets:` block documents
-each one and its preflight step fails loudly if any is missing.
