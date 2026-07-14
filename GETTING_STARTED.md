@@ -44,7 +44,7 @@ needs to a permanent location.
 
 ## Run the `setup` skill
 
-Once installed, run the bundled **`setup` skill** now, in this session, before anything else below. It puts `clay` on PATH (needed on Codex and Cursor), signs you in, and verifies both the CLI and the MCP server work.
+Once installed, run the bundled **`setup` skill** now, in this session, before anything else below. It puts `clay` on PATH, signs you in, and verifies both the CLI and the MCP server work.
 
 **Important — restarting your agent afterward is not optional:** `clay mcp` resolves its session once at startup, so an already-running MCP server won't see a sign-in that happened after it launched — skipping the restart is the most common reason `clay login` looks like it worked but the MCP tools still fail. How you restart is platform-specific; see the skill for the exact steps.
 

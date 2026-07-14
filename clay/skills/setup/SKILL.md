@@ -60,14 +60,41 @@ clay whoami; echo "exit_code=$?"
     subcommand. Do step 3 to install the bundled launcher ahead of it on PATH,
     then re-run this check.
 
-- **`clay: command not found`** (or exit 127) → the CLI isn't on your PATH. On Cursor, do
-  step 2 first (it decides where the plugin's files permanently live); then do step 3, then
-  step 4. On Claude Code and Codex, skip step 2 and go straight to step 3, then step 4.
-  Exception: exit 127 with a JSON envelope on stderr saying `no bundled launcher found` is
-  the forwarder from a previous setup reporting that the plugin cache itself is gone —
-  reinstalling the forwarder won't help; tell the user to reinstall the Clay plugin instead
-  (on Cursor, reinstalling means redoing step 2 — the working install method is
-  policy-dependent).
+- **`clay: command not found`** (or exit 127) → the CLI isn't on your PATH. One
+  exception first, on any platform: exit 127 with a JSON envelope on stderr saying
+  `no bundled launcher found` is the forwarder from a previous setup reporting that
+  the plugin cache itself is gone — reinstalling the forwarder won't help; tell the
+  user to reinstall the Clay plugin instead (on Cursor, reinstalling means redoing
+  step 2 — the working install method is policy-dependent). Otherwise, route by
+  platform:
+  - **Claude Code**: if the plugin was just installed in this session, this is expected —
+    Claude Code only adds a newly installed plugin's `bin/` to PATH starting with the
+    *next* session. Don't install a forwarder for this: resolve the bundled launcher's
+    absolute path once and invoke that directly for the rest of this session instead of
+    waiting on a restart —
+
+    ```bash
+    shim="$(sh -c 'ls -1dt "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/*/clay/*/bin/clay 2>/dev/null | head -n1')"
+    [ -x "$shim" ] || { echo "could not locate the bundled clay launcher; reinstall the plugin"; exit 1; }
+    "$shim" whoami; echo "exit_code=$?"
+    ```
+
+    Use this same resolved path in place of bare `clay` for every remaining command in
+    this skill (step 4's `clay login` included) — but re-run the `ls -1dt` one-liner
+    fresh immediately before each one rather than reusing `$shim` across separate tool
+    calls: each Bash call starts a new shell, so a variable set in one call is gone in
+    the next. Bare `clay` starts working again on its own once the agent is next
+    restarted, which step 4 already requires anyway for `clay mcp` to pick up the
+    signed-in session, so no extra restart is needed just for PATH. Only fall back to
+    step 3's forwarder if the launcher can't be located at all (e.g. the plugin cache is
+    gone), if another `clay` install is shadowing the bundled one after a restart, or if
+    bare `clay` is still not found after a restart — that last case means the
+    next-session auto-PATH isn't happening, so this is no longer a one-restart hiccup
+    the launcher path can paper over.
+  - **Codex**: skip step 2 and go straight to step 3, then step 4 — Codex does not add a
+    plugin's `bin/` to PATH automatically, so restarting alone won't fix this.
+  - **Cursor**: do step 2 first (it decides where the plugin's files permanently live);
+    then step 3, then step 4.
 - **exit_code=3** (`auth_*`) → the CLI works but isn't authenticated. Skip to step 4.
 - **exit_code=5** (`network_*`) → a connection problem. Check `CLAY_API_URL` and the
   network; do not restart the sign-in flow.
@@ -85,10 +112,6 @@ marketplace, personal marketplace import, local sideload, or a direct MCP-regist
 fallback) — then continue to step 3 below.
 
 ## 3. Put `clay` on your PATH (if it was "command not found", lacked `mcp`, or is an outdated version)
-
-Claude Code adds the plugin's `bin/` to PATH automatically, so this step is only
-needed in Codex and Cursor, or when another `clay` install is shadowing the bundled
-one.
 
 The plugin bundles the CLI launcher at `bin/clay` in the plugin root; it downloads
 and checksum-verifies the real binary on first use. The launcher is version-stable
@@ -128,7 +151,7 @@ from a plugin root outside these caches, report that path to the user — the
 plugin is installed somewhere this forwarder doesn't search.)
 
 If it printed a path, install the forwarder (keep its search list in sync with
-the pre-flight above):
+the pre-flight above and with step 1's Claude Code one-liner):
 
 ```bash
 mkdir -p "$HOME/.local/bin"
@@ -261,12 +284,55 @@ shapes apart:
     problem, not a session problem: re-running `clay login`/`clay logout` or
     restarting again won't fix it. Have a workspace Admin change the user's role to
     Editor or Admin, then recheck.
-- **No Clay tools appear at all in Claude Code** — not an auth error, they're simply
-  absent, even though the server shows Connected and `clay whoami` succeeds. This is
-  an apparent Claude-Code-side tool-registration gap, not a session problem: restarting
-  again, re-authenticating, or reinstalling the plugin won't fix it — but updating
-  Claude Code might, since registration bugs in this class have been fixed in point
-  releases. See the Troubleshooting table below instead of looping on restarts.
+- **No Clay tools appear in Claude Code** — not an auth error; the server shows Connected
+  and `clay whoami` succeeds, but no Clay tools show up. Almost always this is a **discovery**
+  problem, not a registration gap — usually the tools are there. Before concluding they're absent:
+  - When a session has many MCP tools, Claude Code defers them behind the `ToolSearch`
+    tool instead of listing them directly. Query `ToolSearch` with the broad keyword
+    `clay` — never a prefix guess: the tool-name prefix is an implementation detail that
+    varies by install method and which agent installed it (currently
+    `mcp__plugin_clay_clay__read` etc. for the plugin install, a different prefix for a
+    direct `claude mcp add` registration), so a guessed prefix like `mcp__clay` can
+    silently miss them.
+  - MCP servers connect asynchronously. If a search right after startup returns nothing,
+    wait for the servers to finish connecting (or search again after the first turn) before
+    concluding the tools are absent.
+  - To skip deferral entirely, restart Claude Code with `ENABLE_TOOL_SEARCH=false` in its
+    environment so every tool loads upfront — the variable is read at startup, so exporting
+    it mid-session does nothing.
+
+  If a broad `clay` search still returns nothing once the servers have settled, check
+  whether the session has any claude.ai connectors (claude.ai/settings/connectors) or
+  HTTP-transport MCP servers (`"type": "http"` in `.mcp.json`/`claude mcp add --transport
+  http`) configured alongside Clay. That combination is a known, still-unresolved upstream
+  Claude Code bug
+  ([anthropics/claude-code#51138](https://github.com/anthropics/claude-code/issues/51138),
+  duplicate of
+  [#57033](https://github.com/anthropics/claude-code/issues/57033) — both show as "Closed" on
+  GitHub, but that's the stale-issue bot closing them for inactivity, not a fix; the
+  underlying behavior is unresolved as of this writing): `/mcp` and `claude mcp
+  list` show those servers Connected with populated tool counts, but `ToolSearch` never
+  indexes them — and, per real reports, other servers already `ToolSearch`-indexed fine in
+  the same session (including Clay, a plain stdio server) can go dark too. Clay isn't the
+  affected transport here — it's collateral damage from whatever else is in the session, so
+  reinstalling or re-registering Clay won't fix it. `ENABLE_TOOL_SEARCH=false` (above) is the
+  most reliable workaround, since it bypasses the broken index entirely.
+
+  Otherwise, if you're not already on the latest Claude Code, update (`claude update`, or
+  your installer's equivalent) and retry first — some discovery bugs have been fixed in point
+  releases. If the tools still don't appear, report it with the `clay-feedback` skill (the
+  `clay feedback` CLI still works while the MCP tools are absent). `clay feedback`
+  auto-collects the Clay CLI's own environment and can attach this conversation's
+  transcript — send the transcript, since it captures the `ToolSearch` calls and their
+  results (often including the `total_deferred_tools` count). Also include the things it does
+  not capture:
+  - `claude --version` — the Claude Code version (not in Clay's environment info)
+  - the output of `claude mcp list` — is `plugin:clay:clay` Connected or Failed to connect?
+  - the `/mcp` panel (interactive — a human reads it, it's not a shell command): does Clay
+    show a tool count above zero (registered but unindexed) or zero (not registered)?
+  - what other MCP servers / claude.ai connectors are loaded, and whether any are
+    claude.ai-hosted connectors or HTTP-transport servers
+  - whether the tools appear when you restart with `ENABLE_TOOL_SEARCH=false`
 
 Setup is complete only when **both** the CLI and the MCP tools work.
 
@@ -281,4 +347,5 @@ Setup is complete only when **both** the CLI and the MCP tools work.
 | `clay whoami` exits 3 | Not signed in | Run `clay login` (step 4), then restart the agent |
 | Duplicate `clay` MCP registrations in Cursor (plugin **and** `~/.cursor/mcp.json`) | Option A was applied while a marketplace import or sideload was pending, and that path has since completed | Run the "landed on path 3 or a marketplace path" cleanup in `cursor-install.md`, then fully restart Cursor — see step 1 |
 | MCP tools error with an auth error while `clay whoami` succeeds | Not-yet-restarted, or `auth_forbidden` (workspace role) — see step 5 above | Redo the restart, or have an Admin fix the workspace role |
-| No Clay tools appear at all in Claude Code — not an auth error, just absent — even after a clean restart, with the server showing Connected and `clay whoami` succeeding | An apparent Claude-Code-side tool-registration gap (registration appears to be all-or-nothing per server; Clay's large, deeply nested `edit_node` schema is a plausible trigger) — see step 5 above | Update Claude Code (`claude update`, or your installer's equivalent) and retry — registration bugs in this class have been fixed in point releases. If the tools still don't appear on the latest version, report it to the Clay team using the `clay-feedback` skill (the `clay feedback` CLI still works while the MCP tools are absent), and include the Claude Code version (`claude --version`) |
+| No Clay tools appear in Claude Code — not an auth error, server Connected, `clay whoami` succeeds | Almost always a discovery issue under `ToolSearch` deferral, not a registration gap: when a session has many MCP tools they are deferred behind `ToolSearch`; the tool-name prefix varies by install method and agent (currently `mcp__plugin_clay_clay__*` for the plugin, so a `mcp__clay` prefix query misses them), and MCP servers connect asynchronously so a search run too early sees nothing — see step 5 above | Query `ToolSearch` with the broad keyword `clay` (not a prefix) after the servers finish connecting; or restart with `ENABLE_TOOL_SEARCH=false` to load all tools upfront |
+| Broad `clay` `ToolSearch` still returns nothing once servers have settled, and the session has claude.ai connectors or HTTP-transport MCP servers configured alongside Clay | Known, still-unresolved upstream Claude Code bug ([anthropics/claude-code#51138](https://github.com/anthropics/claude-code/issues/51138), duplicate of [#57033](https://github.com/anthropics/claude-code/issues/57033) — closed by the stale-issue bot for inactivity, not fixed): those servers show Connected with populated tool counts but `ToolSearch` never indexes them, and other already-indexed servers in the same session (including Clay) can go dark too — Clay isn't the affected transport, it's collateral damage | Restart with `ENABLE_TOOL_SEARCH=false` to bypass the broken index; reinstalling Clay won't help. Otherwise update Claude Code (if not already current) and retry; if the tools still don't appear, report it with the `clay-feedback` skill including the diagnostics listed in step 5 |

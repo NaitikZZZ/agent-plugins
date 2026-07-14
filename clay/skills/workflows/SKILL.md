@@ -18,7 +18,7 @@ You build workflows out of two kinds of nodes:
 - **Claygent (agent) nodes** — LLM loops with prompts. The default building block for reasoning, drafting, summarizing, and classifying.
 - **Tool nodes** (`nodeType: "tool"`) — run a single Clay action directly (an enrichment, an HTTP call, a CRM write, etc.). Pick the action from the workspace's available action set. (The TC UI labels these "Enrich" or "Function"; both are `nodeType: "tool"`.)
 
-You should also understand **triggers** — how a workflow gets launched (audience segments, webhooks, Clay tables). Triggers are configured by the user in the Clay Workflows UI; you don't create or edit them via MCP, but you should be aware of them so you can design workflows around how they'll be invoked.
+You should also understand **triggers** — how a workflow gets launched (audience segments, schedules, webhooks, Clay tables). Triggers can be created and edited through the workflow MCP tools; Clay table triggers remain UI-only.
 
 ## Setup required
 
@@ -100,9 +100,11 @@ Example condition (headcount ≤ 50 AND title contains "CTO"):
 
 ## Triggers — how workflows get launched
 
-A workflow doesn't run by itself. It runs because a **trigger** kicks off a run. Triggers are configured by the user in the Clay Workflows UI; you do not create or edit triggers via MCP. Be aware of them so you can explain workflow shape:
+A workflow doesn't run by itself. It runs because a **trigger** kicks off a run. Use the workflow MCP tools to create or edit triggers when requested; configure Clay table triggers in the Clay tables UI:
 
 - **Audience segment trigger** — every record in a Clay audience segment becomes a run input. Useful for batch-style enrichment over a known list.
+- **Scheduled trigger** — fires one contextless workflow run per schedule tick. Provide `scheduleConfig` with either a simple or custom recurrence.
+- **Audience scheduled trigger** — reruns all current members of an audience segment on each schedule tick. Provide `segmentId`, `entityType`, and `scheduleConfig`.
 - **Webhook trigger** — an external system POSTs to a URL and each request becomes a run.
 - **Clay table trigger** — new rows added to a specific Clay table create runs automatically.
 - **One-off / batch test runs** — the user (or the `clay` CLI) launches a single run or a batch for testing.
