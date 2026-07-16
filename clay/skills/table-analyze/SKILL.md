@@ -1,6 +1,6 @@
 ---
 name: table-analyze
-description: Clay tables — analyze what a table does: reconstruct the column DAG, stage it, and narrate the workflow encoded in its columns. Use when the user asks "what does this table do?", "explain the {table} workflow", "walk me through this table", or "what's set up here?".
+description: "Clay tables — analyze what a table does: reconstruct the column DAG, stage it, and narrate the workflow encoded in its columns. Use when the user asks \"what does this table do?\", \"explain the {table} workflow\", \"walk me through this table\", or \"what's set up here?\"."
 allowed-tools: Bash(clay *), Bash(jq *), Read
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: workflow-simplify
-description: Clay workflows — simplify a workflow: merge redundant nodes, cut unnecessary complexity, and replace LLM nodes with deterministic alternatives where possible.
+description: "Clay workflows — simplify a workflow: merge redundant nodes, cut unnecessary complexity, and replace LLM nodes with deterministic alternatives where possible."
 ---
 
 # Simplifying a workflow

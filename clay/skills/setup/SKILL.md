@@ -284,9 +284,29 @@ shapes apart:
     problem, not a session problem: re-running `clay login`/`clay logout` or
     restarting again won't fix it. Have a workspace Admin change the user's role to
     Editor or Admin, then recheck.
-- **No Clay tools appear in Claude Code** — not an auth error; the server shows Connected
-  and `clay whoami` succeeds, but no Clay tools show up. Almost always this is a **discovery**
-  problem, not a registration gap — usually the tools are there. Before concluding they're absent:
+- **No Clay tools appear in Claude Code** — not an auth error; `clay whoami` succeeds, but
+  no Clay tools show up. Start with `claude mcp list`: whether Clay is *absent* from the list
+  or shows *Connected* splits the causes.
+
+  **Clay missing from `claude mcp list` entirely** — no error, not even "Failed to connect":
+  suspect an org-managed policy. A blocked server silently disappears from `/mcp` and
+  `claude mcp list` with no warning that policy is the reason. Any admin or MDM that can
+  write a system path can deploy these (not just Enterprise-plan orgs) — check that path
+  (macOS `/Library/Application Support/ClaudeCode/`, Linux `/etc/claude-code/`, Windows
+  `C:\Program Files\ClaudeCode\`) for two files:
+  - `managed-settings.json` — `allowedMcpServers` / `deniedMcpServers` /
+    `allowManagedMcpServersOnly`; an empty `allowedMcpServers` array blocks everything.
+  - `managed-mcp.json` — exclusive control: if deployed, only the servers it defines load,
+    and all plugin-provided servers (including Clay's) are suppressed even with no allowlist
+    or denylist at all.
+  This is admin-only to fix, and the fix depends on which gate blocks Clay: remove it from
+  `deniedMcpServers` (a deny always wins — allowlisting a denied server does nothing), add it
+  to the allowlist, or add it to `managed-mcp.json` under exclusive control. No restart,
+  `ENABLE_TOOL_SEARCH` setting, or reinstall helps.
+
+  **Clay shows Connected** — that rules the policy exclusion out (blocked servers vanish from
+  the list rather than show Connected). Almost always this is a **discovery** problem, not a
+  registration gap — usually the tools are there. Before concluding they're absent:
   - When a session has many MCP tools, Claude Code defers them behind the `ToolSearch`
     tool instead of listing them directly. Query `ToolSearch` with the broad keyword
     `clay` — never a prefix guess: the tool-name prefix is an implementation detail that
@@ -302,37 +322,74 @@ shapes apart:
     it mid-session does nothing.
 
   If a broad `clay` search still returns nothing once the servers have settled, check
-  whether the session has any claude.ai connectors (claude.ai/settings/connectors) or
+  whether the session has claude.ai connectors (listed at claude.ai/settings/connectors) or
   HTTP-transport MCP servers (`"type": "http"` in `.mcp.json`/`claude mcp add --transport
-  http`) configured alongside Clay. That combination is a known, still-unresolved upstream
-  Claude Code bug
-  ([anthropics/claude-code#51138](https://github.com/anthropics/claude-code/issues/51138),
-  duplicate of
-  [#57033](https://github.com/anthropics/claude-code/issues/57033) — both show as "Closed" on
-  GitHub, but that's the stale-issue bot closing them for inactivity, not a fix; the
-  underlying behavior is unresolved as of this writing): `/mcp` and `claude mcp
-  list` show those servers Connected with populated tool counts, but `ToolSearch` never
-  indexes them — and, per real reports, other servers already `ToolSearch`-indexed fine in
-  the same session (including Clay, a plain stdio server) can go dark too. Clay isn't the
-  affected transport here — it's collateral damage from whatever else is in the session, so
-  reinstalling or re-registering Clay won't fix it. `ENABLE_TOOL_SEARCH=false` (above) is the
-  most reliable workaround, since it bypasses the broken index entirely.
+  http`) configured alongside Clay. That combination is a known, still-unresolved upstream bug
+  ([anthropics/claude-code#51138](https://github.com/anthropics/claude-code/issues/51138) —
+  closed by the stale-issue bot for inactivity, not fixed): those servers show Connected with
+  populated tool counts but `ToolSearch` never indexes them, and — per real reports, beyond
+  what the issue itself documents — other already-indexed servers in the same session
+  (including Clay, a plain stdio server) can go dark too as collateral damage — reinstalling
+  or re-registering Clay won't help. `ENABLE_TOOL_SEARCH=false` (above) is the most reliable
+  workaround, since it bypasses the broken index entirely. If the session has *no* connectors
+  or HTTP-transport servers alongside Clay, this bug can't be the cause — still try
+  `ENABLE_TOOL_SEARCH=false` once to rule out deferral, then go straight to the
+  update-and-report path below.
 
-  Otherwise, if you're not already on the latest Claude Code, update (`claude update`, or
-  your installer's equivalent) and retry first — some discovery bugs have been fixed in point
-  releases. If the tools still don't appear, report it with the `clay-feedback` skill (the
-  `clay feedback` CLI still works while the MCP tools are absent). `clay feedback`
-  auto-collects the Clay CLI's own environment and can attach this conversation's
-  transcript — send the transcript, since it captures the `ToolSearch` calls and their
-  results (often including the `total_deferred_tools` count). Also include the things it does
-  not capture:
+  **Before trusting a report that this workaround didn't help, verify it was set where it
+  actually counts** — "exported and echoed" proves none of the following on its own:
+  - **Which surface.** The variable is read once at startup by that specific process, so a
+    shell export never reaches a **Desktop app** launched via Dock/Spotlight instead of that
+    shell — and separately, the Desktop app is known to ignore `ENABLE_TOOL_SEARCH` outright
+    and always eagerly load MCP tool schemas, regardless of shell exports or `settings.json` —
+    the opposite symptom from the one being diagnosed here (missing tools), so that's not the
+    cause of this case. Check the surface yourself — run `echo $CLAUDE_CODE_ENTRYPOINT` via a
+    tool call inside the session rather than asking the human: `local-agent`, `claude-desktop`,
+    or `claude-desktop-3p` means the Desktop app; anything else (`cli`, `claude-vscode`,
+    `remote_cowork`, `sdk-*`, or unset) means this isn't it. On the Desktop app, this
+    workaround simply isn't available — skip the two checks below (they verify a mechanism
+    that doesn't exist on this surface) and move on to the non-deferral causes instead:
+    recheck registration (`claude mcp list`, `/mcp` tool counts), updating Claude Code, and
+    `clay-feedback` if it's still unresolved.
+  - **Where it was checked.** A pre-launch `echo $ENABLE_TOOL_SEARCH` only proves the
+    *launching shell* has it — echo it via a tool call **inside the already-running session**
+    instead. Prefer setting it inline at launch (`ENABLE_TOOL_SEARCH=false claude`) over a
+    shell-profile export: the in-session shell re-reads the profile, so an rc-file export can
+    echo `false` inside a session whose process never saw it, making this check pass falsely.
+  - **Full restart, not a new chat.** Re-confirm a genuine exit-and-relaunch per step 4 — a
+    new chat doesn't re-read the environment on surfaces that share one long-running process.
+
+  Only once all three hold does "still never registers" rule out the indexing bug above
+  (disabling deferral has nothing to fix if that's not the cause). At that point there's no
+  known cause to name — don't guess one. Update Claude Code first (`claude update`, or your
+  installer's equivalent) and retry, since some discovery bugs are fixed in point releases.
+  If the tools still don't appear, this is a genuinely open case: report it with the
+  `clay-feedback` skill (the `clay feedback` CLI still works while the MCP tools are absent).
+  `clay feedback` auto-collects the Clay CLI's own environment and can attach this
+  conversation's transcript — send the transcript, since it captures the
+  `ToolSearch` calls and their results (often including the `total_deferred_tools` count).
+  Also include the things it does not capture:
   - `claude --version` — the Claude Code version (not in Clay's environment info)
-  - the output of `claude mcp list` — is `plugin:clay:clay` Connected or Failed to connect?
-  - the `/mcp` panel (interactive — a human reads it, it's not a shell command): does Clay
-    show a tool count above zero (registered but unindexed) or zero (not registered)?
-  - what other MCP servers / claude.ai connectors are loaded, and whether any are
-    claude.ai-hosted connectors or HTTP-transport servers
-  - whether the tools appear when you restart with `ENABLE_TOOL_SEARCH=false`
+  - OS/platform and architecture (`uname -a`, or the Windows equivalent) — not in Clay's
+    environment info, and useful for spotting platform-specific patterns across reports
+  - **which surface** — read from `$CLAUDE_CODE_ENTRYPOINT` in-session (see above) rather than
+    asked of the human; the `ENABLE_TOOL_SEARCH` fixes above are CLI-oriented, and the Desktop
+    app ignores the variable entirely, so that specific workaround doesn't apply there, but
+    that's not a cause of missing tools
+  - the output of `claude mcp list` — is `plugin:clay:clay` Connected, Failed to connect, or
+    absent from the list entirely (absent points back at the org-policy check above)?
+  - the `/mcp` panel (interactive — a human reads it, it's not a shell command; the Desktop
+    app has no `/mcp` pane — note that instead): Clay's own tool count — above zero means
+    registered but unindexed, zero means not registered — and the combined tool count across
+    *all* connected servers
+  - what other MCP servers / claude.ai connectors are configured alongside Clay — not just a
+    count: the server names and transport type (`stdio`/`http`/`sse`) from `.mcp.json` and the
+    user/project `settings.json` `mcpServers` entries, so a pattern (e.g. always HTTP-transport
+    on macOS) can surface across reports. Strip out any `env`/`headers` values before including
+    them — those can carry other servers' secrets, and only the names/transport matter here.
+  - whether the tools appear with `ENABLE_TOOL_SEARCH=false` — confirmed via a full
+    exit-and-relaunch and an in-session `echo`, not just a new chat or a pre-launch check
+    (see the verification steps above)
 
 Setup is complete only when **both** the CLI and the MCP tools work.
 
@@ -347,5 +404,7 @@ Setup is complete only when **both** the CLI and the MCP tools work.
 | `clay whoami` exits 3 | Not signed in | Run `clay login` (step 4), then restart the agent |
 | Duplicate `clay` MCP registrations in Cursor (plugin **and** `~/.cursor/mcp.json`) | Option A was applied while a marketplace import or sideload was pending, and that path has since completed | Run the "landed on path 3 or a marketplace path" cleanup in `cursor-install.md`, then fully restart Cursor — see step 1 |
 | MCP tools error with an auth error while `clay whoami` succeeds | Not-yet-restarted, or `auth_forbidden` (workspace role) — see step 5 above | Redo the restart, or have an Admin fix the workspace role |
-| No Clay tools appear in Claude Code — not an auth error, server Connected, `clay whoami` succeeds | Almost always a discovery issue under `ToolSearch` deferral, not a registration gap: when a session has many MCP tools they are deferred behind `ToolSearch`; the tool-name prefix varies by install method and agent (currently `mcp__plugin_clay_clay__*` for the plugin, so a `mcp__clay` prefix query misses them), and MCP servers connect asynchronously so a search run too early sees nothing — see step 5 above | Query `ToolSearch` with the broad keyword `clay` (not a prefix) after the servers finish connecting; or restart with `ENABLE_TOOL_SEARCH=false` to load all tools upfront |
-| Broad `clay` `ToolSearch` still returns nothing once servers have settled, and the session has claude.ai connectors or HTTP-transport MCP servers configured alongside Clay | Known, still-unresolved upstream Claude Code bug ([anthropics/claude-code#51138](https://github.com/anthropics/claude-code/issues/51138), duplicate of [#57033](https://github.com/anthropics/claude-code/issues/57033) — closed by the stale-issue bot for inactivity, not fixed): those servers show Connected with populated tool counts but `ToolSearch` never indexes them, and other already-indexed servers in the same session (including Clay) can go dark too — Clay isn't the affected transport, it's collateral damage | Restart with `ENABLE_TOOL_SEARCH=false` to bypass the broken index; reinstalling Clay won't help. Otherwise update Claude Code (if not already current) and retry; if the tools still don't appear, report it with the `clay-feedback` skill including the diagnostics listed in step 5 |
+| Clay absent from `claude mcp list` entirely — no error, not even "Failed to connect" | Org-managed policy: `managed-settings.json` allow/denylists, or a deployed `managed-mcp.json` (suppresses all plugin servers) — see step 5 above | Admin-only policy fix; a deny always wins over the allowlist — see step 5 above |
+| No Clay tools appear in Claude Code — not an auth error, server Connected, `clay whoami` succeeds | Almost always a discovery issue under `ToolSearch` deferral, not a registration gap — see step 5 above | Query `ToolSearch` with the broad keyword `clay` (not a prefix) after the servers finish connecting; or restart with `ENABLE_TOOL_SEARCH=false` to load all tools upfront — see step 5 above |
+| Broad `clay` `ToolSearch` still returns nothing once servers have settled, and claude.ai connectors or HTTP-transport servers are configured alongside Clay | Known upstream bug ([#51138](https://github.com/anthropics/claude-code/issues/51138)) — those servers' tools never get indexed, and Clay can go dark too as collateral damage — see step 5 above | Restart with `ENABLE_TOOL_SEARCH=false` to bypass the broken index (verify a "didn't help" report per step 5's three checks). Otherwise update Claude Code and retry, then escalate via `clay-feedback` — see step 5 above |
+| Clay's tools never register under any name even with `ENABLE_TOOL_SEARCH=false` reportedly set | Usually the report itself is unverified — see step 5's three checks (surface, in-session echo, genuine restart) | Re-run step 5's three checks; if they genuinely hold, collect step 5's diagnostics and escalate via `clay-feedback` rather than guessing a cause |

@@ -48,9 +48,10 @@ Create returns `{ "searchId": <string> }`. `--source-type` is one of `people` or
 
 Search only accepts the filters returned by `clay search filters-mode fields` for that source type.
 When the user wants to narrow by an attribute that isn't in that list — e.g. "companies
-using React", "people who recently changed jobs", "accounts with a specific tech in their
-stack", or any derived/enriched signal — **do not invent a filter name or force it into an
-existing filter.** Search cannot evaluate it.
+using React", "Series A companies", "people who recently changed jobs", "accounts with a
+specific tech in their stack", or any derived/enriched signal — **do not invent a filter
+name or force it into an existing filter.** Search cannot evaluate it. Funding amount
+ranges are native filters, but funding stages are not.
 
 Instead, split the request into what search _can_ do and what a routine does:
 
@@ -101,7 +102,7 @@ from its output, and if it's `true` run the exact same command again — the ser
 the iterator for you.
 
 ```bash
-clay search filters-mode create --source-type companies --filters '{"industries":["Software Development"],"funding_amounts":["1m_5m","5m_10m","10m_25m"]}'
+clay search filters-mode create --source-type companies --filters '{"industries":["Software Development"],"country_names":["United States"]}'
 ```
 
 ```bash

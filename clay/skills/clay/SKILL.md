@@ -35,7 +35,7 @@ abilities. Get the framing right:
 - **Lead with concrete, show-off use-cases, not a menu of verbs.** Ground the answer in
   outcomes the user recognizes. Good examples to draw from (pick a few relevant ones, don't
   list all):
-  - "Build a net-new account list matching my ICP (industry, size, region, revenue, funding)."
+  - "Build a net-new account list matching my ICP (industry, size, region, and revenue)."
   - "Find decision-makers by title and seniority, then enrich them with verified work emails and phone numbers."
   - "Enrich a list of leads or accounts with firmographics and contact data."
   - "Score a list of records against my ideal-customer profile."
