@@ -1,6 +1,6 @@
 ---
 name: public-api
-description: Clay Public API — HTTP access for building services, apps, and integrations: structured-filter search over Clay's GTM database, structured table queries, and async routine and batch runs.
+description: "Clay Public API — HTTP access for building services, apps, and integrations: structured-filter search over Clay's GTM database, structured table queries, and async routine and batch runs."
 ---
 
 # The Clay Public API
