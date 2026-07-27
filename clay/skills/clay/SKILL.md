@@ -53,18 +53,20 @@ abilities. Get the framing right:
 
 Clay exposes three core primitives (callable from the plugin/CLI/MCP/API):
 
-| Primitive               | What it's for                                                                       |
-| ----------------------- | ----------------------------------------------------------------------------------- |
-| **Searches**            | Find companies and people from structured filters                                   |
-| **Routines**            | Run Clay-managed functions, custom functions, and Workflows                         |
-| **Tables** (Enterprise) | Query **existing** Clay tables only — you **cannot** create tables programmatically |
+| Primitive               | What it's for                                                                      |
+| ----------------------- | ---------------------------------------------------------------------------------- |
+| **Searches**            | Find companies and people using Clay's GTM database                                |
+| **Routines**            | Run Clay-managed functions, custom functions, and Workflows                        |
+| **Tables** (Enterprise) | Query **existing** Clay tables only — you **cannot** create tables programmatically|
 
 Follow this escalation order — reach for the earliest option that fits:
 
-1. **Search** — need a list of people/companies? Start here (it's a primitive, not a routine).
-   Search covers **people and companies only** — not jobs. A request framed around job posts
-   (e.g. "companies hiring for X") can't be a search: approximate it with the closest company/
-   people filters, then use a routine to enrich or score for the real signal.
+1. **Search** — need a list of people or companies? Start here (it's a primitive, not a routine).
+   - **Advanced queries (beta)** are the default and support filters-mode criteria, cross-entity filters, and nested Boolean logic.
+   - Use **structured filters** (filters mode) if the user prefers its older structure or has existing filters-mode searches.
+   Public search supports **people and companies only** — not jobs. A request framed around job
+   posts (e.g. "companies hiring for X") can't be a public search: approximate it with the closest
+   company or people filters, then use a routine to enrich or score for the real signal.
 2. **Clay-managed function** — the default for standard enrichment (work email, phone, job
    title, company domain, tech stack, funding, etc.). Managed functions cover most common GTM
    enrichment, but don't promise a user a specific one until you've confirmed it exists in
@@ -102,7 +104,7 @@ Before running a credit-consuming routine, check its per-item `estimatedCreditCo
 
 | Skill                 | Use it for                                                                                                    |
 | --------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `search`              | Finding people or companies in Clay's GTM database from structured filters.                                   |
+| `search`              | Finding people or companies in Clay's GTM database with advanced queries or existing filters-mode searches.    |
 | `routines`            | Creating a routine from an existing function/workflow, running a saved routine, and fetching its results.     |
 | `tables`              | Reading, querying, and exporting data from an existing Clay table (creating tables is not supported).         |
 | `cli`                 | Ephemeral, programmatic access to Clay capabilities from a shell — run a routine, query a table, search, etc. |

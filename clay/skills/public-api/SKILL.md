@@ -1,6 +1,6 @@
 ---
 name: public-api
-description: "Clay Public API — HTTP access for building services, apps, and integrations: structured-filter search over Clay's GTM database, structured table queries, and async routine and batch runs."
+description: 'Clay Public API — HTTP access for building services, apps, and integrations: GTM database search, structured table queries, and async routine and batch runs.'
 ---
 
 # The Clay Public API
@@ -11,10 +11,10 @@ in a shell (use the `cli` skill for those).
 
 ## What it offers
 
-- **Search** — find people or companies in Clay's GTM database using **structured filters**. Discover
-  valid filter fields with `GET /searches/fields?source_type=people` (or `companies`), start a search with
-  `POST /searches`, then page with `POST /searches/{search_id}/next`. The CLI
-  equivalent is `clay search` — see the `search` skill. Prefer the CLI for one-off searches
+- **Search** — find people or companies in Clay's GTM database.
+  - **Advanced queries (beta)** are the default and support filters-mode criteria, cross-entity filters, and nested Boolean logic.
+  - Use **structured filters** (filters mode) if the user prefers its older structure or has existing filters-mode searches.
+  See the `search` skill for search behavior and the CLI equivalent. Prefer the CLI for one-off searches.
 - **Tables** — structured queries against Clay tables.
 - **Routines / batches** — async routine and batch runs.
 
@@ -37,7 +37,7 @@ as a Bearer token against `https://api.clay.com/public/v0`. Manage existing keys
 Full developer documentation — Public API reference, CLI reference, concepts, and the
 OpenAPI spec — lives at:
 
-- https://developers.clay.com/llms.txt
+- <https://developers.clay.com/llms.txt>
 
 Fetch that first to get exact endpoints, request/response shapes, pagination, and rate
 limits before writing integration code.
