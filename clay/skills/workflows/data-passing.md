@@ -133,8 +133,9 @@ mapped as `fields|domain` and `fields|fieldsToFilterBy`.
 `actionKey` that already has a workspace-scoped tool** — and there's no flag to
 force a node-local one. Setting `inputMappingConfig` updates that tool and
 **re-syncs every node using it**, so a mapping you intend for one node can silently
-change others. Before mapping, `read` the workflow; if the tool is shared, wire the
-value through the node's own inputs instead.
+change others. Before mapping, `read` the workflow with `mode: "full"` — the summary
+omits the per-node configs you need to tell whether the tool is shared. If it is, wire
+the value through the node's own inputs instead.
 
 **Gotcha — don't invent inputSchema variables on tool nodes.** A property added to
 a tool node's `inputSchema` that isn't a real action parameter is **silently

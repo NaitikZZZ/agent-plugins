@@ -100,7 +100,7 @@ Example condition (headcount ≤ 50 AND title contains "CTO"):
 - Workflows start empty. Create a **trigger node** plus at least one trigger before the workflow can run end-to-end. A live **manual** trigger is the usual entry point for test/`clay` runs. Additional launch paths get their **own** trigger nodes — do not stack webhook/audience/scheduled onto the manual node.
 - Creating a trigger via MCP (`surfaces_edit` / trigger surface) returns `workflowNodeId`. Wire the first action nodes with `incomingEdges` from that id.
 - **Audience multi-segment sharing:** multiple `audience_segment` triggers (different `segmentId`s) may share one trigger node when they have the **same trigger type** and the **same outgoing edge**. Multiple `audience_scheduled` triggers may share a node when they also have the **same schedule**. Pass an explicit `workflowNodeId` to bind/share; omit it (or pass `createTriggerNode: true`) to get a new node. Do not mix `audience_segment` with `audience_scheduled` on one node. `audience_manual` is a run companion created by the UI/run path — do not create it via the surface.
-- **Trigger edge constraint:** a trigger may have zero or one direct outgoing edge, never more. Before adding an edge from a trigger, inspect its `outgoingEdges`. If it already has a target, do not add another direct edge; add work downstream instead, or ask the user whether to rewire the workflow. Before validating or running, each trigger must be connected to one first executable node.
+- **Trigger edge constraint:** a trigger may have zero or one direct outgoing edge, never more. Before adding an edge from a trigger, check the workflow summary's `edges` for any edge whose `sourceNodeId` is the trigger's node id — `summary.edges` already covers trigger→node edges, so a plain `read` (no `nodeId`, default `mode`) is enough to check this. If it already has a target, do not add another direct edge; add work downstream instead, or ask the user whether to rewire the workflow. Before validating or running, each trigger must be connected to one first executable node.
 - **Leaf nodes** are nodes with no downstream connections. They are automatically treated as terminal — you do not need to mark them.
 
 ## Triggers — how workflows get launched
@@ -179,7 +179,7 @@ Wire the action's parameters with `inputMappingConfig` on the tool entry — eac
 ]
 ```
 
-**`inputMappingConfig` is stored on the tool, not the node, and is shared by every node bound to that tool.** Reusing a `toolId` (or an `actionKey` that already has a workspace tool) and setting a mapping re-syncs all those nodes — silently changing other nodes' inputs. Before mapping a reused/shared tool, `read` the workflow to check no other node uses it.
+**`inputMappingConfig` is stored on the tool, not the node, and is shared by every node bound to that tool.** Reusing a `toolId` (or an `actionKey` that already has a workspace tool) and setting a mapping re-syncs all those nodes — silently changing other nodes' inputs. Before mapping a reused/shared tool, `read` the workflow with `mode: "full"` to check no other node uses it — the summary omits the per-node configs that reveal sharing.
 
 For actions whose fields depend on an earlier input (e.g. an object type that reveals a different field set), resolve the real `objectTypeId` values and `fields|<sub>` keys with `clay workflows actions dynamic-fields` before mapping — don't guess them.
 
@@ -224,7 +224,8 @@ The reference is `sourceNodeId` + `sourcePath` inline on the property. Use `sour
 
 **Important — enrich (tool) node output paths:** An enrich (tool) node's Clay action fields are at
 `$.result.<field>`, and its success flag is at `$.success`. Always check the node's
-`recentOutputPaths` field (visible via `read`) or run `execute_clay_action` first to see which
+`recentOutputPaths` field (visible via `read` with `nodeId`, or `mode: "full"` — not the
+workflow-level summary) or run `execute_clay_action` first to see which
 fields the action returns — then prefix them with `$.result.`. For example: `$.result.name`,
 `$.result.domain`.
 
