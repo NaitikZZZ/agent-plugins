@@ -12,8 +12,23 @@ Snapshots are immutable, point-in-time captures of the entire workflow graph —
 
 - **Automatic creation**: A snapshot is created automatically before every `edit_node` call and when a run starts
 - **Content-addressed**: Each snapshot has a SHA-256 hash of its contents. Identical workflow states deduplicate to the same hash
-- **Immutable**: Once created, a snapshot never changes
+- **Immutable**: Once created, a snapshot's graph content never changes
 - **Run isolation**: Runs are pegged to a specific snapshot. Editing the workflow doesn't affect in-flight runs
+
+### Draft-history vs published versions
+
+The same snapshot table holds two roles:
+
+| Role | When | Purpose |
+|------|------|---------|
+| **Draft-history** | Auto on edits / run start | Undo log and run pegging. No release number. |
+| **Published version** | User clicks **Publish** in the editor | Numbered release (`version`, optional `name`). Becomes the live graph automation runs. |
+
+Publishing marks a snapshot of the current draft as a numbered release; it does not create a separate store. See `workflows/publishing.md` for draft vs live (do not explain snapshot-binding internals to users).
+
+**This skill is for undo/history** (`list` / `get` / `restore`). It is not release management — there is no CLI to publish or to list only published versions.
+
+`clay workflows snapshots list` projects only `id`, `hash`, `createdAt`, `nodeCount`, and `edgeCount`. It does **not** show `version` / `name` / which snapshot is live. Treat the list as an undo log, not a release picker.
 
 ## CLI reference
 
@@ -84,6 +99,11 @@ only if it was already captured (snapshots are taken automatically before each
 edit and at run start). If the current graph has unsnapshotted changes you might
 want back, run `snapshots list` first and note the latest snapshot id.
 
+**Restore ≠ publish.** Restore rewrites the **draft** only. It does not change which
+snapshot is live, and undoing an edit does not roll back live automation. If the
+user wants live triggers to match the restored draft, they must **Publish** again
+in the editor (see `workflows/publishing.md`).
+
 **Before restoring, show the user what will change.** Summarize the difference
 between the current graph and the target snapshot in plain language, and — when the
 structure differs — show before/after diagrams (see "Diff two snapshots" above),
@@ -104,6 +124,9 @@ clay workflows snapshots restore <workflowId> "$snap"
 ```
 
 To undo multiple edits, pick an older snapshot id from the list instead.
+
+Remember: this only rolls back the draft. Live automation (if already published)
+keeps running the previously published version until the user publishes again.
 
 ### Compare current state to a previous version
 

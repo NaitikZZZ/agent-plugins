@@ -21,6 +21,25 @@ stderr on failure, with categorical exit codes (0 ok, 2 validation, 3 auth,
 echo '{"key":"value"}' | clay workflows runs test <workflowId> --input -
 clay workflows runs test <workflowId>                  # no inputs
 
+# Audience-segment backfill (up to --limit members) — not a draft test after publish
+clay workflows runs test <workflowId> --audience-segment <segmentId> --limit 5
+clay workflows runs list <workflowId> --audience-segment <segmentId>
+```
+
+### Draft vs live when testing
+
+- **Plain / manual `clay workflows runs test`** (with or without `--input`) starts a run
+  via the manual trigger and exercises the **current draft**. Use this to verify
+  unpublished edits.
+- **`--audience-segment`** starts runs through that audience segment trigger. After the
+  workflow is published, those runs use the **live** version — not draft-only edits you
+  have not published yet. Do not conclude “the draft works” from a successful
+  `--audience-segment` run on a published workflow; publish first if you need the live
+  path to pick up draft changes, or use a manual test to validate the draft.
+
+`--input` and `--audience-segment` cannot be combined. See `publishing.md`.
+
+```bash
 # Status / progress for a run
 clay workflows runs get <workflowId> <runId>           # header + progress + map/reduce nodes
 clay workflows runs get <workflowId> <runId> --nodes   # include every node
@@ -44,6 +63,9 @@ clay workflows get <workflowId>
 
 # Create a new workflow
 clay workflows create --name "My Workflow"
+
+# Publish the tested draft as live
+clay workflows publish <workflowId> --name "July enrichment rollout"
 ```
 
 When you create a new workflow, share its link (the `url` field from `clay
