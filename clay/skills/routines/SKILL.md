@@ -138,9 +138,25 @@ to supply items.
 Runs are asynchronous — poll until the run reports it's done:
 
 ```bash
-clay routines runs get <run-id>   # status + results for a run (poll until complete)
-clay routines runs list           # recent runs and their statuses
+clay routines runs get <run-id>          # status + results for a run (poll until complete)
+clay routines runs get <run-id> --bulk   # same, for a bulk run (a bare flag, takes no value)
+clay routines runs list                  # recent runs and their statuses
 ```
+
+Every response carries a `mode` of `inline` or `bulk`, and so does the output of
+`runs start`. Keep that value for as long as you poll: when it is `bulk`, pass `--bulk` on
+each `runs get` so the run is looked up directly. If you don't know the mode — a run id you
+were handed, or one from `runs list`, which does not report it — just omit `--bulk`; the
+response tells you the mode, and you can pass it from the next poll onward.
+
+Stop polling once `status` is `complete`, or `validation_failed` for a bulk run whose input
+file was rejected. Bound the loop with your own timeout as well: a bulk run that was stopped
+keeps reporting `in_progress`, so waiting for a terminal status alone can wait forever.
+
+A completed bulk run reports a `resultUrl` rather than inline `data`. That URL is short-lived
+(minutes) — download it promptly, and re-run `runs get --bulk` to mint a fresh one rather
+than reusing a stale link. Results stay retrievable for about a day after the run finishes,
+after which the id stops resolving.
 
 Per-item results come back with a status (`complete` / `failed`) and either a `result`
 or an `error`.
