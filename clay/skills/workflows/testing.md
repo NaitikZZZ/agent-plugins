@@ -76,16 +76,24 @@ in-product assistant's user is already viewing the workflow.
 
 ## Watching a run to completion
 
-There is no `watch` command — poll `runs get` until the run leaves a non-terminal
-state. `status` is one of `pending` / `running` / `paused` / `waiting` /
-`completed` / `failed`; `progress.percentage` tracks progress.
-
-Poll by re-running this command every few seconds and reading `.status`, until it's
-`completed` or `failed`:
+Prefer a single blocking call with `--wait` instead of hand-rolling a poll loop.
+`status` is one of `pending` / `running` / `paused` / `waiting` / `completed` /
+`failed` / `cancelled`; `progress.percentage` tracks progress.
 
 ```bash
-clay workflows runs get <workflowId> <runId> | jq -r '.status'
+clay workflows runs get <workflowId> <runId> --wait           # poll until terminal
+clay workflows runs get <workflowId> <runId> --wait 60        # same, but stop after 60s
+clay workflows runs get <workflowId> <runId>                  # single request (may still be running)
 ```
+
+Terminal statuses are `completed`, `failed`, `cancelled`, and `paused`. `paused`
+is returned rather than waited through — the run will not advance without
+`clay workflows runs resume` or the paused trigger goes live. `--wait` also returns when a node has
+`waitingReason` `agent_step_limit_reached`; other `waiting` reasons are not
+terminal (async work is still in flight). If `--wait` returns `status: waiting`,
+human intervention is required somewhere. With `--wait <seconds>`, any other
+non-terminal status means the budget ran out — check `.status` before treating
+the run as done.
 
 ## Inspecting what a run did (instead of "logs")
 
@@ -121,7 +129,7 @@ Structure the recap as a short per-node walkthrough (or a small table: node → 
 ## Example workflow
 
 1. Start a test: `echo '{}' | clay workflows runs test wf_abc --input -`
-2. Watch progress by re-running the `runs get … | jq -r '.status'` poll above until `status` is `completed`/`failed`.
+2. Watch to completion: `clay workflows runs get wf_abc wfr_xyz --wait | jq -r '.status'`
 3. Inspect failures: `clay workflows runs steps wf_abc wfr_xyz --status failed | jq '.data[].errors'`
 4. Walk the user through the trace node-by-node (see "Tell the user what the run actually did" above), not as raw JSON.
 
@@ -139,7 +147,7 @@ Structure the recap as a short per-node walkthrough (or a small table: node → 
 
 ## Pro tips
 
-- Poll `runs get` by re-running it (above) to monitor a run while you work.
+- Prefer `runs get --wait` over a hand-rolled poll loop when watching a run.
 - Pipe to `jq` for filtering: `clay workflows runs steps <workflowId> <runId> | jq '.data[] | select(.status=="failed")'`
 - To save output for later analysis, capture `clay workflows runs get <workflowId> <runId> --verbose` with your file-writing tool.
 - `--verbose` returns untruncated inputs/outputs; prefer it over reconstructing logs.

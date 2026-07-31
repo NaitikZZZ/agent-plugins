@@ -135,23 +135,28 @@ to supply items.
 
 ## 4. Get the results
 
-Runs are asynchronous — poll until the run reports it's done:
+Runs are asynchronous. Prefer a single blocking call with `--wait` instead of hand-rolling a
+poll loop:
 
 ```bash
-clay routines runs get <run-id>          # status + results for a run (poll until complete)
-clay routines runs get <run-id> --bulk   # same, for a bulk run (a bare flag, takes no value)
-clay routines runs list                  # recent runs and their statuses
+clay routines runs get <run-id> --wait 60        # poll until complete / validation_failed, or 60s
+clay routines runs get <run-id> --bulk --wait 60 # same for a bulk run (skip the inline probe)
+clay routines runs get <run-id> --wait           # poll until complete / validation_failed (no budget)
+clay routines runs get <run-id>                  # single request (may still be in_progress)
+clay routines runs get <run-id> --bulk           # look up as a bulk run (bare flag, no value)
+clay routines runs list                          # recent runs and their statuses
 ```
 
-Every response carries a `mode` of `inline` or `bulk`, and so does the output of
-`runs start`. Keep that value for as long as you poll: when it is `bulk`, pass `--bulk` on
-each `runs get` so the run is looked up directly. If you don't know the mode — a run id you
-were handed, or one from `runs list`, which does not report it — just omit `--bulk`; the
-response tells you the mode, and you can pass it from the next poll onward.
+Check `.status` on the JSON before treating the run as done. With bare `--wait`, the command
+blocks until `complete` or `validation_failed`. With `--wait <seconds>`, if the budget expires
+while still `in_progress`, the command exits 0 with that latest status — do not assume success.
+Prefer a bounded `--wait <seconds>` for bulk runs: a bulk run that was stopped keeps reporting
+`in_progress`, so bare `--wait` can wait forever.
 
-Stop polling once `status` is `complete`, or `validation_failed` for a bulk run whose input
-file was rejected. Bound the loop with your own timeout as well: a bulk run that was stopped
-keeps reporting `in_progress`, so waiting for a terminal status alone can wait forever.
+Every response carries a `mode` of `inline` or `bulk`, and so does the output of
+`runs start`. When it is `bulk`, pass `--bulk` on `runs get` so the run is looked up directly.
+If you don't know the mode — a run id you were handed, or one from `runs list`, which does not
+report it — omit `--bulk`; the response tells you the mode.
 
 A completed bulk run reports a `resultUrl` rather than inline `data`. That URL is short-lived
 (minutes) — download it promptly, and re-run `runs get --bulk` to mint a fresh one rather

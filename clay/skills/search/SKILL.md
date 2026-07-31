@@ -126,6 +126,26 @@ clay search filters-mode run srch_abc123 --limit 50 | jq -c '.data[]'
 
 Repeat that command while the page's `hasMore` is `true`; stop when it is `false`.
 
+## Quotas (do not retry)
+
+If a create or run fails with `quota_exceeded` (exit 1, HTTP 402), the workspace has hit a
+plan result cap (per-request, per-search, or period) or a credit/usage limit. Short backoff
+will not help. Read the error message and choose one of:
+
+1. **Per-request size** — message names a "per request" limit. Retry once with
+   `--limit` ≤ that cap (e.g. free plans often allow 50 per request).
+2. **Partial per-search or period remaining** — message says you have already requested
+   `N` of a single-search or period cap of `M`, and `N < M`. The page was larger than the
+   remaining allowance. Retry once with `--limit` ≤ `M − N` to collect the last allowed
+   results, then stop. Example: cap 50, already requested 40, `--limit 20` failed → retry
+   with `--limit 10`.
+3. **Fully exhausted / credits** — already requested `N` equals the cap `M`, period reset
+   date is the only path forward, or the message is about credits/usage. **Stop paging.**
+   Tell the user to upgrade or wait for the named period reset. Do not retry.
+
+`validation_error` (exit 2) means malformed input (bad flags/filters/query), not a quota.
+`rate_limited` (exit 4) is a short HTTP 429 backoff and may be retried after `details.retryAfter`.
+
 ## Next: enrich or act on the results
 
 Search only _finds_ records. To do something with them — enrich them (emails, firmographics,
