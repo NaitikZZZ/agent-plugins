@@ -29,7 +29,9 @@ Each catalog entry has:
 - `dataStrengths` — what this action is best at (editorial metadata)
 - `whyUseful` — when to use this action
 - `configuredTools` — existing tool instances in this workspace, each with:
-  - `toolId` — pass this to `edit_node` tools field to reuse an existing tool
+  - `toolId` — identifies an already-configured instance of the action. Passing it to `edit_node`
+    does **not** share that instance: unless the node already uses it, `edit_node` creates a new
+    tool with the same action and credentials
   - `appAccountId` / `appAccountName` — bound credentials
 - `availableAppAccounts` — app accounts the user has connected (for actions requiring API keys)
 - `priorityTier` — lower is better (0 = functions, 1 = Clay first-party, 2 = has app account, 3 = Clay credits, 4 = requires key)
@@ -42,17 +44,17 @@ the node will silently fail to bind.
 
 ### Using catalog data when adding tools
 
-When adding a tool to a node, you can either:
+Every tool node gets its own tool instance — input mappings live on the tool, so a shared instance
+would make one node's mappings overwrite another's (including nodes in other workflows). `edit_node`
+enforces this: it only keeps a tool the node already has, and otherwise creates a new one.
 
-1. **Reuse an existing tool** — pass `toolId` from `configuredTools`:
-   ```json
-   { "toolType": "clay_action", "toolId": "tct_abc123" }
-   ```
-2. **Create a new tool** — pass `actionKey` + `actionPackageId`:
+1. **Add the action** — pass `actionKey` + `actionPackageId`:
    ```json
    { "toolType": "clay_action", "actionKey": "find-email-from-name", "actionPackageId": "..." }
    ```
-3. **Bind specific credentials** — pass `appAccountId` from `availableAppAccounts`:
+2. **Bind specific credentials** — pass `appAccountId` from `availableAppAccounts`. Otherwise the new
+   tool binds a private workspace account for that provider when one exists, and falls back to Clay's
+   own credentials (which cost credits) when it doesn't:
    ```json
    { "toolType": "clay_action", "actionKey": "...", "actionPackageId": "...", "appAccountId": "app_xyz" }
    ```
@@ -75,7 +77,8 @@ grep -i "email" /tmp/clay-actions-catalog.json
 jq -r '.data[] | select(.name | test("email";"i")) | "\(.priorityTier) \(.packageId) \(.actionKey) — \(.displayName)"' /tmp/clay-actions-catalog.json | sort
 ```
 
-Prefer actions with lower `priorityTier` values and existing `configuredTools`.
+Prefer actions with lower `priorityTier` values and existing `configuredTools` — an action that
+already has a configured tool usually has working credentials, which the new tool inherits.
 
 ### Never tell the user a capability is missing without searching for it first
 

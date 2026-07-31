@@ -166,13 +166,15 @@ Use the `tools` field with a single-element array:
 ]
 ```
 
-Or reuse a workspace-configured tool by id:
+Or identify the action by an existing tool's id:
 
 ```json
 [{ "toolType": "clay_action", "toolId": "tct_abc123" }]
 ```
 
-The user can tell you which `actionKey` and `actionPackageId` to use, or which existing `toolId` to reuse. Test the action with `execute_clay_action` before adding it to confirm it works on this workspace and to see its real output shape.
+Either way the node ends up with its **own** tool instance — `edit_node` keeps a tool only when the node already has it, and otherwise creates a new one carrying the same action and credentials. Never try to point two nodes at one tool.
+
+The user can tell you which `actionKey` and `actionPackageId` to use, or which existing `toolId` to model the node on. Test the action with `execute_clay_action` before adding it to confirm it works on this workspace and to see its real output shape.
 
 Wire the action's parameters with `inputMappingConfig` on the tool entry — each parameter maps to a `static` value or a `reference` expression. Nested/grouped parameters use `parent|sub` pipe keys:
 
@@ -191,11 +193,11 @@ Wire the action's parameters with `inputMappingConfig` on the tool entry — eac
 ]
 ```
 
-**`inputMappingConfig` is stored on the tool, not the node, and is shared by every node bound to that tool.** Reusing a `toolId` (or an `actionKey` that already has a workspace tool) and setting a mapping re-syncs all those nodes — silently changing other nodes' inputs. Before mapping a reused/shared tool, `read` the workflow with `mode: "full"` to check no other node uses it — the summary omits the per-node configs that reveal sharing.
+**`inputMappingConfig` is stored on the tool, not the node, and applies to every node bound to that tool.** That's why `edit_node` gives each node its own tool instance instead of binding it to an existing one — mappings you set for one node can never leak into another node or workflow. Legacy workflows built before this may still share a tool; if a mapping change shows up on another node, re-add the action to that node so it gets a fresh instance.
 
 For actions whose fields depend on an earlier input (e.g. an object type that reveals a different field set), resolve the real `objectTypeId` values and `fields|<sub>` keys with `clay workflows actions dynamic-fields` before mapping — don't guess them.
 
-See `data-passing.md` for `inputMappingConfig` types (`static` / `reference` / `llm` / `skip`), the `parent|sub` pipe convention, resolving dynamic fields, and both tool-node gotchas (shared-tool mappings, and dropped `inputSchema` variables).
+See `data-passing.md` for `inputMappingConfig` types (`static` / `reference` / `llm` / `skip`), the `parent|sub` pipe convention, resolving dynamic fields, and the dropped-`inputSchema`-variables gotcha.
 
 ## Enabling batching on a tool node
 
@@ -244,6 +246,8 @@ fields the action returns — then prefix them with `$.result.`. For example: `$
 ## Recommended workflow for building
 
 0. **Plan and get approval before building.** Ask the user what trigger they'll use (or recommend one), then lay out the proposed workflow — the nodes, what each does, and how data flows between them — as a short plan. Present it and **wait for the user to approve or adjust it before you touch `edit_node`.** For anything beyond a trivial one-node change, treat this as a hard gate.
+
+   Format the plan as real Markdown so it scans as a hierarchy, not a wall of text: use `##`/`###` headings for sections, ordered lists (`1.`) for sequential steps, bulleted lists (`-`) for options and inputs, and a `>` blockquote for callouts. Do not fake lists with bold-prefixed lines separated by line breaks — those render flat, with no bullets or spacing.
 1. **If you create a new workflow, share its link right away.** `clay workflows create` (and `clay workflows get`) return a `url` — post it as soon as the workflow exists so the user can open the editor and follow along live as you build. This matters most in a headless environment (Claude Code, Cursor, a shell), where the user has no Clay tab open; if you're the in-product assistant they're already viewing the workflow, so a link isn't needed.
 2. Confirm the trigger so you understand the initial node's inputs
 3. Decide which Clay action each tool node calls. Use `/workflow-discover-actions` to find candidates, then test the chosen one with `execute_clay_action` to confirm output shape before wiring. **When more than one action does roughly the same thing, don't pick silently — list the human-readable options (with what each is best at / its credit cost) and ask the user to choose.**
