@@ -17,8 +17,8 @@ stderr on failure, with categorical exit codes (0 ok, 2 validation, 3 auth,
 ## Commands
 
 ```bash
-# Start a test run (input JSON on stdin via --input -; defaults to {})
-echo '{"key":"value"}' | clay workflows runs test <workflowId> --input -
+# Start a test run (input JSON on stdin via --inputs -; defaults to {})
+echo '{"key":"value"}' | clay workflows runs test <workflowId> --inputs -
 clay workflows runs test <workflowId>                  # no inputs
 
 # Audience-segment backfill (up to --limit members) — not a draft test after publish
@@ -28,7 +28,7 @@ clay workflows runs list <workflowId> --audience-segment <segmentId>
 
 ### Draft vs live when testing
 
-- **Plain / manual `clay workflows runs test`** (with or without `--input`) starts a run
+- **Plain / manual `clay workflows runs test`** (with or without `--inputs`) starts a run
   via the manual trigger and exercises the **current draft**. Use this to verify
   unpublished edits.
 - **`--audience-segment`** starts runs through that audience segment trigger. After the
@@ -37,7 +37,7 @@ clay workflows runs list <workflowId> --audience-segment <segmentId>
   `--audience-segment` run on a published workflow; publish first if you need the live
   path to pick up draft changes, or use a manual test to validate the draft.
 
-`--input` and `--audience-segment` cannot be combined. See `publishing.md`.
+`--inputs` and `--audience-segment` cannot be combined. See `publishing.md`.
 
 ```bash
 # Status / progress for a run
@@ -128,7 +128,7 @@ Structure the recap as a short per-node walkthrough (or a small table: node → 
 
 ## Example workflow
 
-1. Start a test: `echo '{}' | clay workflows runs test wf_abc --input -`
+1. Start a test: `echo '{}' | clay workflows runs test wf_abc --inputs -`
 2. Watch to completion: `clay workflows runs get wf_abc wfr_xyz --wait | jq -r '.status'`
 3. Inspect failures: `clay workflows runs steps wf_abc wfr_xyz --status failed | jq '.data[].errors'`
 4. Walk the user through the trace node-by-node (see "Tell the user what the run actually did" above), not as raw JSON.

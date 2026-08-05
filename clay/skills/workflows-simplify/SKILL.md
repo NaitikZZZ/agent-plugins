@@ -1,10 +1,9 @@
 ---
-name: workflow-simplify
+name: workflows-simplify
 description: 'Clay workflows — simplify a workflow: merge redundant nodes, cut unnecessary complexity, and replace LLM nodes with deterministic alternatives where possible.'
 ---
 
 # Simplifying a workflow
-
 
 Analyze the current workflow and suggest concrete simplifications to reduce complexity, improve reliability, and lower costs.
 
@@ -21,6 +20,7 @@ Narrate throughout and prefer the diagram over raw node JSON — see `workflows/
 ## Simplification Checklist
 
 ### Replace LLM nodes with code nodes
+
 Regular (LLM) nodes cost an LLM call per execution. Many can be replaced with deterministic code:
 
 - **Data transformation** — extracting fields, reformatting JSON, string manipulation → code node
@@ -31,7 +31,9 @@ Regular (LLM) nodes cost an LLM call per execution. Many can be replaced with de
 **Ask:** "Does this node require creative reasoning, or could a Python function do the same thing?"
 
 ### Merge sequential nodes
+
 Two adjacent nodes can often be combined into one if:
+
 - Node A passes all its output to Node B, and Node B doesn't add new tools or branching
 - Both nodes use the same model and could be described in a single prompt
 - One node just reformats the other's output
@@ -39,26 +41,32 @@ Two adjacent nodes can often be combined into one if:
 **Ask:** "Would combining these prompts into one still produce the same result?"
 
 ### Remove unnecessary nodes
+
 - Nodes that just pass data through without transformation
 - Conditional nodes with only one possible outcome
 
 ### Pin inputs instead of LLM variable filling
+
 When a downstream node needs specific typed data from an upstream node:
+
 - Add `outputSchema` to the upstream node
 - On the downstream agent node, pin each input via `sourceNodeId`/`sourcePath` inline on the `inputSchema` property and set `automapInputs: false` (see `workflows/data-passing.md`)
 - This is more reliable than relying on the LLM to fill `{{variables}}`
 
 ### Simplify tool usage
+
 - If a node has tools it never uses, remove them (reduces prompt size and cost)
 - If a node calls one tool and passes the result, consider making it a code node with `context.call_tool()`
 
 ### Use code mode for conditional and map nodes
+
 - Conditional nodes: prefer `rules` or `code` mode over `agentic` mode when the decision logic is expressible programmatically
 - Map nodes: prefer `code` mode over `agent` mode when processing is deterministic
 
 ## Output Format
 
 Present suggestions as:
+
 1. **What to change** — specific node(s) affected
 2. **Why** — what complexity or cost this removes
 3. **How** — the concrete edit (new node type, merged prompt, code snippet)

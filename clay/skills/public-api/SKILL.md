@@ -14,7 +14,7 @@ in a shell (use the `cli` skill for those).
 - **Search** — find people or companies in Clay's GTM database.
   - **Advanced queries (beta)** are the default and support filters-mode criteria, cross-entity filters, and nested Boolean logic.
   - Use **structured filters** (filters mode) if the user prefers its older structure or has existing filters-mode searches.
-  See the `search` skill for search behavior and the CLI equivalent. Prefer the CLI for one-off searches.
+    See the `search` skill for search behavior and the CLI equivalent. Prefer the CLI for one-off searches.
 - **Tables** — structured queries against Clay tables.
 - **Routines / batches** — async routine and batch runs.
 

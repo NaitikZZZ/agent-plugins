@@ -1,5 +1,5 @@
 ---
-name: workflow-snapshots
+name: workflows-snapshots
 description: 'Clay workflows — version history: view snapshots, see what changed, and restore or undo a previous state. Use when the user mentions snapshots or asks to undo an edit.'
 allowed-tools: Bash(clay *), Bash(jq *), Read
 ---
@@ -19,9 +19,9 @@ Snapshots are immutable, point-in-time captures of the entire workflow graph —
 
 The same snapshot table holds two roles:
 
-| Role | When | Purpose |
-|------|------|---------|
-| **Draft-history** | Auto on edits / run start | Undo log and run pegging. No release number. |
+| Role                  | When                                  | Purpose                                                                                |
+| --------------------- | ------------------------------------- | -------------------------------------------------------------------------------------- |
+| **Draft-history**     | Auto on edits / run start             | Undo log and run pegging. No release number.                                           |
 | **Published version** | User clicks **Publish** in the editor | Numbered release (`version`, optional `name`). Becomes the live graph automation runs. |
 
 Publishing marks a snapshot of the current draft as a numbered release; it does not create a separate store. See `workflows/publishing.md` for draft vs live (do not explain snapshot-binding internals to users).

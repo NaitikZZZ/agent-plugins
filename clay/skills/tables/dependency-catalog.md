@@ -1,6 +1,6 @@
 # Dependency catalog — the column-DAG extraction recipe
 
-`/table-analyze` and `/table-value-trace` both reconstruct a table's column DAG the
+`/tables-analyze` and `/tables-value-trace` both reconstruct a table's column DAG the
 same way. A Clay table is a column DAG: `source` and input `basic` columns are
 roots; `basic` formula columns and `action` (enrichment) columns depend on the
 `{{f_xxx}}` tokens in their settings. The dependency edges are the `{{f_xxx}}`

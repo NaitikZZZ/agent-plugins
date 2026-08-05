@@ -1,5 +1,5 @@
 ---
-name: table-capacity
+name: tables-capacity
 description: Clay tables — check the row-capacity ceiling when imports stall, before assuming a run/config/enrichment problem. Use when the user asks "why aren't new rows being added?", "why is the import stuck?", or "is this table full?".
 allowed-tools: Bash(clay *), Bash(jq *), Read
 ---
@@ -21,7 +21,7 @@ So the table is constrained if **`rowCount` OR any source's `numSourceRecords`**
 
 ## Procedure
 
-1. Resolve the table to a `tbl_...` id — `clay tables list`, filtered client-side with `jq` on `.name` / `.workbook.name` (don't use `--query-enabled`; it hides non-synced tables). If the user named no table or workbook, ask rather than sweeping the workspace.
+1. Resolve the table to a `tbl_...` id — use `clay tables list --filter workbook.id=<wbk_...>` when the workbook is known (resolve the id via `clay workbooks list`), otherwise `clay tables list` and pick by `.name` with `jq`. Do not use `--filter queryEnabled=true` unless you only want query-synced tables (it hides the rest). If the user named no table or workbook, ask rather than sweeping the workspace.
 2. Run **`clay tables get`** for `rowCount`, and **`clay tables columns list`** for the source counts (shapes in each command's `--help`). Two commands — no row scan needed.
 3. Read the numbers against the default ceiling (source counts live on source columns), with two separate commands.
 
@@ -52,6 +52,7 @@ Then compare `rowCount` and every source's `numSourceRecords` against the defaul
 Lead with the verdict, then the number that drives it. Name whether it's the table's own `rowCount` or a specific source.
 
 **FULL — table's own rows:**
+
 ```
 People — FULL (rowCount 50,000, the default ceiling).
 The table has hit its row ceiling, so new rows are being rejected.
@@ -60,6 +61,7 @@ Fix: split into another table, or remove rows to free capacity.
 ```
 
 **FULL — a source is capped:**
+
 ```
 Leads — FULL via source "Salesforce Import" (numSourceRecords 50,000).
 rowCount is 41,200, so the table itself has room, but that source can't push more
@@ -67,6 +69,7 @@ records in. New rows from Salesforce won't appear until the source is under its 
 ```
 
 **Not full — with headroom and, when asked, runway:**
+
 ```
 Accounts — not at the ceiling (rowCount 47,300; 2,700 rows of headroom against the
 default 50k). Measured fill rate ~600 rows/hour over the last 5 minutes → roughly
@@ -78,7 +81,7 @@ Contacts — not at the ceiling (rowCount 12,400; ~37,600 rows of headroom). Cap
 isn't the problem here.
 ```
 
-When capacity is ruled out, move on to whatever the real question was (an errored source, an enrichment that didn't run, etc.). If the user came in with "rows aren't appearing," hand off to `/table-error-sweep` or `/table-trace` from here.
+When capacity is ruled out, move on to whatever the real question was (an errored source, an enrichment that didn't run, etc.). If the user came in with "rows aren't appearing," hand off to `/tables-error-sweep` or `/tables-trace` from here.
 
 ## Notes
 

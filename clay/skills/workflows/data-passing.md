@@ -155,7 +155,11 @@ agent node pins one (`sourceNodeId` + `sourcePath`) and reference it by name in
   "inputSchema": {
     "type": "object",
     "properties": {
-      "owner_name": { "type": "string", "sourceNodeId": "wfn_enrich", "sourcePath": "$.result.name" }
+      "owner_name": {
+        "type": "string",
+        "sourceNodeId": "wfn_enrich",
+        "sourcePath": "$.result.name"
+      }
     }
   },
   "tools": [
@@ -163,7 +167,9 @@ agent node pins one (`sourceNodeId` + `sourcePath`) and reference it by name in
       "toolType": "clay_action",
       "actionKey": "hubspot-create-object",
       "actionPackageId": "a2584689-...",
-      "inputMappingConfig": { "fields|name": { "type": "reference", "expression": "{{owner_name}}" } }
+      "inputMappingConfig": {
+        "fields|name": { "type": "reference", "expression": "{{owner_name}}" }
+      }
     }
   ]
 }

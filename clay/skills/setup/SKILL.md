@@ -56,6 +56,7 @@ clay whoami; echo "exit_code=$?"
     unless the reported symptom was specifically "the Cursor plugin never appears in
     Settings → Plugins," in which case this only proves a `clay` on PATH works, not that
     it's the Cursor plugin's own install; still do step 2 to confirm.
+
   - **non-zero** → the `clay` on PATH is authenticated but predates the `mcp`
     subcommand. Do step 3 to install the bundled launcher ahead of it on PATH,
     then re-run this check.
@@ -69,7 +70,7 @@ clay whoami; echo "exit_code=$?"
   platform:
   - **Claude Code**: if the plugin was just installed in this session, this is expected —
     Claude Code only adds a newly installed plugin's `bin/` to PATH starting with the
-    *next* session. Don't install a forwarder for this: resolve the bundled launcher's
+    _next_ session. Don't install a forwarder for this: resolve the bundled launcher's
     absolute path once and invoke that directly for the rest of this session instead of
     waiting on a restart —
 
@@ -91,10 +92,12 @@ clay whoami; echo "exit_code=$?"
     bare `clay` is still not found after a restart — that last case means the
     next-session auto-PATH isn't happening, so this is no longer a one-restart hiccup
     the launcher path can paper over.
+
   - **Codex**: skip step 2 and go straight to step 3, then step 4 — Codex does not add a
     plugin's `bin/` to PATH automatically, so restarting alone won't fix this.
   - **Cursor**: do step 2 first (it decides where the plugin's files permanently live);
     then step 3, then step 4.
+
 - **exit_code=3** (`auth_*`) → the CLI works but isn't authenticated. Skip to step 4.
 - **exit_code=5** (`network_*`) → a connection problem. Check `CLAY_API_URL` and the
   network; do not restart the sign-in flow.
@@ -202,7 +205,7 @@ clay mcp --help >/dev/null 2>&1; echo "exit_code=$?"
   fine as long as it passes this check).
 - **exit_code=127** → the forwarder ran but found no launcher (its stderr — rerun
   without `2>&1` to see it — is a JSON envelope saying `no bundled launcher
-  found`). The plugin cache disappeared since the pre-flight above, or the check
+found`). The plugin cache disappeared since the pre-flight above, or the check
   hit a different stale forwarder; don't touch PATH — tell the user to reinstall
   the Clay plugin.
 - **other non-zero** (unknown command) → an older `clay` is shadowing the
@@ -265,22 +268,22 @@ If the backgrounded process dies (`clay whoami` never succeeds), fall back to th
 run-it-in-their-own-terminal flow above.
 
 **Restart the agent afterward** so the running MCP server picks up this session.
-A new chat/conversation is *not* the same as a restart everywhere — what
+A new chat/conversation is _not_ the same as a restart everywhere — what
 actually respawns the MCP server depends on where you're running:
 
 - **Claude Code (desktop app):** MCP servers are shared at the app level, not
-  per-conversation — a new chat does *not* restart one, and there's no
+  per-conversation — a new chat does _not_ restart one, and there's no
   in-session way to reconnect it either (no `/mcp` reconnect UI in the
   Desktop app's Claude Code pane). Fully quit the app (Cmd/Ctrl+Q) and reopen
   it — this restarts every session in the app, not just Clay's.
-- **Claude Code (terminal):** a new chat in the *same* running process does not
+- **Claude Code (terminal):** a new chat in the _same_ running process does not
   respawn the MCP server — exit the process itself: run `/exit`, then start
   `claude` again.
 - **Codex (CLI):** same as the terminal case — Codex spawns MCP servers once at
   startup and has no way to restart a single one yet. Exit the session
   (`/exit` or Ctrl+C) and run `codex` again.
 - **Cursor:** MCP servers run at the app level and are shared across all
-  chats, so a new chat does *not* restart them. Open **Settings → MCP**, and
+  chats, so a new chat does _not_ restart them. Open **Settings → MCP**, and
   toggle the `clay` server off then on — this is the fastest fix and usually
   enough. If the MCP tools still error, use Cmd/Ctrl+Shift+P →
   **Developer: Reload Window**; if that still doesn't pick it up, fully quit
@@ -312,8 +315,8 @@ shapes apart:
     restarting again won't fix it. Have a workspace Admin change the user's role to
     Editor or Admin, then recheck.
 - **No Clay tools appear in Claude Code** — not an auth error; `clay whoami` succeeds, but
-  no Clay tools show up. Start with `claude mcp list`: whether Clay is *absent* from the list
-  or shows *Connected* splits the causes.
+  no Clay tools show up. Start with `claude mcp list`: whether Clay is _absent_ from the list
+  or shows _Connected_ splits the causes.
 
   **Clay missing from `claude mcp list` entirely** — no error, not even "Failed to connect":
   suspect an org-managed policy. A blocked server silently disappears from `/mcp` and
@@ -326,10 +329,10 @@ shapes apart:
   - `managed-mcp.json` — exclusive control: if deployed, only the servers it defines load,
     and all plugin-provided servers (including Clay's) are suppressed even with no allowlist
     or denylist at all.
-  This is admin-only to fix, and the fix depends on which gate blocks Clay: remove it from
-  `deniedMcpServers` (a deny always wins — allowlisting a denied server does nothing), add it
-  to the allowlist, or add it to `managed-mcp.json` under exclusive control. No restart,
-  `ENABLE_TOOL_SEARCH` setting, or reinstall helps.
+    This is admin-only to fix, and the fix depends on which gate blocks Clay: remove it from
+    `deniedMcpServers` (a deny always wins — allowlisting a denied server does nothing), add it
+    to the allowlist, or add it to `managed-mcp.json` under exclusive control. No restart,
+    `ENABLE_TOOL_SEARCH` setting, or reinstall helps.
 
   **Clay shows Connected** — that rules the policy exclusion out (blocked servers vanish from
   the list rather than show Connected). Almost always this is a **discovery** problem, not a
@@ -351,14 +354,14 @@ shapes apart:
   If a broad `clay` search still returns nothing once the servers have settled, check
   whether the session has claude.ai connectors (listed at claude.ai/settings/connectors) or
   HTTP-transport MCP servers (`"type": "http"` in `.mcp.json`/`claude mcp add --transport
-  http`) configured alongside Clay. That combination is a known, still-unresolved upstream bug
+http`) configured alongside Clay. That combination is a known, still-unresolved upstream bug
   ([anthropics/claude-code#51138](https://github.com/anthropics/claude-code/issues/51138) —
   closed by the stale-issue bot for inactivity, not fixed): those servers show Connected with
   populated tool counts but `ToolSearch` never indexes them, and — per real reports, beyond
   what the issue itself documents — other already-indexed servers in the same session
   (including Clay, a plain stdio server) can go dark too as collateral damage — reinstalling
   or re-registering Clay won't help. `ENABLE_TOOL_SEARCH=false` (above) is the most reliable
-  workaround, since it bypasses the broken index entirely. If the session has *no* connectors
+  workaround, since it bypasses the broken index entirely. If the session has _no_ connectors
   or HTTP-transport servers alongside Clay, this bug can't be the cause — still try
   `ENABLE_TOOL_SEARCH=false` once to rule out deferral, then go straight to the
   update-and-report path below.
@@ -379,7 +382,7 @@ shapes apart:
     recheck registration (`claude mcp list`, `/mcp` tool counts), updating Claude Code, and
     `clay-feedback` if it's still unresolved.
   - **Where it was checked.** A pre-launch `echo $ENABLE_TOOL_SEARCH` only proves the
-    *launching shell* has it — echo it via a tool call **inside the already-running session**
+    _launching shell_ has it — echo it via a tool call **inside the already-running session**
     instead. Prefer setting it inline at launch (`ENABLE_TOOL_SEARCH=false claude`) over a
     shell-profile export: the in-session shell re-reads the profile, so an rc-file export can
     echo `false` inside a session whose process never saw it, making this check pass falsely.
@@ -408,7 +411,7 @@ shapes apart:
   - the `/mcp` panel (interactive — a human reads it, it's not a shell command; the Desktop
     app has no `/mcp` pane — note that instead): Clay's own tool count — above zero means
     registered but unindexed, zero means not registered — and the combined tool count across
-    *all* connected servers
+    _all_ connected servers
   - what other MCP servers / claude.ai connectors are configured alongside Clay — not just a
     count: the server names and transport type (`stdio`/`http`/`sse`) from `.mcp.json` and the
     user/project `settings.json` `mcpServers` entries, so a pattern (e.g. always HTTP-transport
@@ -422,16 +425,16 @@ Setup is complete only when **both** the CLI and the MCP tools work.
 
 ## Troubleshooting
 
-| Symptom | Cause | Fix |
-| --- | --- | --- |
-| Plugin never appears in Settings → Plugins; plugin log shows `userLocal=false` | `allowUserLocalPluginImports` disabled by org policy | Use path 1 (team marketplace, admin), path 2 (personal marketplace, if third-party imports are enabled), or path 4 (Option A) — see step 2 |
-| "Add Marketplace" → Import options are greyed out or missing | Third-party imports policy-locked (`allowThirdPartyPluginImports` off) | This same flag gates path 1 too, so path 1 isn't a workaround here — an admin must enable `allowThirdPartyPluginImports` first for any marketplace path (1 or 2). Until then, use path 3 (local sideload, if `allowUserLocalPluginImports` is separately still on) or path 4 (Option A) — see step 2 |
-| MCP tools not visible right after applying path 3 or 4 in Cursor | Didn't fully quit and reopen Cursor after installing — a new chat or Reload Window isn't enough for a newly-added local plugin or `mcp.json` entry | Fully quit (Cmd/Ctrl+Q) and reopen Cursor — see step 2 |
-| MCP tools show an auth error after `clay login`, on any platform | Agent wasn't restarted the way its platform requires | Restart per your platform — see step 4 (Cursor: try the Settings → MCP toggle and Reload Window before a full quit) |
-| `clay whoami` exits 3 | Not signed in | Run `clay login` (step 4), then restart the agent |
-| Duplicate `clay` MCP registrations in Cursor (plugin **and** `~/.cursor/mcp.json`) | Option A was applied while a marketplace import or sideload was pending, and that path has since completed | Run the "landed on path 3 or a marketplace path" cleanup in `cursor-install.md`, then fully restart Cursor — see step 1 |
-| MCP tools error with an auth error while `clay whoami` succeeds | Not-yet-restarted, or `auth_forbidden` (workspace role) — see step 5 above | Redo the restart, or have an Admin fix the workspace role |
-| Clay absent from `claude mcp list` entirely — no error, not even "Failed to connect" | Org-managed policy: `managed-settings.json` allow/denylists, or a deployed `managed-mcp.json` (suppresses all plugin servers) — see step 5 above | Admin-only policy fix; a deny always wins over the allowlist — see step 5 above |
-| No Clay tools appear in Claude Code — not an auth error, server Connected, `clay whoami` succeeds | Almost always a discovery issue under `ToolSearch` deferral, not a registration gap — see step 5 above | Query `ToolSearch` with the broad keyword `clay` (not a prefix) after the servers finish connecting; or restart with `ENABLE_TOOL_SEARCH=false` to load all tools upfront — see step 5 above |
-| Broad `clay` `ToolSearch` still returns nothing once servers have settled, and claude.ai connectors or HTTP-transport servers are configured alongside Clay | Known upstream bug ([#51138](https://github.com/anthropics/claude-code/issues/51138)) — those servers' tools never get indexed, and Clay can go dark too as collateral damage — see step 5 above | Restart with `ENABLE_TOOL_SEARCH=false` to bypass the broken index (verify a "didn't help" report per step 5's three checks). Otherwise update Claude Code and retry, then escalate via `clay-feedback` — see step 5 above |
-| Clay's tools never register under any name even with `ENABLE_TOOL_SEARCH=false` reportedly set | Usually the report itself is unverified — see step 5's three checks (surface, in-session echo, genuine restart) | Re-run step 5's three checks; if they genuinely hold, collect step 5's diagnostics and escalate via `clay-feedback` rather than guessing a cause |
+| Symptom                                                                                                                                                     | Cause                                                                                                                                                                                            | Fix                                                                                                                                                                                                                                                                                                  |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Plugin never appears in Settings → Plugins; plugin log shows `userLocal=false`                                                                              | `allowUserLocalPluginImports` disabled by org policy                                                                                                                                             | Use path 1 (team marketplace, admin), path 2 (personal marketplace, if third-party imports are enabled), or path 4 (Option A) — see step 2                                                                                                                                                           |
+| "Add Marketplace" → Import options are greyed out or missing                                                                                                | Third-party imports policy-locked (`allowThirdPartyPluginImports` off)                                                                                                                           | This same flag gates path 1 too, so path 1 isn't a workaround here — an admin must enable `allowThirdPartyPluginImports` first for any marketplace path (1 or 2). Until then, use path 3 (local sideload, if `allowUserLocalPluginImports` is separately still on) or path 4 (Option A) — see step 2 |
+| MCP tools not visible right after applying path 3 or 4 in Cursor                                                                                            | Didn't fully quit and reopen Cursor after installing — a new chat or Reload Window isn't enough for a newly-added local plugin or `mcp.json` entry                                               | Fully quit (Cmd/Ctrl+Q) and reopen Cursor — see step 2                                                                                                                                                                                                                                               |
+| MCP tools show an auth error after `clay login`, on any platform                                                                                            | Agent wasn't restarted the way its platform requires                                                                                                                                             | Restart per your platform — see step 4 (Cursor: try the Settings → MCP toggle and Reload Window before a full quit)                                                                                                                                                                                  |
+| `clay whoami` exits 3                                                                                                                                       | Not signed in                                                                                                                                                                                    | Run `clay login` (step 4), then restart the agent                                                                                                                                                                                                                                                    |
+| Duplicate `clay` MCP registrations in Cursor (plugin **and** `~/.cursor/mcp.json`)                                                                          | Option A was applied while a marketplace import or sideload was pending, and that path has since completed                                                                                       | Run the "landed on path 3 or a marketplace path" cleanup in `cursor-install.md`, then fully restart Cursor — see step 1                                                                                                                                                                              |
+| MCP tools error with an auth error while `clay whoami` succeeds                                                                                             | Not-yet-restarted, or `auth_forbidden` (workspace role) — see step 5 above                                                                                                                       | Redo the restart, or have an Admin fix the workspace role                                                                                                                                                                                                                                            |
+| Clay absent from `claude mcp list` entirely — no error, not even "Failed to connect"                                                                        | Org-managed policy: `managed-settings.json` allow/denylists, or a deployed `managed-mcp.json` (suppresses all plugin servers) — see step 5 above                                                 | Admin-only policy fix; a deny always wins over the allowlist — see step 5 above                                                                                                                                                                                                                      |
+| No Clay tools appear in Claude Code — not an auth error, server Connected, `clay whoami` succeeds                                                           | Almost always a discovery issue under `ToolSearch` deferral, not a registration gap — see step 5 above                                                                                           | Query `ToolSearch` with the broad keyword `clay` (not a prefix) after the servers finish connecting; or restart with `ENABLE_TOOL_SEARCH=false` to load all tools upfront — see step 5 above                                                                                                         |
+| Broad `clay` `ToolSearch` still returns nothing once servers have settled, and claude.ai connectors or HTTP-transport servers are configured alongside Clay | Known upstream bug ([#51138](https://github.com/anthropics/claude-code/issues/51138)) — those servers' tools never get indexed, and Clay can go dark too as collateral damage — see step 5 above | Restart with `ENABLE_TOOL_SEARCH=false` to bypass the broken index (verify a "didn't help" report per step 5's three checks). Otherwise update Claude Code and retry, then escalate via `clay-feedback` — see step 5 above                                                                           |
+| Clay's tools never register under any name even with `ENABLE_TOOL_SEARCH=false` reportedly set                                                              | Usually the report itself is unverified — see step 5's three checks (surface, in-session echo, genuine restart)                                                                                  | Re-run step 5's three checks; if they genuinely hold, collect step 5's diagnostics and escalate via `clay-feedback` rather than guessing a cause                                                                                                                                                     |

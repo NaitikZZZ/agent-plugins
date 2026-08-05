@@ -1,18 +1,18 @@
 ---
-name: table-trace
+name: tables-trace
 description: 'Clay tables — locate a record by identifier and snapshot its state: which table(s) hold it and each cell''s status. Use when the user has an id and asks "trace {id}", "where is {id}?", "what enrichments ran for this lead?", or "is this record done?".'
 allowed-tools: Bash(clay *), Bash(jq *), Read
 ---
 
 # Playbook: trace a record
 
-**Use when:** you have an identifier and want to find the record and see its overall state — "trace 12345", "where is jane@acme.com?", "what enrichments ran for this lead?", "is this record done?". This is a **locate + snapshot**: which table(s) hold it, and each cell's status. It does **not** explain *why* a cell holds what it holds — that's `/table-value-trace`, which this playbook hands off to.
+**Use when:** you have an identifier and want to find the record and see its overall state — "trace 12345", "where is jane@acme.com?", "what enrichments ran for this lead?", "is this record done?". This is a **locate + snapshot**: which table(s) hold it, and each cell's status. It does **not** explain _why_ a cell holds what it holds — that's `/tables-value-trace`, which this playbook hands off to.
 
 Treat each in-scope table independently. Tables may not share identifiers or have any relationship; presence (or absence) in one says nothing about another.
 
 ## 1. Settle scope
 
-Resolve which table(s) to look in: `clay tables list`, filtered client-side with `jq` on `.name` / `.workbook.name` (don't use `--query-enabled` — it hides tables that aren't query-enabled), or a `tbl_...` id directly. If the user named no scope, **ask** — don't sweep the whole workspace. `{id}` is whatever the user gave (email, HubSpot ID, row id, etc.). (ID prefixes: `tbl_` table, `f_` column, `rec_` row, `wbk_` workbook.)
+Resolve which table(s) to look in: use `clay tables list --filter workbook.id=<wbk_...>` when the workbook is known (resolve the id via `clay workbooks list`), otherwise `clay tables list` and pick by `.name` with `jq`. Do not use `--filter queryEnabled=true` unless you only want query-synced tables (it hides the rest). Or pass a `tbl_...` id directly. If the user named no scope, **ask** — don't sweep the whole workspace. `{id}` is whatever the user gave (email, HubSpot ID, row id, etc.). (ID prefixes: `tbl_` table, `f_` column, `rec_` row, `wbk_` workbook.)
 
 If `{id}` is already a `rec_...` row id and the table is known, skip discovery and go straight to **get the row** (step 4).
 
@@ -83,10 +83,10 @@ Account Match — active (updated 2026-04-12):
 
 - **Found in both active and archive** → likely re-processed; compare `updatedAt` and say which is newer.
 - **Not found** in an in-scope table → say so plainly; it may live in a table you didn't search, or the identifier may be off. Don't treat absence as proof of anything about another table.
-- **An `error` or surprising/empty value** the user wants explained → that's where this playbook ends and `/table-value-trace` begins.
+- **An `error` or surprising/empty value** the user wants explained → that's where this playbook ends and `/tables-value-trace` begins.
 
 ## Hand-offs
 
-- Explain *why* a specific cell errored, is empty, didn't run, or holds the value it does → `/table-value-trace`.
-- Table-wide failures rather than one record → `/table-error-sweep`.
-- "It's not here and nothing's being added" → `/table-capacity`.
+- Explain _why_ a specific cell errored, is empty, didn't run, or holds the value it does → `/tables-value-trace`.
+- Table-wide failures rather than one record → `/tables-error-sweep`.
+- "It's not here and nothing's being added" → `/tables-capacity`.

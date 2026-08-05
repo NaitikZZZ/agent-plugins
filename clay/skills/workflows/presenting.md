@@ -64,11 +64,11 @@ graph. Either annotate each node label with a status marker or place a small
 "node → status" table beside the `clay workflows diagram` render, so the user
 sees **where** in the flow a result (or failure) came from:
 
-| Marker | Meaning   |
-| ------ | --------- |
-| `[x]`  | completed |
-| `[!]`  | failed    |
-| `[~]`  | running   |
+| Marker | Meaning         |
+| ------ | --------------- |
+| `[x]`  | completed       |
+| `[!]`  | failed          |
+| `[~]`  | running         |
 | `[ ]`  | not yet reached |
 
 Pair the annotated graph with the node-by-node walkthrough (see `testing.md`),
