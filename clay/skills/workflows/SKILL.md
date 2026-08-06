@@ -37,8 +37,8 @@ MCP tools:
 CLI capabilities (via the `clay` CLI):
 
 - Start, poll, and inspect workflow runs (see `testing.md`)
-- Browse the Clay action catalog (`clay workflows actions`; use `/workflow-discover-actions`)
-- Snapshots / version history (`clay workflows snapshots`; use `/workflow-snapshots`)
+- Browse the Clay action catalog (`clay workflows actions`; use `/workflows-discover-actions`)
+- Snapshots / version history (`clay workflows snapshots`; use `/workflows-snapshots`)
 - Publish a tested draft as live (`clay workflows publish <workflowId>`)
 
 See `publishing.md` for draft-versus-live behavior.
@@ -79,14 +79,15 @@ A conditional node selects exactly **one** outgoing edge and follows it.
 
 **When to use which mode:**
 
-| Situation | Use |
-|-----------|-----|
-| Branch on string/number/boolean field values — equality, comparison, contains, starts/ends with, empty/not-empty | `rules` mode |
-| Multiple conditions combined with AND/OR | `rules` mode |
-| Branching decision requires open-ended reasoning (e.g. "classify this support ticket as billing, technical, or general", "does this email sound interested or not?") | `agentic` mode |
-| You need to compute or transform a value to decide the route, and that transformation can't be expressed as a field comparison (e.g. parse a JSON blob and branch on a nested value, compute a score from multiple fields) | `code` mode |
+| Situation                                                                                                                                                                                                                  | Use            |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| Branch on string/number/boolean field values — equality, comparison, contains, starts/ends with, empty/not-empty                                                                                                           | `rules` mode   |
+| Multiple conditions combined with AND/OR                                                                                                                                                                                   | `rules` mode   |
+| Branching decision requires open-ended reasoning (e.g. "classify this support ticket as billing, technical, or general", "does this email sound interested or not?")                                                       | `agentic` mode |
+| You need to compute or transform a value to decide the route, and that transformation can't be expressed as a field comparison (e.g. parse a JSON blob and branch on a nested value, compute a score from multiple fields) | `code` mode    |
 
 **`rules` mode** — supported operators:
+
 - **String**: `Equal`, `NotEqual`, `Contain`, `NotContain`, `ContainAny` (value is an array), `StartsWith`, `NotStartsWith`, `EndsWith`, `NotEndsWith`, `Empty`, `NotEmpty`
 - **Number**: `Equal`, `NotEqual`, `GreaterThan`, `GreaterThanOrEqual`, `LessThan`, `LessThanOrEqual`, `Empty`, `NotEmpty`
 - **Boolean**: `True`, `False`, `Empty`, `NotEmpty`
@@ -94,13 +95,24 @@ A conditional node selects exactly **one** outgoing edge and follows it.
 Each rule is a `ConditionalExpressionGroup` — a tree of `BinOp` leaf nodes (a single field comparison) and `GroupOp` nodes (AND/OR of children). Rules are evaluated top-to-bottom; first match wins. Set `defaultTargetNodeId` for a fallback when no rule matches.
 
 Example condition (headcount ≤ 50 AND title contains "CTO"):
+
 ```json
 {
   "type": "GroupOp",
   "combinationMode": "And",
   "items": [
-    { "type": "BinOp", "dataPath": ["headcount"], "operator": "LessThanOrEqual", "value": 50 },
-    { "type": "BinOp", "dataPath": ["title"], "operator": "Contain", "value": "CTO" }
+    {
+      "type": "BinOp",
+      "dataPath": ["headcount"],
+      "operator": "LessThanOrEqual",
+      "value": 50
+    },
+    {
+      "type": "BinOp",
+      "dataPath": ["title"],
+      "operator": "Contain",
+      "value": "CTO"
+    }
   ]
 }
 ```
@@ -225,8 +237,16 @@ For data that needs to be exact (numbers, structured fields, data from 2+ hops b
   "inputSchema": {
     "type": "object",
     "properties": {
-      "company_name": { "type": "string", "sourceNodeId": "wfn_upstream", "sourcePath": "$.company_name" },
-      "score": { "type": "number", "sourceNodeId": "wfn_upstream", "sourcePath": "$.score" }
+      "company_name": {
+        "type": "string",
+        "sourceNodeId": "wfn_upstream",
+        "sourcePath": "$.company_name"
+      },
+      "score": {
+        "type": "number",
+        "sourceNodeId": "wfn_upstream",
+        "sourcePath": "$.score"
+      }
     }
   }
 }
@@ -248,9 +268,10 @@ fields the action returns — then prefix them with `$.result.`. For example: `$
 0. **Plan and get approval before building.** Ask the user what trigger they'll use (or recommend one), then lay out the proposed workflow — the nodes, what each does, and how data flows between them — as a short plan. Present it and **wait for the user to approve or adjust it before you touch `edit_node`.** For anything beyond a trivial one-node change, treat this as a hard gate.
 
    Format the plan as real Markdown so it scans as a hierarchy, not a wall of text: use `##`/`###` headings for sections, ordered lists (`1.`) for sequential steps, bulleted lists (`-`) for options and inputs, and a `>` blockquote for callouts. Do not fake lists with bold-prefixed lines separated by line breaks — those render flat, with no bullets or spacing.
+
 1. **If you create a new workflow, share its link right away.** `clay workflows create` (and `clay workflows get`) return a `url` — post it as soon as the workflow exists so the user can open the editor and follow along live as you build. This matters most in a headless environment (Claude Code, Cursor, a shell), where the user has no Clay tab open; if you're the in-product assistant they're already viewing the workflow, so a link isn't needed.
 2. Confirm the trigger so you understand the initial node's inputs
-3. Decide which Clay action each tool node calls. Use `/workflow-discover-actions` to find candidates, then test the chosen one with `execute_clay_action` to confirm output shape before wiring. **When more than one action does roughly the same thing, don't pick silently — list the human-readable options (with what each is best at / its credit cost) and ask the user to choose.**
+3. Decide which Clay action each tool node calls. Use `/workflows-discover-actions` to find candidates, then test the chosen one with `execute_clay_action` to confirm output shape before wiring. **When more than one action does roughly the same thing, don't pick silently — list the human-readable options (with what each is best at / its credit cost) and ask the user to choose.**
 4. Build the workflow node-by-node with `edit_node`, wiring `incomingEdges` as you go. After each node, tell the user in one line what you added and how it connects.
 5. Run `validate_workflow` with `prettier=true` to auto-layout and catch issues, then **show the user the resulting graph** (see "Show the user the graph" below)
 6. Suggest the user kicks off a test run. When you narrate the run afterward, show a **status-annotated view** of the graph — mark each node completed / failed / running — so the user sees where in the flow each result came from (see `testing.md` and `presenting.md`)
@@ -276,7 +297,7 @@ your first render.
 6. Use string-replace mode for small edits to prompts
 7. When adding enrichment tools, try 2-3 alternative actions as fallbacks if the primary one might miss — and when the choice of primary action is ambiguous, ask the user which they prefer (by human-readable name) rather than guessing
 8. After completing a workflow, suggest a test run and walk the user through what the run did (see `testing.md`)
-9. If you make a mistake or the user asks to undo, use `/workflow-snapshots` to revert (restore changes the draft only — not live automation)
+9. If you make a mistake or the user asks to undo, use `/workflows-snapshots` to revert (restore changes the draft only — not live automation)
 10. When the user wants live automation to match the draft, tell them to **Publish** in the editor — you cannot publish via MCP or CLI (see `publishing.md`)
 
 ## Reference docs in this skill
@@ -285,5 +306,5 @@ your first render.
 - `data-passing.md` — How `{{variables}}`, pinned inputs, and `inputMappingConfig` work in detail
 - `testing.md` — `clay` CLI commands for running and inspecting workflow runs
 - `publishing.md` — Draft vs live, when to ask the user to Publish, restore ≠ publish
-- `audiences-actions.md` — Audience-specific actions
+- `audiences.md` — Audiences inside a workflow: the `upsert-audiences-record` action for writing records, and the `audience_segment` trigger handoff. For creating/editing audiences, fields, and filters, use the `audiences` skill instead.
 - `clay <command> --help` — Per-command JSON shape, flags, and error codes

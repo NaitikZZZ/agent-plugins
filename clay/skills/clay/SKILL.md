@@ -53,20 +53,20 @@ abilities. Get the framing right:
 
 Clay exposes three core primitives (callable from the plugin/CLI/MCP/API):
 
-| Primitive               | What it's for                                                                      |
-| ----------------------- | ---------------------------------------------------------------------------------- |
-| **Searches**            | Find companies and people using Clay's GTM database                                |
-| **Routines**            | Run Clay-managed functions, custom functions, and Workflows                        |
-| **Tables** (Enterprise) | Query **existing** Clay tables only — you **cannot** create tables programmatically|
+| Primitive               | What it's for                                                                       |
+| ----------------------- | ----------------------------------------------------------------------------------- |
+| **Searches**            | Find companies and people using Clay's GTM database                                 |
+| **Routines**            | Run Clay-managed functions, custom functions, and Workflows                         |
+| **Tables** (Enterprise) | Query **existing** Clay tables only — you **cannot** create tables programmatically |
 
 Follow this escalation order — reach for the earliest option that fits:
 
 1. **Search** — need a list of people or companies? Start here (it's a primitive, not a routine).
    - **Advanced queries (beta)** are the default and support filters-mode criteria, cross-entity filters, and nested Boolean logic.
    - Use **structured filters** (filters mode) if the user prefers its older structure or has existing filters-mode searches.
-   Public search supports **people and companies only** — not jobs. A request framed around job
-   posts (e.g. "companies hiring for X") can't be a public search: approximate it with the closest
-   company or people filters, then use a routine to enrich or score for the real signal.
+     Public search supports **people and companies only** — not jobs. A request framed around job
+     posts (e.g. "companies hiring for X") can't be a public search: approximate it with the closest
+     company or people filters, then use a routine to enrich or score for the real signal.
 2. **Clay-managed function** — the default for standard enrichment (work email, phone, job
    title, company domain, tech stack, funding, etc.). Managed functions cover most common GTM
    enrichment, but don't promise a user a specific one until you've confirmed it exists in
@@ -102,16 +102,17 @@ Before running a credit-consuming routine, check its per-item `estimatedCreditCo
 
 ## Skills
 
-| Skill                 | Use it for                                                                                                    |
-| --------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Skill                 | Use it for                                                                                                     |
+| --------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `search`              | Finding people or companies in Clay's GTM database with advanced queries or existing filters-mode searches.    |
-| `routines`            | Creating a routine from an existing function/workflow, running a saved routine, and fetching its results.     |
-| `tables`              | Reading, querying, and exporting data from an existing Clay table (creating tables is not supported).         |
-| `cli`                 | Ephemeral, programmatic access to Clay capabilities from a shell — run a routine, query a table, search, etc. |
-| `public-api`          | Building services and applications on top of Clay over HTTP.                                                  |
-| `workflows`           | Building and editing net-new Clay workflows (multi-step automations, Alpha).                                  |
-| `workflows-vs-tables` | Explaining the difference between Workflows and Tables, or recommending which to use.                         |
-| `clay-feedback`       | Sending a bug report or product feedback to the Clay team.                                                    |
+| `audiences`           | Segmenting the workspace's own people/companies — audiences (saved segments), their fields, and their records. |
+| `routines`            | Creating a routine from an existing function/workflow, running a saved routine, and fetching its results.      |
+| `tables`              | Reading, querying, and exporting data from an existing Clay table (creating tables is not supported).          |
+| `cli`                 | Ephemeral, programmatic access to Clay capabilities from a shell — run a routine, query a table, search, etc.  |
+| `public-api`          | Building services and applications on top of Clay over HTTP.                                                   |
+| `workflows`           | Building and editing net-new Clay workflows (multi-step automations, Alpha).                                   |
+| `workflows-vs-tables` | Explaining the difference between Workflows and Tables, or recommending which to use.                          |
+| `clay-feedback`       | Sending a bug report or product feedback to the Clay team.                                                     |
 
 ## If another Clay MCP is connected
 

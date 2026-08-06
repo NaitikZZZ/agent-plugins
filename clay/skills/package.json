@@ -3,6 +3,13 @@
   "version": "0.0.0",
   "private": true,
   "sideEffects": false,
+  "scripts": {
+    "format": "prettier --write \"**/*.md\"",
+    "format:check": "prettier --check \"**/*.md\""
+  },
+  "devDependencies": {
+    "prettier": "3.6.2"
+  },
   "engines": {
     "node": "^22.21.0"
   }

@@ -1,6 +1,6 @@
 ---
 name: tables
-description: Clay tables — inspect, query, and export data from an existing table, via either the `table` MCP tool (schema + natural-language query, CSV export) or the `clay tables` CLI (list tables, run structured JSON queries with pagination, toggle API query sync). To investigate a table or record, use the focused `/table-*` skills (analyze, trace, error-sweep, value-trace, capacity).
+description: Clay tables — inspect, query, and export data from an existing table, via either the `table` MCP tool (schema + natural-language query, CSV export) or the `clay tables` CLI (list tables, run structured JSON queries with pagination, toggle API query sync). To investigate a table or record, use the focused `/tables-*` skills (analyze, trace, error-sweep, value-trace, capacity).
 ---
 
 ## About Clay Tables
@@ -105,9 +105,11 @@ Both `rows list` and `tables query` return rows in a stable, consistent order th
 Discover tables and their ids. Each row carries a `queryEnabled` flag for whether the table is enabled for querying.
 
 ```bash
-clay tables list                       # { data: [{ id, name, description, workbook, queryEnabled }], cursor? }
-clay tables list --query-enabled       # only tables enabled for querying
-clay tables list --limit 50 --cursor cursor_abc123    # cursor_abc123 = the `cursor` token from a previous page
+clay tables list                                              # all tables
+clay tables list --filter queryEnabled=true                   # query-sync-enabled only
+clay tables list --filter workbook.id=wbk_123                 # tables in one workbook
+clay tables list --filter owner.id=1417322 --limit 50         # by owner
+clay tables list --limit 50 --cursor cursor_abc123            # pagination
 ```
 
 ### Enable a table for querying
@@ -138,7 +140,7 @@ clay tables query --query ./query.json --limit 100 --cursor cursor_abc123
 - Pagination is via flags: `--limit <n>` (1–100, default 50) and `--cursor <token>`. When more rows remain, the response includes a top-level `cursor` — pass it back via `--cursor` to fetch the next page.
 - Output is `{ data: [ { "<fieldId>": <cell> } ], cursor?, fields? }`, where each `<cell>` carries a `status` (`success` / `error` / `running` / `queued` / `retry` / `rate_limited` / `awaiting_callback` / `empty`) plus its value.
 
-Typical flow: `clay tables list --query-enabled` to find the id → (if needed) `clay tables update <id> --query-enabled true` → `clay tables query`. To export, redirect or convert the JSON `data` array to CSV with the Write tool as above.
+Typical flow: `clay tables list --filter queryEnabled=true` to find the id → (if needed) `clay tables update <id> --query-enabled true` → `clay tables query`. To export, redirect or convert the JSON `data` array to CSV with the Write tool as above.
 
 ## Example: combine both surfaces to query across tables
 
@@ -147,7 +149,7 @@ A common pattern uses **both** surfaces together: the CLI to discover tables and
 **1. List tables via CLI to get their ids.**
 
 ```bash
-clay tables list --query-enabled | jq -r '.data[] | [.id, .name] | @tsv'
+clay tables list --filter queryEnabled=true | jq -r '.data[] | [.id, .name] | @tsv'
 # tbl_accounts123   Accounts
 # tbl_contacts456   Contacts
 ```
@@ -192,15 +194,15 @@ https://developers.clay.com/llms.txt
 
 Beyond querying data, the CLI's read commands (`clay tables get`, `columns list|get`, `rows list|get`) support diagnostic work: what a table's workflow does, what happened to a record, and why. These need no query sync — they read the table directly. Each investigation is a focused skill; match the question and use that skill:
 
-| The user wants…                                                    | Skill                |
-| ------------------------------------------------------------------ | -------------------- |
-| "what does this table do?" / "explain the {table} workflow"        | `/table-analyze`     |
-| "trace {id}" / "where is {id} and what state is it in?"            | `/table-trace`       |
-| "what's erroring in {table}?" / "show failed rows" (no identifier) | `/table-error-sweep` |
-| "why is {id} stuck/failing?" / "where did {value} come from?"      | `/table-value-trace` |
-| "why aren't new rows being added / why is the import stuck?"       | `/table-capacity`    |
+| The user wants…                                                    | Skill                 |
+| ------------------------------------------------------------------ | --------------------- |
+| "what does this table do?" / "explain the {table} workflow"        | `/tables-analyze`     |
+| "trace {id}" / "where is {id} and what state is it in?"            | `/tables-trace`       |
+| "what's erroring in {table}?" / "show failed rows" (no identifier) | `/tables-error-sweep` |
+| "why is {id} stuck/failing?" / "where did {value} come from?"      | `/tables-value-trace` |
+| "why aren't new rows being added / why is the import stuck?"       | `/tables-capacity`    |
 
-Each `/table-*` skill is self-contained. `/table-analyze` and `/table-value-trace` share one helper — the column-DAG extraction recipe in `tables/dependency-catalog.md`.
+Each `/tables-*` skill is self-contained. `/tables-analyze` and `/tables-value-trace` share one helper — the column-DAG extraction recipe in `tables/dependency-catalog.md`.
 
 ## Field Types in tables
 

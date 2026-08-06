@@ -253,43 +253,43 @@ run: path 4 applied now while a marketplace import is still pending with the use
 When that import completes later, both registrations exist at once — `SKILL.md` step 1 checks
 for exactly that dual registration on any later run and points back to this section.
 
-- Landed on path 3 or a marketplace path? Remove any Option A leftovers:
+**Landed on path 3 or a marketplace path?** Remove any Option A leftovers:
 
-  ```bash
-  rm -rf "$HOME/.config/clay-plugin/clay"
-  mcp_json="$HOME/.cursor/mcp.json"
-  if [ -f "$mcp_json" ]; then
-    if command -v jq >/dev/null 2>&1; then
-      tmp="$(mktemp)"
-      if jq 'del(.mcpServers.clay)' "$mcp_json" > "$tmp"; then
-        mv "$tmp" "$mcp_json"
-      else
-        rm -f "$tmp"
-      fi
+```bash
+rm -rf "$HOME/.config/clay-plugin/clay"
+mcp_json="$HOME/.cursor/mcp.json"
+if [ -f "$mcp_json" ]; then
+  if command -v jq >/dev/null 2>&1; then
+    tmp="$(mktemp)"
+    if jq 'del(.mcpServers.clay)' "$mcp_json" > "$tmp"; then
+      mv "$tmp" "$mcp_json"
     else
-      python3 - "$mcp_json" <<'PY'
+      rm -f "$tmp"
+    fi
+  else
+    python3 - "$mcp_json" <<'PY'
 import json, sys
 path = sys.argv[1]
 try:
-    with open(path) as f:
-        config = json.load(f)
+  with open(path) as f:
+      config = json.load(f)
 except (FileNotFoundError, json.JSONDecodeError):
-    sys.exit(0)
+  sys.exit(0)
 config.get("mcpServers", {}).pop("clay", None)
 with open(path, "w") as f:
-    json.dump(config, f, indent=2)
-    f.write("\n")
+  json.dump(config, f, indent=2)
+  f.write("\n")
 PY
-    fi
   fi
-  ```
+fi
+```
 
-- Landed on path 4 (Option A) because `userLocal=false`? Remove any dead local-sideload copy so
-  Cursor doesn't show a permanently-broken plugin entry:
+**Landed on path 4 (Option A) because `userLocal=false`?** Remove any dead local-sideload copy
+so Cursor doesn't show a permanently-broken plugin entry:
 
-  ```bash
-  rm -rf "$HOME/.cursor/plugins/local/clay"
-  ```
+```bash
+rm -rf "$HOME/.cursor/plugins/local/clay"
+```
 
 After applying a path, **fully quit Cursor (Cmd/Ctrl+Q) and reopen it** — a new chat or
 "Reload Window" is frequently not enough to pick up a newly-added local plugin or a new

@@ -13,12 +13,12 @@ mechanics (how triggers bind to snapshots, sentinel ids, etc.).
 
 ## Concepts
 
-| Concept | Meaning |
-|---------|---------|
-| **Draft** | The current editable graph (nodes, edges, prompts, tools). A never-published workflow is still a first draft. |
-| **Draft-history snapshot** | An automatic freeze of the graph (before `edit_node`, at run start). Undo/history only — not a release. See `/workflow-snapshots`. |
-| **Publish** | Ship the current draft as a numbered live version. Non-paused triggers go live on that version; paused triggers stay paused (publish does not silently resume them). |
-| **Live** | The published version automation runs. After the first publish, further draft edits do **not** change live automation until the user publishes again. |
+| Concept                    | Meaning                                                                                                                                                              |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Draft**                  | The current editable graph (nodes, edges, prompts, tools). A never-published workflow is still a first draft.                                                        |
+| **Draft-history snapshot** | An automatic freeze of the graph (before `edit_node`, at run start). Undo/history only — not a release. See `/workflows-snapshots`.                                  |
+| **Publish**                | Ship the current draft as a numbered live version. Non-paused triggers go live on that version; paused triggers stay paused (publish does not silently resume them). |
+| **Live**                   | The published version automation runs. After the first publish, further draft edits do **not** change live automation until the user publishes again.                |
 
 Draft-history snapshots and published versions share the same snapshot store;
 publish marks a snapshot as a numbered release. Re-publishing an unchanged draft
@@ -31,7 +31,7 @@ there is no separate per-trigger publish control.
 
 ## Restore is not publish
 
-`clay workflows snapshots restore` (see `/workflow-snapshots`) replaces the
+`clay workflows snapshots restore` (see `/workflows-snapshots`) replaces the
 **draft** only. It does **not** change what is live. Undoing an edit does not roll
 back live automation — the user must publish again if they want live automation to
 match the restored draft.
@@ -52,9 +52,9 @@ match the restored draft.
 
 ## Which runs exercise draft vs live
 
-| How you start the run | What graph it uses |
-|-----------------------|--------------------|
-| Plain / manual `clay workflows runs test` (optional `--input`) | **Current draft** |
+| How you start the run                                                                               | What graph it uses                                           |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Plain / manual `clay workflows runs test` (optional `--inputs`)                                     | **Current draft**                                            |
 | `clay workflows runs test --audience-segment …` (and live audience / schedule / webhook automation) | **Live** version after publish — not unpublished draft edits |
 
 When checking whether draft changes work, use a manual test run. Use `--audience-segment`

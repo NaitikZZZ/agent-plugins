@@ -1,5 +1,5 @@
 ---
-name: table-error-sweep
+name: tables-error-sweep
 description: Clay tables — sweep a table for errored rows and report grouped by root cause (not a specific record). Use when the user asks "what's erroring in {table}?", "show failed rows", or "is {action} failing?".
 allowed-tools: Bash(clay *), Bash(jq *), Read
 ---
@@ -14,7 +14,7 @@ Only **`action`** columns can be in `error`. `basic` and `source` columns don't 
 
 Before sweeping, learn what _can_ error.
 
-1. Resolve the table to a `tbl_...` id — `clay tables list`, filtered client-side with `jq` on `.name` / `.workbook.name` (don't use `--query-enabled`; it hides non-synced tables). If the user named no table or workbook, ask rather than sweeping the workspace.
+1. Resolve the table to a `tbl_...` id — use `clay tables list --filter workbook.id=<wbk_...>` when the workbook is known (resolve the id via `clay workbooks list`), otherwise `clay tables list` and pick by `.name` with `jq`. Do not use `--filter queryEnabled=true` unless you only want query-synced tables (it hides the rest). If the user named no table or workbook, ask rather than sweeping the workspace.
 2. **`clay tables columns get <tableId>`** (shape in the command's `--help`). Build the picture:
    - Which columns are `type: "action"` — these are the ones that fail. Keep a `f_id → name` map for readable reporting.
    - For each action column, note `authAccountId` (auth-related failures), `conditionalRunFormulaText` (a gate — a skipped action usually shows as `empty`, not a failure), and `inputsBinding` (what feeds it — needed if a failure turns out to be a bad/missing input).
@@ -67,7 +67,7 @@ Aggregate the `{col, msg}` pairs across rows. Group by message (normalize near-i
 | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | "rate limit", "429", "quota", "throttled"               | Provider throttling on this action                                                                            | Usually transient — retriable; check `customRateLimitRules` / `batchRunSettings`        |
 | "invalid api key", "unauthorized", "auth", "credential" | The action's connected account (`authAccountId`) is bad/expired                                               | Reconnect the integration account                                                       |
-| "no {x} found", "no input", "missing", empty-input      | An **upstream** column produced nothing, so this action had no usable input                                   | Trace the input (`inputsBinding` → upstream column) — hand to `/table-value-trace`      |
+| "no {x} found", "no input", "missing", empty-input      | An **upstream** column produced nothing, so this action had no usable input                                   | Trace the input (`inputsBinding` → upstream column) — hand to `/tables-value-trace`     |
 | "run condition not met" / conditional gate              | **Not a real failure** — `conditionalRunFormulaText` evaluated falsy and the action was intentionally skipped | Usually expected; note a gated skip more often shows as `empty` than as an errored cell |
 | provider-specific error text                            | The downstream provider rejected the request                                                                  | Read the message literally; often a data-quality issue in the input                     |
 
@@ -85,7 +85,7 @@ By cause:
          → provider throttling. Transient/retriable; consider a rate-limit rule or smaller batches.
   • 6  — Enrich Person:  "No email found for input"
          → upstream "Find Email" returned nothing, so Enrich Person had no email to use.
-            Root cause is upstream, not this action. (/table-value-trace Find Email to confirm.)
+            Root cause is upstream, not this action. (/tables-value-trace Find Email to confirm.)
   • 3  — Enrich Person:  "Invalid API key"
          → the connected account for this action is expired. Reconnect it.
 
@@ -94,10 +94,10 @@ retriable and not a data problem. A secondary cluster traces back to Find Email
 producing no email upstream.
 ```
 
-If the sweep found no errored cells, report that nothing is currently erroring — and if the underlying complaint was "rows aren't appearing," redirect to `/table-capacity` (a full table looks like a failure but produces no errored cells).
+If the sweep found no errored cells, report that nothing is currently erroring — and if the underlying complaint was "rows aren't appearing," redirect to `/tables-capacity` (a full table looks like a failure but produces no errored cells).
 
 ## Hand-offs
 
-- A specific errored row the user wants to understand end-to-end → `/table-trace`.
-- An error that traces to a bad/missing **input** → `/table-value-trace` (walk `inputsBinding` upstream).
-- "Rows aren't appearing" with no errors found → `/table-capacity`.
+- A specific errored row the user wants to understand end-to-end → `/tables-trace`.
+- An error that traces to a bad/missing **input** → `/tables-value-trace` (walk `inputsBinding` upstream).
+- "Rows aren't appearing" with no errors found → `/tables-capacity`.

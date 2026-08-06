@@ -1,5 +1,5 @@
 ---
-name: workflow-discover-actions
+name: workflows-discover-actions
 description: Clay workflows — discover available actions for workflow nodes (email lookup, company enrichment, phone finders, etc.) and inspect their input schemas. Use while building a workflow.
 allowed-tools: Bash(clay *), Bash(grep *), Bash(cat *), Bash(wc *), Bash(jq *), Read, Grep
 ---
@@ -50,13 +50,22 @@ enforces this: it only keeps a tool the node already has, and otherwise creates 
 
 1. **Add the action** — pass `actionKey` + `actionPackageId`:
    ```json
-   { "toolType": "clay_action", "actionKey": "find-email-from-name", "actionPackageId": "..." }
+   {
+     "toolType": "clay_action",
+     "actionKey": "find-email-from-name",
+     "actionPackageId": "..."
+   }
    ```
 2. **Bind specific credentials** — pass `appAccountId` from `availableAppAccounts`. Otherwise the new
    tool binds a private workspace account for that provider when one exists, and falls back to Clay's
    own credentials (which cost credits) when it doesn't:
    ```json
-   { "toolType": "clay_action", "actionKey": "...", "actionPackageId": "...", "appAccountId": "app_xyz" }
+   {
+     "toolType": "clay_action",
+     "actionKey": "...",
+     "actionPackageId": "...",
+     "appAccountId": "app_xyz"
+   }
    ```
 
 Fetch the catalog with the command below. If it fails (e.g. missing
@@ -99,7 +108,7 @@ a naive keyword grep misses them. Search two ways before concluding anything:
 2. **By capability** (see the write-action note below).
 
 Only after both searches genuinely come up empty may you say the capability is
-unavailable — and phrase it as "I don't see it in *this workspace's* catalog",
+unavailable — and phrase it as "I don't see it in _this workspace's_ catalog",
 not "it doesn't exist" or "it isn't supported". When it's absent, give the user a
 next step: suggest confirming the app/action is connected and enabled for the
 workspace, and offer a concrete workaround rather than a flat no.

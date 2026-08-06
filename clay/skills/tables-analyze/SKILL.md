@@ -1,5 +1,5 @@
 ---
-name: table-analyze
+name: tables-analyze
 description: 'Clay tables — analyze what a table does: reconstruct the column DAG, stage it, and narrate the workflow encoded in its columns. Use when the user asks "what does this table do?", "explain the {table} workflow", "walk me through this table", or "what''s set up here?".'
 allowed-tools: Bash(clay *), Bash(jq *), Read
 ---
@@ -10,7 +10,7 @@ allowed-tools: Bash(clay *), Bash(jq *), Read
 
 A Clay table is a column DAG: `source` and input `basic` columns are roots; `basic` formula columns and `action` (enrichment) columns depend on the `{{f_xxx}}` tokens in their settings. Analyzing the table = reconstructing that graph, ordering it into stages, and narrating what it does. Cheap and read-only: ~3 commands (metadata + columns + a row sample).
 
-**Finding the table:** resolve it to a `tbl_...` id with `clay tables list`, filtered client-side with `jq` on `.name` / `.workbook.name` — don't use `--query-enabled` (it hides non-synced tables). If the user named no table or workbook, ask rather than sweeping the workspace. (ID prefixes: `tbl_` table, `f_` column, `rec_` row, `wbk_` workbook.)
+**Finding the table:** resolve it to a `tbl_...` id — use `clay tables list --filter workbook.id=<wbk_...>` when the workbook is known (resolve the id via `clay workbooks list`), otherwise `clay tables list` and pick by `.name` with `jq`. Do not use `--filter queryEnabled=true` unless you only want query-synced tables (it hides the rest). If the user named no table or workbook, ask rather than sweeping the workspace. (ID prefixes: `tbl_` table, `f_` column, `rec_` row, `wbk_` workbook.)
 
 ## 1. Frame the table — `clay tables get`
 
@@ -48,7 +48,7 @@ This left-to-right order ≈ the column order in the Clay UI and gives you the p
 clay tables rows list <tableId> --limit 10 | jq '[ .data[].cells | to_entries[] ] | group_by(.key) | map({ col: .[0].key, n: length, statuses: (group_by(.value.status) | map({ (.[0].value.status): length }) | add) })'
 ```
 
-Map `col` ids to names from the catalog. This is a **sample of ≤10 rows**, so treat it as indicative, not a true rate — say so. Statuses are lowercase (`success`, `empty`, `error`, `queued`/`running`/…). If a stage shows heavy `error`, offer to hand off to `/table-error-sweep` for the real picture. On a query-enabled table, `tables query` group-bys can add exact value distributions to the narrative — statuses still come from the sample (they aren't queryable).
+Map `col` ids to names from the catalog. This is a **sample of ≤10 rows**, so treat it as indicative, not a true rate — say so. Statuses are lowercase (`success`, `empty`, `error`, `queued`/`running`/…). If a stage shows heavy `error`, offer to hand off to `/tables-error-sweep` for the real picture. On a query-enabled table, `tables query` group-bys can add exact value distributions to the narrative — statuses still come from the sample (they aren't queryable).
 
 ## 5. Report — narrative + ASCII DAG
 
@@ -71,13 +71,13 @@ Stage 4  Push to HubSpot (action: HubSpot)   ← Enrich Person
 
 Health (sampled, 10 rows): Domain 10/10 success · Find Email 8 success / 2 empty ·
   Enrich Person 7 success / 1 error / 2 empty · Push HubSpot 7 success / 3 empty.
-  Indicative only (small sample) — run /table-error-sweep for true error counts.
+  Indicative only (small sample) — run /tables-error-sweep for true error counts.
 ```
 
 Keep the narrative honest to the graph: only claim an edge the tokens actually show, and describe a gate exactly as its `conditionalRunFormulaText` reads (don't invent the condition).
 
 ## Hand-offs
 
-- A specific value's origin / why one action didn't fire → `/table-value-trace` (uses the same token extraction, walking one column backward).
-- Heavy errors in a stage → `/table-error-sweep`.
-- "Rows aren't being added" surfaced by metadata → `/table-capacity`.
+- A specific value's origin / why one action didn't fire → `/tables-value-trace` (uses the same token extraction, walking one column backward).
+- Heavy errors in a stage → `/tables-error-sweep`.
+- "Rows aren't being added" surfaced by metadata → `/tables-capacity`.
