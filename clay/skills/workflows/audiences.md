@@ -12,6 +12,28 @@ CLI here.
 command that writes a field value onto a record, so any workflow step that
 populates people or companies uses the action below.
 
+## The backfill shape: audience → enrich → upsert back
+
+This is the standard answer when a field the user wants is missing or sparse on
+their records, and the most common reason to build a workflow over Audiences:
+
+1. **Save an audience of the records that need the field** — an `Empty` filter on
+   it, via `clay audiences create`. That audience is the work queue, and it drains
+   itself as records get filled.
+2. **Trigger the workflow on that audience** (`audience_segment`, below).
+3. **Enrich** in a tool node.
+4. **Write the result back** with `upsert-audiences-record`, looking the record up
+   by `email` / `linkedin_url` (people) or `domain` (companies).
+
+Propose this shape and get sign-off before building any of it — and lead with the
+count, from `clay audiences records search-count`, so the user can see the size
+and cost of what they are approving. Don't start creating nodes off an unconfirmed
+plan.
+
+Before proposing it, confirm the data really is missing: read the existing field
+first (see the `audiences` skill's `answering-data-questions.md`). A workflow that
+re-enriches data the workspace already has spends credits for nothing.
+
 ## Triggering a workflow off an audience
 
 An `audience_segment` trigger's `segmentId` is the audience id from

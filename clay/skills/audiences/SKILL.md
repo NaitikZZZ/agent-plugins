@@ -1,6 +1,6 @@
 ---
 name: audiences
-description: Clay Audiences — create, inspect, and edit audiences (saved segments), their field definitions, and their records via the `clay audiences` CLI. Use when the user wants to segment people or companies ("create an audience of…", "who has no email?"), add/rename/hide a field on people or companies, or count and list the records matching a filter. Also covers deals/opportunities — closed-won, closed-lost, open pipeline, deal stage, deal size/ACV/ARR, close date, forecast, win rate, renewal, expansion ("which accounts have closed-won deals?") — see its `custom_objects.md`. For writing values onto records, see the `workflows` skill.
+description: Clay Audiences — the workspace's own people, companies, and deals (contacts, leads, accounts, customers). Use for any request about their records when no surface is named, including counts, fill rates, lookups ("how many people have a phone?"), saved segments, and field definitions. Also deal and pipeline questions like closed-won, open pipeline, deal stage, and ACV.
 ---
 
 # Clay Audiences
@@ -10,8 +10,17 @@ records). An **audience** — also called a saved segment — is a named filter 
 one entity type. Nothing is copied into it: it selects records live, so its
 membership changes as records change.
 
-Read this before any audiences work. Three supporting references:
+**Audiences is the default home for the workspace's own people and companies.**
+When a user mentions people, companies, contacts, leads, accounts, or customers
+without naming a surface, they mean these records — start here, not in `tables`
+(a separate surface, right only when the user names a table) and not in `search`
+(net-new prospects that are not in the workspace yet).
 
+Read this before any audiences work. Four supporting references:
+
+- `answering-data-questions.md` — **read this first for any "how many / who has /
+  look up X" question.** Covers reading existing fields before paying for an
+  enrichment, checking fill rates, and what to do when the data is mostly missing.
 - `filters.md` — writing the filter AST that defines an audience. Read it before
   you author or edit a filter.
 - `custom_objects.md` — **deals / opportunities.** Read it before anything that
@@ -79,6 +88,9 @@ clay audiences fields delete <fieldId> --entity-type people
 clay audiences fields segments <fieldId> --entity-type people         # audiences whose filter references the field
 ```
 
+- **Run `fields list` once and save it** (`> /tmp/people-fields.json`), then slice
+  it with `jq`. Re-running it to grep, head, and parse the same output three
+  different ways is pure latency.
 - `fields list` returns exactly what the `get_audience_schema` MCP tool's
   `recordFields` returns — both read the same API with system fields excluded.
   Either one gives you the ids for `upsert-audiences-record`; prefer whichever
@@ -122,6 +134,11 @@ exclusive):
   built from that filter would hold
 
 Add `--archived` to either to search archived records instead of live ones.
+
+**`search-count` is the workhorse.** It answers "how many" server-side for free
+and instantly, and a `NotEmpty` filter on a field turns it into a fill-rate check
+— run that before building anything on a field, and before proposing an
+enrichment. See `answering-data-questions.md`.
 
 The search commands take `people` or `companies` only; `records get` also takes
 `--entity-type deals` to read deal (opportunity) records by id. To _find_ deals,
