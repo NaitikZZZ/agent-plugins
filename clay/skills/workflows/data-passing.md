@@ -1,39 +1,13 @@
 # Data Passing in Clay Workflows
 
-How you wire data between nodes depends on the node type. There are three
+How you wire data between nodes depends on the node type. There are two
 mechanisms; the shapes below are exactly what `edit_node` accepts and what `read`
 returns — wire data this way, then `read` the node back to confirm it saved.
 
-## Method 1: LLM Variable Filling (default)
-
-When an agent node finishes, it picks one outgoing edge and fills in
-`{{variable_name}}` placeholders in the downstream node's prompt based on its
-understanding of the work it just did.
-
-**Example:**
-
-```
-Node A prompt: "Research the company {{company_name}} and determine their industry."
-Node B prompt: "Write an email to {{contact_name}} at {{company_name}} in the {{industry}} industry."
-```
-
-When Node A transitions to Node B, the LLM fills in `company_name`,
-`contact_name`, and `industry` based on its research.
-
-**Best for:** Flexible, prompt-to-prompt text. Simple workflows where the
-immediately preceding agent node has all the context needed.
-
-**Limitations:**
-
-- Non-deterministic — the LLM may fill values slightly differently each run
-- No type validation — everything is a string
-- Only works node-to-immediate-successor — for data from 2+ hops back, pin the input (Method 2)
-
-## Method 2: Pinned inputs on agent nodes (typed, deterministic)
+## Method 1: Pinned inputs on agent nodes (typed, deterministic)
 
 Use this when the data must be exact (a number, a boolean, a specific structured
-field), comes from a node that is NOT the immediate predecessor, or you want a
-guarantee instead of LLM-mediated filling.
+field), or comes from another node.
 
 The **upstream node** declares an `outputSchema` describing its structured output:
 
@@ -51,12 +25,10 @@ The **upstream node** declares an `outputSchema` describing its structured outpu
 ```
 
 The **downstream agent node** pins each input by adding `sourceNodeId` +
-`sourcePath` **directly onto the `inputSchema` property**, and turns off automap
-so the LLM can't override the pinned value:
+`sourcePath` **directly onto the `inputSchema` property**:
 
 ```json
 {
-  "automapInputs": false,
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -82,18 +54,13 @@ Use `sourcePath`, not `path`.
 `type: "object"` + `properties` wrapper — `{ "score": { "type": "number" } }` is
 equivalent to the full form above. Either works; the shorthand is terser.
 
-**`automapInputs`** (boolean, top-level):
-
-- `true` (default) — the LLM fills any inputs at runtime and may override pins
-- `false` — inputs resolve only from their `sourceNodeId`/`sourcePath`; pin every input you care about
-
 **Accessing pinned inputs:** in an agent prompt, `{{company_name}}` resolves to
-the pinned value (not LLM-filled).
+the pinned value.
 
 **`sourcePath` syntax** is JSONPath: `$.field`, `$.nested.field`,
 `$.array[0].name`, `$.results[0].properties.hs_email_domain`.
 
-## Method 3: Action input mapping on tool nodes
+## Method 2: Action input mapping on tool nodes
 
 Tool nodes (`nodeType: "tool"`) do **not** wire action inputs through
 `inputSchema`. Each action parameter is mapped in the tool's `inputMappingConfig`:
@@ -121,7 +88,6 @@ Each value is one of:
 | ----------- | -------------------------------------------------- | ----------------------------------------------------------------- |
 | `static`    | `{ "type": "static", "value": … }`                 | fixed value baked into the node                                   |
 | `reference` | `{ "type": "reference", "expression": "{{var}}" }` | pull from an available variable (upstream output / trigger input) |
-| `llm`       | `{ "type": "llm" }`                                | let the LLM fill it at runtime                                    |
 | `skip`      | `{ "type": "skip" }`                               | leave the parameter unset                                         |
 
 **Pipe keys (`parent|sub`):** grouped/nested action parameters are addressed
@@ -231,12 +197,8 @@ clay workflows actions dynamic-fields pkg_abc123 hubspot-create-object fields --
 
 ## Choosing a method
 
-| Scenario                                             | Method                                                               |
-| ---------------------------------------------------- | -------------------------------------------------------------------- |
-| Free-form text from the immediately preceding agent  | LLM variable filling                                                 |
-| Numeric scores, IDs, booleans into an **agent** node | Pinned inputs (`sourceNodeId`/`sourcePath` + `automapInputs: false`) |
-| Data from 2+ hops back into an **agent** node        | Pinned inputs                                                        |
-| Any input into a **tool** node                       | `inputMappingConfig` (`static` / `reference`)                        |
-
-You can mix on an agent node: pin the critical typed inputs and let the LLM fill
-supplementary text variables in the same prompt (`automapInputs: true`).
+| Scenario                                             | Method                                        |
+| ---------------------------------------------------- | --------------------------------------------- |
+| Numeric scores, IDs, booleans into an **agent** node | Pinned inputs (`sourceNodeId`/`sourcePath`)   |
+| Data from 2+ hops back into an **agent** node        | Pinned inputs                                 |
+| Any input into a **tool** node                       | `inputMappingConfig` (`static` / `reference`) |

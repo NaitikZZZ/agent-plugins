@@ -8,26 +8,31 @@ When the user wants automation to go live (or to ship draft changes after a prio
 publish), run `clay workflows publish <workflowId>`. Do not claim that `edit_node`,
 a test run, or `snapshots restore` published anything.
 
-Speak to the user in **draft / live / publish** terms. Do not explain internal
-mechanics (how triggers bind to snapshots, sentinel ids, etc.).
+Speak to the user in **draft / live / publish** terms, and only about the
+workflow as a whole. Do not explain internal mechanics (how triggers bind to
+snapshots, sentinel ids, etc.), and never describe or try to change the state of
+an individual trigger — a trigger you create is inert until the user publishes,
+and publishing activates it. There is nothing for the user to do per trigger, so
+saying "the trigger is in draft" or "I set the trigger live" is wrong and only
+confuses them.
 
 ## Concepts
 
-| Concept                    | Meaning                                                                                                                                                              |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Draft**                  | The current editable graph (nodes, edges, prompts, tools). A never-published workflow is still a first draft.                                                        |
-| **Draft-history snapshot** | An automatic freeze of the graph (before `edit_node`, at run start). Undo/history only — not a release. See `/workflows-snapshots`.                                  |
-| **Publish**                | Ship the current draft as a numbered live version. Non-paused triggers go live on that version; paused triggers stay paused (publish does not silently resume them). |
-| **Live**                   | The published version automation runs. After the first publish, further draft edits do **not** change live automation until the user publishes again.                |
+| Concept                    | Meaning                                                                                                                                                             |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Draft**                  | The current editable graph (nodes, edges, prompts, tools). A never-published workflow is still a first draft.                                                       |
+| **Draft-history snapshot** | An automatic freeze of the graph (before `edit_node`, at run start). Undo/history only — not a release. See `/workflows-snapshots`.                                 |
+| **Publish**                | Ship the current draft as a numbered live version, activating its triggers. A trigger the user paused in the UI stays paused (publish does not silently resume it). |
+| **Live**                   | The published version automation runs. After the first publish, further draft edits do **not** change live automation until the user publishes again.               |
 
 Draft-history snapshots and published versions share the same snapshot store;
 publish marks a snapshot as a numbered release. Re-publishing an unchanged draft
 keeps the same version.
 
-After a workflow is published, individual triggers can be **paused** or **resumed**
-in the UI (`live` ↔ `paused`). That does not publish a new workflow version.
-Triggers still waiting in **draft** become live when the workflow is published —
-there is no separate per-trigger publish control.
+Publishing is the only trigger-activation control you have: there is no separate
+per-trigger publish step, and you cannot pause or resume a trigger. Pausing and
+resuming is a UI action the user takes on their own, and it does not publish a
+new workflow version.
 
 ## Restore is not publish
 

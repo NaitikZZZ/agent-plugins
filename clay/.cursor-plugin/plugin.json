@@ -1,6 +1,6 @@
 {
   "name": "clay",
-  "version": "2.1.25",
+  "version": "2.1.26",
   "description": "Build with Clay in Cursor",
   "author": { "name": "Clay" },
   "skills": ["./skills"],

@@ -25,10 +25,10 @@ their records, and the most common reason to build a workflow over Audiences:
 4. **Write the result back** with `upsert-audiences-record`, looking the record up
    by `email` / `linkedin_url` (people) or `domain` (companies).
 
-Propose this shape and get sign-off before building any of it — and lead with the
-count, from `clay audiences records search-count`, so the user can see the size
-and cost of what they are approving. Don't start creating nodes off an unconfirmed
-plan.
+Lead with the count from `clay audiences records search-count` so the user can
+see the size and likely cost. You may build the reversible draft incrementally
+while details are still being refined, but get confirmation before starting a
+credit-consuming backfill or publishing the workflow.
 
 Before proposing it, confirm the data really is missing: read the existing field
 first (see the `audiences` skill's `answering-data-questions.md`). A workflow that
