@@ -10,7 +10,9 @@ CLI here.
 
 **Read with the CLI, write records with the action.** `clay audiences` has no
 command that writes a field value onto a record, so any workflow step that
-populates people or companies uses the action below.
+populates people or companies uses the action below. Audiences itself is
+CLI-only — no MCP tool or `surfaces_*` resource type reads segments or fields,
+so don't go looking for one.
 
 ## The backfill shape: audience → enrich → upsert back
 
@@ -55,7 +57,7 @@ When attaching this action to a tool node, use:
 ### Lookup vs record fields
 
 - **Lookup fields** are the keys used to find an existing audience record. For contacts these are fixed (`email`, `linkedin_url`, `phone`); for accounts (`domain`, `linkedin_url`). The values you pass under `lookupFields|<id>` are matched against existing records — if any match, the record is updated; otherwise a new one is created.
-- **Record fields** are the data written onto the matched (or newly created) record. These are workspace-defined and vary per workspace; call `get_audience_schema` (or `clay audiences fields list`) to discover the available ids.
+- **Record fields** are the data written onto the matched (or newly created) record. These are workspace-defined and vary per workspace; call `clay audiences fields list` with `--entity-type people` or `--entity-type companies` to discover the available ids.
 
 ### Required keys
 
@@ -70,7 +72,7 @@ Every id in a `selected*` array MUST have a matching `<group>|<id>` binding, or 
 
 ### Discover real field IDs
 
-Call `get_audience_schema` with `entityType` first — schema ids and English names often differ (account "company name" is `org_name`). It returns `lookupFields` (fixed: CONTACT → `email`, `linkedin_url`, `phone`; ACCOUNT → `domain`, `linkedin_url`) and `recordFields` (workspace-defined).
+Run `clay audiences fields list` with `--entity-type people` or `--entity-type companies` first — schema ids and English names often differ (account "company name" is `org_name`). It returns the workspace's record field catalog; lookup keys are fixed (CONTACT → `email`, `linkedin_url`, `phone`; ACCOUNT → `domain`, `linkedin_url`).
 
 ### Worked example — account upsert
 
