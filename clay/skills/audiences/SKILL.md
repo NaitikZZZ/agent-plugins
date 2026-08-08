@@ -36,6 +36,12 @@ every Audiences primitive — segments, fields, and reading records — but it h
 command that writes a field value onto a record. That is the
 `upsert-audiences-record` action's job.
 
+**Audiences is CLI-only.** No MCP tool serves it — `surfaces_read` and
+`surfaces_list` carry no `audience` resource type, and nothing else in the tool
+list reads segments, fields, or records. That absence is not a missing
+capability: use `clay audiences`, and don't report Audiences as unavailable
+because no tool offers it.
+
 ## One entity type, three spellings
 
 The same entity types are named differently depending on where you are. Get this
@@ -91,10 +97,8 @@ clay audiences fields segments <fieldId> --entity-type people         # audience
 - **Run `fields list` once and save it** (`> /tmp/people-fields.json`), then slice
   it with `jq`. Re-running it to grep, head, and parse the same output three
   different ways is pure latency.
-- `fields list` returns exactly what the `get_audience_schema` MCP tool's
-  `recordFields` returns — both read the same API with system fields excluded.
-  Either one gives you the ids for `upsert-audiences-record`; prefer whichever
-  surface you are already in.
+- `fields list` returns the workspace record-field catalog (system fields
+  excluded) — use those ids for `upsert-audiences-record`.
 - **Names are not ids.** Account "company name" is `org_name`. Never guess an id
   from a display name.
 - `create` silently uniquifies a taken name (`"Tier (2)"`) — read the returned

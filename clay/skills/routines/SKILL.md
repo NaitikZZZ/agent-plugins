@@ -139,16 +139,16 @@ Runs are asynchronous. Prefer a single blocking call with `--wait` instead of ha
 poll loop:
 
 ```bash
-clay routines runs get <run-id> --wait 60        # poll until complete / validation_failed, or 60s
+clay routines runs get <run-id> --wait 60        # poll until complete / validation_failed / processing_failed, or 60s
 clay routines runs get <run-id> --bulk --wait 60 # same for a bulk run (skip the inline probe)
-clay routines runs get <run-id> --wait           # poll until complete / validation_failed (no budget)
+clay routines runs get <run-id> --wait           # poll until complete / validation_failed / processing_failed (no budget)
 clay routines runs get <run-id>                  # single request (may still be in_progress)
 clay routines runs get <run-id> --bulk           # look up as a bulk run (bare flag, no value)
 clay routines runs list                          # recent runs and their statuses
 ```
 
 Check `.status` on the JSON before treating the run as done. With bare `--wait`, the command
-blocks until `complete` or `validation_failed`. With `--wait <seconds>`, if the budget expires
+blocks until `complete`, `validation_failed`, or `processing_failed`. With `--wait <seconds>`, if the budget expires
 while still `in_progress`, the command exits 0 with that latest status — do not assume success.
 Prefer a bounded `--wait <seconds>` for bulk runs: a bulk run that was stopped keeps reporting
 `in_progress`, so bare `--wait` can wait forever.

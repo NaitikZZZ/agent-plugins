@@ -85,9 +85,10 @@ If they want it filled:
   initiative.
 - **In a workflow context, the answer is a workflow**: one that reads the records
   missing the field, runs the enrichment, and writes the result back with
-  `upsert-audiences-record`. Propose that shape — trigger on an audience of the
-  records missing the field, enrich, upsert — and get sign-off before building.
-  See the `workflows` skill's `audiences.md`.
+  `upsert-audiences-record`. Start with that shape — trigger on an audience of
+  the records missing the field, enrich, upsert — and build the reversible draft
+  incrementally. Confirmation is required before the credit-consuming run, not
+  before draft construction. See the `workflows` skill's `audiences.md`.
 - The audience of records missing the field is itself the input: an `Empty`
   filter on that field, saved with `clay audiences create`, becomes the
   workflow's trigger.

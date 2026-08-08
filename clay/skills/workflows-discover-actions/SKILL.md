@@ -135,13 +135,13 @@ the right choice for "write back onto the record" (it needs an external ID
 field). Confirm these are absent from the catalog before telling the user to pick
 some other write-back mechanism.
 
-### When several actions fit, ask the user — don't pick silently
+### When several actions fit, recommend a default
 
-The catalog almost always has multiple actions that do roughly the same job (several email finders, several company-enrichment providers, waterfalls vs. single providers, etc.). These differ in coverage, credit cost, and required credentials, and the "right" one is a judgment call the user should make. **When more than one candidate fits a step, present the shortlist and ask which they want before wiring it.**
+The catalog almost always has multiple actions that do roughly the same job (several email finders, several company-enrichment providers, waterfalls vs. single providers, etc.). Use the request, `priorityTier`, configured credentials, coverage, and credit cost to recommend and wire the best-supported default when the choice is reversible and low-risk. Ask the user before wiring only when the candidates have a consequential trade-off in cost, coverage, credentials, destination, or semantics that the request does not resolve.
 
 - Refer to each option by its **human-readable `displayName`** (e.g. "Find Work Email (Clay)"), never the internal `actionKey`.
 - For each option, surface the details that drive the decision: `whyUseful` / `dataStrengths`, `creditCost`, whether a `configuredTool` or `availableAppAccount` already exists, and `priorityTier`.
-- Recommend a default (usually the lowest `priorityTier` with an existing configured tool) but let the user override it.
+- Name the default you chose (usually the lowest `priorityTier` with an existing configured tool) and let the user override it as the build evolves.
 
 ## Getting action input schemas
 

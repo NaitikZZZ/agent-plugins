@@ -12,7 +12,7 @@ Analyze the current workflow and suggest changes to reduce credit consumption an
 1. **Read the workflow** using `read` (full mode) to get all node details
 2. **Identify cost drivers** — LLM calls, Clay action usage, model selection
 3. **Present optimization opportunities** with estimated impact, alongside a render of the **current graph** (`clay workflows diagram <workflowId>`) with the expensive nodes called out so the user can see where the cost lives
-4. **Apply changes** after user approval
+4. **Apply authorized changes** — edit the workflow only when the user's request authorizes modifications. Once authorized, apply clearly safe optimizations as you go and ask before changes with a material quality or behavior trade-off
 5. **Show the result** — after applying, run `validate_workflow` with `prettier=true` and render the **updated graph** so the change is visible
 
 Narrate throughout and prefer the diagram over raw node JSON — see `workflows/presenting.md`.
@@ -88,4 +88,4 @@ For each optimization opportunity, present:
 
 Prioritize suggestions by impact (highest savings first). Pair the list with the current-graph render, with the expensive nodes called out, so each is easy to locate.
 
-After presenting all suggestions, ask the user which to apply. Execute using `edit_node`, validate with `validate_workflow` (`prettier=true`), and show the updated graph so the user can see the before/after difference.
+For analysis or recommendation requests, present the opportunities without editing. If the user asks you to modify the workflow, apply clearly safe savings as you identify them and state your assumptions. Ask only when an optimization has a meaningful quality, cost, or behavior trade-off. Then validate with `validate_workflow` (`prettier=true`) and show the updated graph so the user can see the before/after difference.
