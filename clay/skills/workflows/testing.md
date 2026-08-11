@@ -68,11 +68,13 @@ clay workflows create --name "My Workflow"
 clay workflows publish <workflowId> --name "July enrichment rollout"
 ```
 
-When you create a new workflow, share its link (the `url` field from `clay
-workflows create`/`clay workflows get`) as soon as it exists, so the user can
-open the editor and follow along in the UI as you build. This is most useful in
-a headless environment where the user has no Clay tab already open; the
-in-product assistant's user is already viewing the workflow.
+When you create a new workflow, post a clickable Markdown link near the top of
+your reply as soon as it exists — e.g. `[Open workflow](<url>)` — using the `url`
+from `clay workflows create` or `clay workflows get`. Do not leave the URL in
+raw command output; the user should be able to click straight into the editor.
+This is most useful in a headless environment where the user has no Clay tab
+already open; the in-product assistant's user is already viewing the workflow.
+See `presenting.md` ("Workflow editor link").
 
 ## Watching a run to completion
 

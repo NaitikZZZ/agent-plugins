@@ -275,6 +275,27 @@ Set `batchRunSettings: { "enabled": true, "maxBatchSize": <n> }` on a tool node 
 
 `batchRunSettings` can only be set on a tool node that already has its `tools` field configured — if you're creating the node and enabling batching in the same conversation turn, do it as two separate `edit_node` calls (create with `tools` first, then enable batching in a follow-up call).
 
+## List mode (Repeat)
+
+An agent, code, or tool node can run once per item in an upstream list instead of once over the whole list. In the editor this is the **Repeat** toggle. Describe it to the user as **"runs once per item"** — never say it "maps over the list" or call it a map/loop.
+
+Set `listMode: true` on the node via `edit_node`, and set `listEntriesRef` to the upstream array it repeats over (`{ "sourceNodeId": "wfn_upstream", "path": "$.results" }`) in the same call. Inside a repeating node, its inputs and prompt resolve against the current item, not the whole list.
+
+Always set `listEntriesRef` when turning list mode on: without it the node looks for an `entries` input instead of the upstream array, and repeats over the wrong thing. Pass `null` to clear it.
+
+Map each tool input that should vary per item to the **current item**, not to the upstream node. Use an `item` mapping in `inputMappingConfig`: `{ "type": "item", "path": "$.field" }` (`$` is the whole item, `$.url` / `$.full_name` a field on it). Example: repeating over a list of people, wire the tool's `full_name` parameter to `{ "type": "item", "path": "$.full_name" }`, not to a `{{...}}` reference to the upstream list node — a reference resolves to the whole aggregate, so every item would get the same value. Reserve `static`/`reference` for inputs that are genuinely the same across all items. See `data-passing.md`.
+
+`listFailureMode` controls what happens when individual items fail:
+
+- `"fail_at_end"` (default) — run every item, then fail the node if any item failed.
+- `"ignore_errors"` — keep the successful items and continue.
+
+**When to use it:** the user has a list (search results, an audience, a prior node's rows) and wants the same per-record work — enrich each row, draft one message per lead, classify each item — done once for every item.
+
+**When not to use it:** a single aggregate step that should see the whole list at once (summarize all results, pick the top N, dedupe across the list). Leave `listMode` off for those — the node gets the full array. It is also unsupported on account agent nodes and on every other node type (trigger, conditional, map, reduce, collect, fork, join).
+
+`listMode` and `listFailureMode` are only available when the workspace has list mode enabled; if `edit_node` rejects them, relay that the feature isn't enabled rather than retrying.
+
 ## Passing data between nodes
 
 ### Pinned inputs on agent nodes (typed, deterministic)
@@ -336,7 +357,7 @@ fields the action returns — then prefix them with `$.result.`. For example: `$
 
    Keep implementation details out of this outline unless the user asks for them or they are required to resolve a blocking decision.
 
-1. **If you create a new workflow, share its link right away.** `clay workflows create` (and `clay workflows get`) return a `url` — post it as soon as the workflow exists so the user can open the editor and follow along live as you build. This matters most in a headless environment (Claude Code, Cursor, a shell), where the user has no Clay tab open; if you're the in-product assistant they're already viewing the workflow, so a link isn't needed.
+1. **If you create a new workflow, post a clickable Markdown link right away.** As soon as the workflow exists, put `[Open workflow](<url>)` near the top of your reply, using the `url` from `clay workflows create` (or `clay workflows get`) — not raw JSON and not "see the `url` field." This matters most in a headless environment (Claude Code, Cursor, a shell), where the user has no Clay tab open; if you're the in-product assistant and they're already viewing the workflow, skip the link. See `presenting.md` ("Workflow editor link").
 2. Confirm the trigger so you understand the initial node's inputs
 3. Build the outline node-by-node with `edit_node`, wiring `incomingEdges` as you go. Give each step a specific, outcome-oriented name. For a step that clearly needs a Clay action but whose provider or exact action is not settled, create a tool node without `tools`. Choose the node type before creating it because an existing node's type cannot be changed. After the outline is on the canvas, show the graph and tell the user which steps still need implementation.
 4. Resolve the incomplete steps one at a time. For each actionless tool node, use `/workflows-discover-actions` to find candidates, test the chosen one with `execute_clay_action` to confirm its input and output fields, then attach it to the existing node and configure its inputs. When several actions fit, choose and name a recommended default if the choice is reversible and low-risk; ask the user only when cost, coverage, credentials, or semantics create a consequential trade-off.

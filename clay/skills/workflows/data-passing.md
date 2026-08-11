@@ -84,11 +84,12 @@ Tool nodes (`nodeType: "tool"`) do **not** wire action inputs through
 
 Each value is one of:
 
-| `type`      | shape                                              | meaning                                                           |
-| ----------- | -------------------------------------------------- | ----------------------------------------------------------------- |
-| `static`    | `{ "type": "static", "value": … }`                 | fixed value baked into the node                                   |
-| `reference` | `{ "type": "reference", "expression": "{{var}}" }` | pull from an available variable (upstream output / trigger input) |
-| `skip`      | `{ "type": "skip" }`                               | leave the parameter unset                                         |
+| `type`      | shape                                              | meaning                                                                       |
+| ----------- | -------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `static`    | `{ "type": "static", "value": … }`                 | fixed value baked into the node                                               |
+| `reference` | `{ "type": "reference", "expression": "{{var}}" }` | pull from an available variable (upstream output / trigger input)             |
+| `item`      | `{ "type": "item", "path": "$.field" }`            | the current list item, in list mode (`$` = whole item, `$.field` = one field) |
+| `skip`      | `{ "type": "skip" }`                               | leave the parameter unset                                                     |
 
 **Pipe keys (`parent|sub`):** grouped/nested action parameters are addressed
 with a pipe. A `fields` group with `domain` and `fieldsToFilterBy` sub-fields is
@@ -197,8 +198,9 @@ clay workflows actions dynamic-fields pkg_abc123 hubspot-create-object fields --
 
 ## Choosing a method
 
-| Scenario                                             | Method                                        |
-| ---------------------------------------------------- | --------------------------------------------- |
-| Numeric scores, IDs, booleans into an **agent** node | Pinned inputs (`sourceNodeId`/`sourcePath`)   |
-| Data from 2+ hops back into an **agent** node        | Pinned inputs                                 |
-| Any input into a **tool** node                       | `inputMappingConfig` (`static` / `reference`) |
+| Scenario                                             | Method                                                                |
+| ---------------------------------------------------- | --------------------------------------------------------------------- |
+| Numeric scores, IDs, booleans into an **agent** node | Pinned inputs (`sourceNodeId`/`sourcePath`)                           |
+| Data from 2+ hops back into an **agent** node        | Pinned inputs                                                         |
+| Any input into a **tool** node                       | `inputMappingConfig` (`static` / `reference`)                         |
+| An input into a **repeating (list mode) tool** node  | `inputMappingConfig` `item` (`{ "type": "item", "path": "$.field" }`) |
