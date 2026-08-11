@@ -8,13 +8,17 @@ When the user wants automation to go live (or to ship draft changes after a prio
 publish), run `clay workflows publish <workflowId>`. Do not claim that `edit_node`,
 a test run, or `snapshots restore` published anything.
 
-Speak to the user in **draft / live / publish** terms, and only about the
-workflow as a whole. Do not explain internal mechanics (how triggers bind to
-snapshots, sentinel ids, etc.), and never describe or try to change the state of
-an individual trigger — a trigger you create is inert until the user publishes,
-and publishing activates it. There is nothing for the user to do per trigger, so
-saying "the trigger is in draft" or "I set the trigger live" is wrong and only
-confuses them.
+Speak to the user in **draft / live / publish** terms for the workflow as a
+whole, and don't explain internal mechanics (how triggers bind to snapshots,
+sentinel ids, etc.). A trigger you create or edit stays inert until the user
+publishes — publishing is what takes triggers live. There is no per-trigger
+"set live" action, so never say you "set a trigger live" or that a trigger you
+just added is already live.
+
+Users **can** pause and resume an individual trigger from the workflow editor —
+that is a real per-trigger control. Resuming a paused trigger returns it to live;
+it is not a publish, and going live for the first time is only ever through
+publishing.
 
 ## Concepts
 
@@ -29,10 +33,9 @@ Draft-history snapshots and published versions share the same snapshot store;
 publish marks a snapshot as a numbered release. Re-publishing an unchanged draft
 keeps the same version.
 
-Publishing is the only trigger-activation control you have: there is no separate
-per-trigger publish step, and you cannot pause or resume a trigger. Pausing and
-resuming is a UI action the user takes on their own, and it does not publish a
-new workflow version.
+Publishing is the only way a trigger goes live for the first time: there is no
+per-trigger "set live" step. Pausing and resuming an existing trigger is a
+separate per-trigger action and does not publish a new workflow version.
 
 ## Restore is not publish
 

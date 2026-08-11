@@ -159,11 +159,15 @@ expressions that point at an enrich (tool) node, address the action's fields und
 
 Everything the Clay action returned is inside `$.result.*`; `$.success` is the action's success flag.
 
-To discover the exact field names, either:
+To discover the exact field names, in order of preference:
 
-1. Check the `recentOutputPaths` field on the node (populated from the most recent run), or
-2. Run the action once with `execute_clay_action` and look at the returned fields — those keys
-   will be available as `$.result.<field>`.
+1. Read `outputParameters` from `clay workflows actions schema <packageId> <actionKey>` — the
+   action's declared output fields, available before the node has ever run. Each entry's
+   `outputPath` is the field, so the path is `$.result.<outputPath>`.
+2. Check the `recentOutputPaths` field on the node (populated from the most recent run), or
+3. Run the action once with `execute_clay_action` and look at the returned fields — those keys
+   will be available as `$.result.<field>`. Needed when the action declares no output schema,
+   so `outputParameters` comes back empty.
 
 **Example:** if `execute_clay_action` returns `{ "name": "Acme", "domain": "acme.com" }`, the
 correct paths are `$.result.name` and `$.result.domain`.

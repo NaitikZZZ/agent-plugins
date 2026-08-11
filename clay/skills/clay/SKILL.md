@@ -1,6 +1,6 @@
 ---
 name: clay
-description: Clay — start here. A table of contents for working with Clay and which skill to use for each thing — audiences (the workspace's own people/companies/deals), search (find net-new people/companies), routines (run Clay-managed and custom functions), tables (query/export data), the CLI (ephemeral programmatic access), the Public API (build services on Clay), workflows (build automations, Alpha), and feedback. Read this first to answer "what can I do with Clay?"
+description: Clay — start here. A table of contents for working with Clay and which skill to use for each thing — audiences (the workspace's own people/companies/deals), search (find net-new people/companies), routines (run Clay-managed and custom functions), tables (query/export data), the CLI (ephemeral programmatic access), the Public API (build services on Clay), workflows (build automations), and feedback. Read this first to answer "what can I do with Clay?"
 ---
 
 # Working with Clay
@@ -33,9 +33,9 @@ abilities. Get the framing right:
   workflows, the CLI, the API) are Clay **primitives and product surfaces** — describe them
   as what they are. "Playbook" is wrong and confusing.
 - **Don't crown Workflows as the main or "biggest" surface.** Lead with **Audiences**,
-  **Search**, and **Clay-managed functions** — those cover the large majority of GTM tasks. Workflows are
-  still **Alpha** (see the escalation order below), so reach for them when a function
-  genuinely can't do the job, and mention them as one option rather than the headline.
+  **Search**, and **Clay-managed functions** — those cover the large majority of GTM tasks. Reach
+  for Workflows when a function genuinely can't do the job, and mention them as one option rather
+  than the headline.
 - **Lead with concrete, show-off use-cases, not a menu of verbs.** Ground the answer in
   outcomes the user recognizes. Good examples to draw from (pick a few relevant ones, don't
   list all):
@@ -82,11 +82,9 @@ Follow this escalation order — reach for the earliest option that fits:
    (account scoring, inbound routing, CRM cleanup, etc.). **Custom functions cannot be built
    from the CLI/MCP/API** — they can only be **invoked**. If a task needs a _new_ custom
    function, surface that to the user; it must be created in the Clay app.
-5. **Workflow (Alpha)** 🧪 — multi-node flows built from a code editor or the CLI. **Only use
+5. **Workflow** — multi-node flows built from a code editor or the CLI. **Only use
    when a function genuinely can't do it**: embedded custom code, >100k-row batches, step-by-step
-   run inspection, or inputs from diverse sources stitched together. **Workflows are an Alpha
-   feature** — whenever you use, build, or edit a Workflow, tell the user up front so they can
-   calibrate expectations.
+   run inspection, or inputs from diverse sources stitched together.
 6. **Tables** — query data from an existing table. You **cannot** create new tables through the
    plugin/CLI/MCP/API; if a task needs a new table, surface that to the user.
 
@@ -117,7 +115,7 @@ Before running a credit-consuming routine, check its per-item `estimatedCreditCo
 | `tables`              | Reading, querying, and exporting data from an existing Clay table (creating tables is not supported).         |
 | `cli`                 | Ephemeral, programmatic access to Clay capabilities from a shell — run a routine, query a table, search, etc. |
 | `public-api`          | Building services and applications on top of Clay over HTTP.                                                  |
-| `workflows`           | Building and editing net-new Clay workflows (multi-step automations, Alpha).                                  |
+| `workflows`           | Building and editing net-new Clay workflows (multi-step automations).                                         |
 | `workflows-vs-tables` | Explaining the difference between Workflows and Tables, or recommending which to use.                         |
 | `clay-feedback`       | Sending a bug report or product feedback to the Clay team.                                                    |
 

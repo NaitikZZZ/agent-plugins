@@ -62,8 +62,8 @@ Audiences is Clay's CRM-shaped store of the workspace's own **people**, **compan
 ## Draft vs live
 
 - **Draft** = the editable graph you change with `edit_node`.
-- **Publish** = the user clicks **Publish** in the editor. That ships the current draft as the live version and activates its triggers. Edits after that stay draft-only until they publish again.
-- **Trigger activation is part of publishing**, and you have no control over it — never tell the user a trigger is draft, live, or paused.
+- **Publish** = shipping the current draft as the live version and activating its triggers — run `clay workflows publish <workflowId>`, or the user clicks **Publish** in the editor. Edits after that stay draft-only until the next publish.
+- **Publishing is what takes triggers live** — a trigger you add or edit stays inert until the user publishes, and there is no per-trigger "set live" action, so never say you set a trigger live or that a new trigger is already live. Pausing or resuming an existing trigger is a separate per-trigger action and never publishes a new version.
 - Edits after publish do **not** change live automation until the user publishes again.
 - **Not every CLI test exercises the draft.** A plain / manual `clay workflows runs test` (no `--audience-segment`) runs the current draft. `clay workflows runs test --audience-segment …` goes through the audience segment trigger — after the workflow is published, that exercises the **live** version, not unpublished draft edits. See `publishing.md` and `testing.md`.
 - `snapshots restore` rewrites the draft only — it is not a publish or unpublish. Full details in `publishing.md`.
@@ -88,7 +88,7 @@ A tool node is a step intended to execute a single Clay action directly — no L
 
 Do not back a tool node with the Use AI, ChatGPT schema mapper, Claude, Gemini, or Claygent actions — these LLM actions are rejected on tool nodes. When the work needs an LLM (summarizing, drafting, classifying, extracting), use an agent (Claygent) node instead.
 
-Choose the best-supported Clay action from the user's request and the workspace catalog. When several actions differ materially in cost, coverage, credentials, or semantics, recommend a default and ask the user to choose. To learn an action's exact input/output shape, run it once with `execute_clay_action` before wiring it into the node — that confirms both that the workspace has the action available and what fields it expects.
+Choose the best-supported Clay action from the user's request and the workspace catalog. When several actions differ materially in cost, coverage, credentials, or semantics, recommend a default and ask the user to choose. Before wiring, fetch the action's declared shape with `clay workflows actions schema <packageId> <actionKey>` — its `inputParameters` are the fields to bind and `outputParameters` are the downstream-addressable output paths, both available before the node has ever run. Only fall back to `execute_clay_action` when the schema declares no outputs, or to confirm the action actually works on this workspace (credentials, live behavior) rather than to discover field names.
 
 **`execute_clay_action` is a single-shot preview only** — capped at ~25 runs/day per user.
 Use it once to confirm an action's input/output shape, never to enrich or process a batch
@@ -211,7 +211,7 @@ For agent nodes (`nodeType: "agent"`):
 
 For tool nodes (`nodeType: "tool"`):
 
-- `tools` may be omitted while drawing the initial outline. Before validation, testing, or publishing, add exactly one entry. The `actionKey` is the Clay action you want to invoke (confirm it via `execute_clay_action` first).
+- `tools` may be omitted while drawing the initial outline. Before validation, testing, or publishing, add exactly one entry. The `actionKey` is the Clay action you want to invoke (confirm it via `clay workflows actions schema` first, falling back to `execute_clay_action` only when the schema doesn't cover what you need).
 
 For conditional nodes (`nodeType: "conditional"`):
 
@@ -242,7 +242,7 @@ Or identify the action by an existing tool's id:
 
 Either way the node ends up with its **own** tool instance — `edit_node` keeps a tool only when the node already has it, and otherwise creates a new one carrying the same action and credentials. Never try to point two nodes at one tool.
 
-The user can tell you which `actionKey` and `actionPackageId` to use, or which existing `toolId` to model the node on. Test the action with `execute_clay_action` before adding it to confirm it works on this workspace and to see its real output shape.
+The user can tell you which `actionKey` and `actionPackageId` to use, or which existing `toolId` to model the node on. Fetch `clay workflows actions schema` for its input/output shape before adding it; test with `execute_clay_action` when you need to confirm the action actually works on this workspace (credentials, live behavior) rather than to learn field names.
 
 Wire the action's parameters with `inputMappingConfig` on the tool entry — each parameter maps to a `static` value or a `reference` expression. Nested/grouped parameters use `parent|sub` pipe keys:
 
@@ -327,11 +327,11 @@ The reference is `sourceNodeId` + `sourcePath` inline on the property. Use `sour
 **Tool nodes are different** — their action parameters are wired in `tools[].inputMappingConfig` (`static` / `reference`), not in `inputSchema`. Do not add intermediate variables to a tool node's `inputSchema`; non-action-parameter properties are dropped on save. See `data-passing.md` for the full reference.
 
 **Important — enrich (tool) node output paths:** An enrich (tool) node's Clay action fields are at
-`$.result.<field>`, and its success flag is at `$.success`. Always check the node's
-`recentOutputPaths` field (visible via `read` with `nodeId`, or `mode: "full"` — not the
-workflow-level summary) or run `execute_clay_action` first to see which
-fields the action returns — then prefix them with `$.result.`. For example: `$.result.name`,
-`$.result.domain`.
+`$.result.<field>`, and its success flag is at `$.success`. Never guess the field names — take
+them from `outputParameters` on `clay workflows actions schema` (declared output fields,
+available before the node runs), the node's `recentOutputPaths` field (visible via `read` with
+`nodeId`, or `mode: "full"` — not the workflow-level summary), or an `execute_clay_action` run —
+then prefix them with `$.result.`. For example: `$.result.name`, `$.result.domain`.
 
 ## Recommended workflow for building
 
@@ -360,7 +360,7 @@ fields the action returns — then prefix them with `$.result.`. For example: `$
 1. **If you create a new workflow, post a clickable Markdown link right away.** As soon as the workflow exists, put `[Open workflow](<url>)` near the top of your reply, using the `url` from `clay workflows create` (or `clay workflows get`) — not raw JSON and not "see the `url` field." This matters most in a headless environment (Claude Code, Cursor, a shell), where the user has no Clay tab open; if you're the in-product assistant and they're already viewing the workflow, skip the link. See `presenting.md` ("Workflow editor link").
 2. Confirm the trigger so you understand the initial node's inputs
 3. Build the outline node-by-node with `edit_node`, wiring `incomingEdges` as you go. Give each step a specific, outcome-oriented name. For a step that clearly needs a Clay action but whose provider or exact action is not settled, create a tool node without `tools`. Choose the node type before creating it because an existing node's type cannot be changed. After the outline is on the canvas, show the graph and tell the user which steps still need implementation.
-4. Resolve the incomplete steps one at a time. For each actionless tool node, use `/workflows-discover-actions` to find candidates, test the chosen one with `execute_clay_action` to confirm its input and output fields, then attach it to the existing node and configure its inputs. When several actions fit, choose and name a recommended default if the choice is reversible and low-risk; ask the user only when cost, coverage, credentials, or semantics create a consequential trade-off.
+4. Resolve the incomplete steps one at a time. For each actionless tool node, use `/workflows-discover-actions` to find candidates, fetch the chosen one's fields with `clay workflows actions schema` (falling back to `execute_clay_action` only if it declares no outputs or you need to confirm it actually works on this workspace), then attach it to the existing node and configure its inputs. When several actions fit, choose and name a recommended default if the choice is reversible and low-risk; ask the user only when cost, coverage, credentials, or semantics create a consequential trade-off.
 5. Once every tool node has exactly one action or function, run `validate_workflow` with `prettier=true` to auto-layout and catch issues, then **show the user the resulting graph** (see "Show the user the graph" below). `tool_node_no_tool` is expected while the outline is incomplete; resolve it before testing or publishing.
 6. Suggest the user kicks off a test run. When you narrate the run afterward, show a **status-annotated view** of the graph — mark each node completed / failed / running — so the user sees where in the flow each result came from (see `testing.md` and `presenting.md`)
 7. After the draft passes an end-to-end test and the user wants it live, run `clay workflows publish <workflowId>`. This publishes the current draft; later edits remain draft-only until the next publish. Use `--name` only to label the published version, not to rename the workflow.
@@ -386,7 +386,7 @@ your first render.
 7. When adding enrichment tools, try 2-3 alternative actions as fallbacks if the primary one might miss; prefer the best-supported default and ask the user only when the alternatives have a consequential trade-off
 8. After completing a workflow, suggest a test run and walk the user through what the run did (see `testing.md`)
 9. If you make a mistake or the user asks to undo, use `/workflows-snapshots` to revert (restore changes the draft only — not live automation)
-10. When the user wants live automation to match the draft, tell them to **Publish** in the editor — you cannot publish via MCP or CLI (see `publishing.md`)
+10. When the user wants live automation to match the draft, publish it with `clay workflows publish <workflowId>` (or tell them to click **Publish** in the editor). There is no MCP publish tool. Restore/undo does not publish (see `publishing.md`)
 
 ## Reference docs in this skill
 

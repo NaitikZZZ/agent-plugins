@@ -24,6 +24,11 @@ clay workflows runs test <workflowId>                  # no inputs
 # Audience-segment backfill (up to --limit members) — not a draft test after publish
 clay workflows runs test <workflowId> --audience-segment <segmentId> --limit 5
 clay workflows runs list <workflowId> --audience-segment <segmentId>
+
+# Partial run: execute one node only, then terminate
+# Exactly one of --source-run (reuse that run's step inputs) or --inputs (manual).
+clay workflows nodes test <workflowId> <nodeId> --source-run <runId>
+clay workflows nodes test <workflowId> <nodeId> --inputs '{"domain":"clay.com"}'
 ```
 
 ### Draft vs live when testing
@@ -31,13 +36,16 @@ clay workflows runs list <workflowId> --audience-segment <segmentId>
 - **Plain / manual `clay workflows runs test`** (with or without `--inputs`) starts a run
   via the manual trigger and exercises the **current draft**. Use this to verify
   unpublished edits.
+- **`clay workflows nodes test`** starts a partial draft run of a single node (current
+  graph), then terminates. Use it to debug one node without re-running the whole
+  workflow.
 - **`--audience-segment`** starts runs through that audience segment trigger. After the
   workflow is published, those runs use the **live** version — not draft-only edits you
   have not published yet. Do not conclude “the draft works” from a successful
   `--audience-segment` run on a published workflow; publish first if you need the live
   path to pick up draft changes, or use a manual test to validate the draft.
 
-`--inputs` and `--audience-segment` cannot be combined. See `publishing.md`.
+`--inputs` and `--audience-segment` cannot be combined on `runs test`. See `publishing.md`.
 
 ```bash
 # Status / progress for a run

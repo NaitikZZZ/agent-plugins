@@ -1,6 +1,6 @@
 ---
 name: workflows-discover-actions
-description: Clay workflows — discover available actions for workflow nodes (email lookup, company enrichment, phone finders, etc.) and inspect their input schemas. Use while building a workflow.
+description: Clay workflows — discover available actions for workflow nodes (email lookup, company enrichment, phone finders, etc.) and inspect their input and output schemas. Use while building a workflow.
 allowed-tools: Bash(clay *), Bash(grep *), Bash(cat *), Bash(wc *), Bash(jq *), Read, Grep
 ---
 
@@ -40,7 +40,9 @@ Each catalog entry has:
 
 The catalog has no input field names. **Before wiring any input, fetch the real
 names with `clay workflows actions schema` (see below) — never guess them**, or
-the node will silently fail to bind.
+the node will silently fail to bind. `schema` also returns the same `outputParameters`
+the catalog entry above carries, so once you've picked an action, one `schema` call
+covers both directions instead of returning to the catalog for outputs.
 
 ### Using catalog data when adding tools
 
@@ -143,10 +145,10 @@ The catalog almost always has multiple actions that do roughly the same job (sev
 - For each option, surface the details that drive the decision: `whyUseful` / `dataStrengths`, `creditCost`, whether a `configuredTool` or `availableAppAccount` already exists, and `priorityTier`.
 - Name the default you chose (usually the lowest `priorityTier` with an existing configured tool) and let the user override it as the build evolves.
 
-## Getting action input schemas
+## Getting action input and output schemas
 
-Run this for any action whose inputs you'll bind, and use the exact `name`
-values it returns:
+Run this for any action whose inputs you'll bind or whose results a downstream node
+will address, and use the exact `name` / `outputPath` values it returns:
 
 ```bash
 clay workflows actions schema <packageId> <actionKey>
@@ -158,9 +160,15 @@ Example:
 clay workflows actions schema 56058efe-4757-4fe7-a44b-39c2d730c47a find-email-from-name
 ```
 
-This returns the action's `packageId`, `actionKey`, `displayName`, and
-`inputParameters` (the input parameter schema). Pipe to `jq '.inputParameters'`
-to see just the parameters.
+This returns the action's `packageId`, `actionKey`, `displayName`, `inputParameters`
+(the input parameter schema), and `outputParameters` (the declared output fields,
+flattened to leaf paths — available before the node has ever run). Pipe to
+`jq '.inputParameters'` or `jq '.outputParameters'` to see just one side. An enrich
+(tool) node stores the action payload under `result`, so an output's wiring path is
+`$.result.<outputPath>` — see the workflows skill's `data-passing.md` ("Output
+structure of enrich (tool) nodes") for the full addressing rules. `outputParameters`
+comes back empty for actions that declare no output schema; in that case, run the
+action once with `execute_clay_action` and read the paths off its result.
 
 ## Dynamic (input-dependent) fields
 
