@@ -28,6 +28,14 @@ clay routines list            # routines in this workspace
 clay routines get <id>        # full config and input schema
 ```
 
+`clay routines list` is **paginated** — a workspace can have far more routines than one
+page. Page through with `--cursor` until the response has no `cursor` before concluding a
+routine doesn't exist. Filter by `source`: `managed` routines are Clay's built-in enrichers
+(emails, domains, firmographics) and should be your first choice for standard enrichment;
+`custom` are workspace-built. Decide by **input schema**, not name — e.g. the managed
+**Work Email** routine needs Full Name + Company Name + Company Domain, so resolve the
+domain first with the managed **Company Domain** routine when you only have a company name.
+
 `clay routines get <id>` is important before running: it shows the routine's **input
 schema** so you know exactly which fields each item needs.
 

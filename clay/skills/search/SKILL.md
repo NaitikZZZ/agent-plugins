@@ -148,6 +148,14 @@ will not help. Read the error message and choose one of:
 
 ## Next: enrich or act on the results
 
+**Prefer Clay-managed routines for standard enrichment.** Before reaching for the raw
+action catalog or building a workflow, list the full, paginated routines set and check
+`source: managed` first. Clay ships managed routines that cover most enrichment — e.g.
+**Work Email**, **Company Domain**, **Enrich Person**, **Enrich Person and Find Contact
+Details**, **Company Job Openings**. Match on each routine's input schema
+(`clay routines get <id>`), not its name. Only fall through to the action catalog or a new
+workflow when no managed or custom routine fits.
+
 Search only _finds_ records. To do something with them — enrich them (emails, firmographics,
 social profiles, …) or take an action (send to a CRM, trigger outreach, etc.) — feed the
 results into a saved routine. Read the `routines` skill (`skills/routines/SKILL.md`)
