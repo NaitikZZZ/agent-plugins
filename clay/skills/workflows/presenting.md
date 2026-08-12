@@ -22,6 +22,18 @@ its own skill-specific visual on top.
   - **Status checklist / progress line** — for long-running work (a run you're
     polling, a batch of edits).
 
+## Workflow editor link
+
+When a workflow exists — immediately after `clay workflows create`, or when you
+first `clay workflows get` one you're about to edit — **post a clickable Markdown
+link near the top of your reply**, e.g. `[Open workflow](<url>)`, using the `url`
+from the command response. Do not dump raw JSON, paste the URL only inside a code
+block, or tell the user to look for the `url` field.
+
+Skip the link when you're the in-product assistant and the user is already
+viewing that workflow in the editor. In headless environments (Claude Code,
+Cursor, a shell), the link is how they open the canvas and follow along live.
+
 ## Show the user the graph
 
 Users can't follow what you're building unless you show them. How you do that
@@ -52,10 +64,10 @@ In either environment: do this at the natural checkpoints (after `read`, after
 building/editing, after `validate_workflow --prettier`, and when narrating a
 run) — redraw the diagram for changes that visually change the graph (nodes or
 edges added, removed, or rewired), and for prompt-only or config-only edits just
-narrate what you changed, since the graph looks the same. Whenever you do render,
-surface the workflow's `url` (from `clay workflows get`/`create`) so the user can
-open the real editor, and pair the diagram with a one-paragraph walkthrough of
-what each node does and where its inputs come from.
+narrate what you changed, since the graph looks the same. Whenever you render the
+graph, include the workflow editor link (see "Workflow editor link" above) and
+pair the diagram with a one-paragraph walkthrough of what each node does and
+where its inputs come from.
 
 ## Annotating a diagram with run status
 

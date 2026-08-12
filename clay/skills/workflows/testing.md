@@ -24,6 +24,11 @@ clay workflows runs test <workflowId>                  # no inputs
 # Audience-segment backfill (up to --limit members) — not a draft test after publish
 clay workflows runs test <workflowId> --audience-segment <segmentId> --limit 5
 clay workflows runs list <workflowId> --audience-segment <segmentId>
+
+# Partial run: execute one node only, then terminate
+# Exactly one of --source-run (reuse that run's step inputs) or --inputs (manual).
+clay workflows nodes test <workflowId> <nodeId> --source-run <runId>
+clay workflows nodes test <workflowId> <nodeId> --inputs '{"domain":"clay.com"}'
 ```
 
 ### Draft vs live when testing
@@ -31,13 +36,16 @@ clay workflows runs list <workflowId> --audience-segment <segmentId>
 - **Plain / manual `clay workflows runs test`** (with or without `--inputs`) starts a run
   via the manual trigger and exercises the **current draft**. Use this to verify
   unpublished edits.
+- **`clay workflows nodes test`** starts a partial draft run of a single node (current
+  graph), then terminates. Use it to debug one node without re-running the whole
+  workflow.
 - **`--audience-segment`** starts runs through that audience segment trigger. After the
   workflow is published, those runs use the **live** version — not draft-only edits you
   have not published yet. Do not conclude “the draft works” from a successful
   `--audience-segment` run on a published workflow; publish first if you need the live
   path to pick up draft changes, or use a manual test to validate the draft.
 
-`--inputs` and `--audience-segment` cannot be combined. See `publishing.md`.
+`--inputs` and `--audience-segment` cannot be combined on `runs test`. See `publishing.md`.
 
 ```bash
 # Status / progress for a run
@@ -68,11 +76,13 @@ clay workflows create --name "My Workflow"
 clay workflows publish <workflowId> --name "July enrichment rollout"
 ```
 
-When you create a new workflow, share its link (the `url` field from `clay
-workflows create`/`clay workflows get`) as soon as it exists, so the user can
-open the editor and follow along in the UI as you build. This is most useful in
-a headless environment where the user has no Clay tab already open; the
-in-product assistant's user is already viewing the workflow.
+When you create a new workflow, post a clickable Markdown link near the top of
+your reply as soon as it exists — e.g. `[Open workflow](<url>)` — using the `url`
+from `clay workflows create` or `clay workflows get`. Do not leave the URL in
+raw command output; the user should be able to click straight into the editor.
+This is most useful in a headless environment where the user has no Clay tab
+already open; the in-product assistant's user is already viewing the workflow.
+See `presenting.md` ("Workflow editor link").
 
 ## Watching a run to completion
 

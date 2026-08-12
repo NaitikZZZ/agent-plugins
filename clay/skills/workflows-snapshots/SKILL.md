@@ -26,7 +26,7 @@ The same snapshot table holds two roles:
 
 Publishing marks a snapshot of the current draft as a numbered release; it does not create a separate store. See `workflows/publishing.md` for draft vs live (do not explain snapshot-binding internals to users).
 
-**This skill is for undo/history** (`list` / `get` / `restore`). It is not release management — there is no CLI to publish or to list only published versions.
+**This skill is for undo/history** (`list` / `get` / `restore`). It is not release management — publishing is a separate command (`clay workflows publish`, see `workflows/publishing.md`), and there is no CLI to list only published versions.
 
 `clay workflows snapshots list` projects only `id`, `hash`, `createdAt`, `nodeCount`, and `edgeCount`. It does **not** show `version` / `name` / which snapshot is live. Treat the list as an undo log, not a release picker.
 

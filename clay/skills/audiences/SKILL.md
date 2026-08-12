@@ -156,6 +156,30 @@ not a paging loop over `search-ids`.
 ## Error codes
 
 Every command prints JSON on stdout and a typed error envelope on stderr. Exit
-codes: `0` ok, `2` validation, `3` auth, `5` network, `6` not-found. `3` on an
-audiences command usually means Audiences is not enabled for the workspace —
-that is a workspace-config answer for the user, not something to retry.
+codes: `0` ok, `2` validation, `3` auth, `4` rate-limit, `5` network, `6`
+not-found. `3` on an audiences command usually means Audiences is not enabled for
+the workspace — that is a workspace-config answer for the user, not something to
+retry.
+
+`4` (`rate_limited`) means the workspace spent its request budget for that one
+command. The budget is per command and shared by everyone in the workspace, so a
+`fields list` loop cannot starve `search-count`. It defaults to 60 calls/minute
+and a workspace can be raised above that, so read `details.limit` off the error
+rather than assuming the default.
+
+Sleep `details.retryAfter` seconds and carry on. A request-rate rejection costs no
+budget and writes nothing, so repeating the identical call — including a `create`
+or `update` — once the wait is over is safe.
+
+`records get` carries a second budget: an hourly one charged per record id it
+returns, which batching does not reduce. Read its 429s more carefully than the
+rest:
+
+- `details.limit` is records/hour (default 100,000), not calls/minute, and the
+  message says "Hourly records limit" rather than "Too many requests".
+- The rejected call **did** spend a request token — that one is not refunded — so
+  the wait it asks for can end in a second 429, this time from the per-minute
+  rate. Back off again rather than reading it as a failure.
+
+That budget exists to prevent data exfiltration, so be conservative: before
+pulling a large set, check whether a sample of records answers the request.

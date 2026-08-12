@@ -55,9 +55,6 @@ surface area.
 Native list processing is coming soon, which will let workflows handle lists directly without
 needing to split a flow into multiple workflows.
 
-Workflows is an alpha-stage product — say so when it comes up, so customers can calibrate
-expectations for rough edges.
-
 ## Which one should a customer use?
 
 - Starting out, exploring, or doing a one-off pull → **Tables**
