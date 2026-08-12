@@ -109,6 +109,7 @@ Each of these showed up in a real session and cost 10-45 seconds for nothing:
 - **Retrying a `validation_error` unchanged.** Exit 2 means the request was
   malformed — re-read the shape, don't re-send it. `--entity-type deals` on a
   command that rejects deals is the expected answer, not a flake.
+  `custom_objects.md` has the table of what deals do and don't reach.
 - **Retrying an exit 4 immediately.** `rate_limited` is the command's per-minute
   budget, not a flake: sleep `details.retryAfter` seconds, then send the same call
   again. Tight retries just collect more 429s.
