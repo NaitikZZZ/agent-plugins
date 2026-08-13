@@ -26,8 +26,9 @@ Read this before any audiences work. Four supporting references:
 - `custom_objects.md` — **deals / opportunities.** Read it before anything that
   touches them, including GTM phrasings that mean deals: closed-won, closed-lost,
   open pipeline, deal stage, deal size / ACV / ARR, close date, forecast, win rate,
-  renewal, expansion, churn, "our customers". Deals are read-only and most
-  `clay audiences` commands reject `--entity-type deals`.
+  renewal, expansion, churn, "our customers". Deals are read-only, and a deal
+  query is rooted at **people or companies** — you filter people or companies
+  by their deals rather than filtering deals directly.
 - The `workflows` skill's `audiences.md` — writing values onto records
   (the `upsert-audiences-record` action) and triggering a workflow off an audience.
 
@@ -53,9 +54,11 @@ mapping right up front — it is the most common source of wasted round trips.
 | `companies`         | `ACCOUNT`                        | `account_entity_field_values` |
 | `deals`             | `CUSTOM` (Opportunity)           | `opportunity`                 |
 
-`clay audiences records get` is the only command that accepts `deals` today —
-every other command takes `people` or `companies` only. CLI output can also carry
-`entityType: "deals"`. For anything deal-shaped, read `custom_objects.md` first.
+Everything under `clay audiences records`, plus `fields list`, accepts `deals`;
+the audience commands and the other `fields` subcommands take `people` or
+`companies` only. CLI output can also carry `entityType: "deals"`. Note that a
+_selective_ deal query is written as a `people` or `companies` search whose filter
+reaches into deals — for anything deal-shaped, read `custom_objects.md` first.
 
 Workflow **triggers** use the middle spelling: an `audience_segment` trigger's
 `segmentId` is the audience id from `clay audiences list`, and its `entityType`
@@ -92,6 +95,7 @@ clay audiences fields create --entity-type people --name "Lead score" --data-typ
 clay audiences fields update <fieldId> --entity-type people --hidden true
 clay audiences fields delete <fieldId> --entity-type people
 clay audiences fields segments <fieldId> --entity-type people         # audiences whose filter references the field
+clay audiences fields list --entity-type deals                        # deal fields; list is the one subcommand taking deals
 ```
 
 - **Run `fields list` once and save it** (`> /tmp/people-fields.json`), then slice
@@ -118,6 +122,7 @@ listing fields first:
   `phone`, `title`, `signal_summary`
 - **companies** — `org_name`, `domain`, `headquarters_location`, `linkedin_url`,
   `sfdc_owner_id`, `signal_summary`, `technographics`
+- **deals** — see `custom_objects.md`
 
 Anything else is workspace-defined — get its id from `fields list`.
 
@@ -144,9 +149,13 @@ and instantly, and a `NotEmpty` filter on a field turns it into a fill-rate chec
 — run that before building anything on a field, and before proposing an
 enrichment. See `answering-data-questions.md`.
 
-The search commands take `people` or `companies` only; `records get` also takes
-`--entity-type deals` to read deal (opportunity) records by id. To _find_ deals,
-filter companies or people by their deals — see `custom_objects.md`.
+All three commands take `--entity-type deals`, but a deal search accepts **no
+scope** — `--audience-id` or a non-empty `--filter` with `deals` is a
+`validation_error`. So `--entity-type deals` covers the whole population (total
+count, full id enumeration), while a **selective** deal question is a `people` or
+`companies` search whose filter reaches into their deals. That root is also what
+the user usually wants back — which contacts or accounts the deals belong to. See
+`custom_objects.md`.
 
 `search-ids` returns ids only — feed them to `records get --ids` in batches of
 100 for field values, keyed by field id (unset fields may be omitted). Records

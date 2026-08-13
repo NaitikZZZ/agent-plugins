@@ -10,6 +10,11 @@ The parts that cost the most time:
 - **`key` + `dataPath` name the field.** `dataPath` is
   `[<root for the entity type>, "field", <fieldId>]` — see the entity-type table
   in `SKILL.md` for the root. `key` is the field id.
+- **A filter is always rooted at people or companies, never deals** — and that is
+  how you filter by deals. An `opportunity` `dataPath` is a cross-entity predicate
+  _inside_ a people or companies filter, which is the supported way to ask any deal
+  question; `--entity-type deals` itself accepts no `--filter`. See
+  `custom_objects.md`.
 - **`Empty`, `NotEmpty`, `True`, and `False` take no `value`.** Every other
   operator does. The relative-time operators (`WithinLast` / `WithinNext` and
   their `Not-` forms) take a numeric `value` plus `timeUnit` (`day` / `week` /
