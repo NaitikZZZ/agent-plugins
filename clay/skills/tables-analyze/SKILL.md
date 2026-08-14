@@ -4,13 +4,13 @@ description: 'Clay tables — analyze what a table does: reconstruct the column 
 allowed-tools: Bash(clay *), Bash(jq *), Read
 ---
 
-# Playbook: analyze table
+# Analyze a table
 
 **Use when:** "what does this table do?", "explain the {table} workflow", "walk me through this table", "what's set up here?" — a question about the table's **structure and the workflow encoded in its columns**, not about any single record.
 
 A Clay table is a column DAG: `source` and input `basic` columns are roots; `basic` formula columns and `action` (enrichment) columns depend on the `{{f_xxx}}` tokens in their settings. Analyzing the table = reconstructing that graph, ordering it into stages, and narrating what it does. Cheap and read-only: ~3 commands (metadata + columns + a row sample).
 
-**Finding the table:** resolve it to a `tbl_...` id — use `clay tables list --filter workbook.id=<wbk_...>` when the workbook is known (resolve the id via `clay workbooks list`), otherwise `clay tables list` and pick by `.name` with `jq`. Do not use `--filter queryEnabled=true` unless you only want query-synced tables (it hides the rest). If the user named no table or workbook, ask rather than sweeping the workspace. (ID prefixes: `tbl_` table, `f_` column, `rec_` row, `wbk_` workbook.)
+**Finding the table:** resolve it as in the tables entry-point skill ("Finding a table").
 
 ## 1. Frame the table — `clay tables get`
 
@@ -28,7 +28,7 @@ Where data **enters** and at what scale comes from the columns (step 2): `source
 
 ## 2. Build the dependency catalog — `clay tables columns get`
 
-This is where the graph lives. Run the token-extraction recipe in `tables/dependency-catalog.md` over `clay tables columns get <tableId>`. It yields one entry per column — `{ id, name, type, role, integration, gate, dependsOn: [names] }` — resolving every `{{f_xxx}}` edge (including those in `formulaWaterfall` and `formulaMap` keys) to a column name. `dependsOn` are the upstream columns; `gate` (when set) is the condition under which an action runs.
+This is where the graph lives. Run the token-extraction recipe in the tables entry-point skill's `dependency-catalog.md` over `clay tables columns get <tableId>`. It yields one entry per column — `{ id, name, type, role, integration, gate, dependsOn: [names] }` — resolving every `{{f_xxx}}` edge (including those in `formulaWaterfall` and `formulaMap` keys) to a column name. `dependsOn` are the upstream columns; `gate` (when set) is the condition under which an action runs.
 
 ## 3. Stage the graph
 

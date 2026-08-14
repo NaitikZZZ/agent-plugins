@@ -56,22 +56,6 @@ def allowed(flag):
     # Team policy is opt-out (missing/true means allowed); non-team users are unrestricted.
     return cached.get(flag) is not False
 
-def mcp_allowed():
-    cfg = cached.get("allowedMcpConfiguration")
-    if not isinstance(cfg, dict):
-        return True  # absent, or a shape this heuristic doesn't know — treat as unrestricted
-    if cfg.get("disableAll") is True:
-        return False
-    # Membership checks assume entries are plain server-name strings — same
-    # heuristic caveat as the rest of this function (see path 4 below).
-    allowlist = cfg.get("allowedMcpServers") or []
-    override = cfg.get("allowUserOverrideMcpServers") is True
-    if not allowlist and not override:
-        return True  # no restriction configured
-    if "clay" in allowlist:
-        return True
-    return override and "clay" not in (cfg.get("deniedMcpServers") or [])
-
 local_ok = allowed("allowUserLocalPluginImports")
 marketplace_ok = allowed("allowThirdPartyPluginImports")
 
@@ -80,13 +64,13 @@ if local_ok and marketplace_ok:
 elif local_ok:
     print("path 3 (local sideload): allowed; marketplace import (path 1/2) is policy-blocked")
 elif marketplace_ok:
-    print("local sideload is policy-blocked; path 1/2 (marketplace import) is allowed")
-elif mcp_allowed():
-    print("plugin imports are policy-blocked entirely; path 4 (Option A) is the only self-serve path")
+    print("local sideload is policy-blocked; path 1/2 (marketplace import) is allowed — "
+          "do not apply path 3. If ~/.cursor/plugins/cache/*/clay/*/bin/clay exists, "
+          "continue to SKILL.md step 3; otherwise print path 1/2 and STOP until the "
+          "import lands and Cursor is fully restarted")
 else:
-    print("plugin imports AND user MCP servers are both policy-blocked — nothing here is "
-          "self-serve; only an admin can unblock this (allowUserLocalPluginImports, "
-          "allowThirdPartyPluginImports, or the MCP allowlist)")
+    print("plugin imports are policy-blocked entirely — nothing here is self-serve; only an "
+          "admin can unblock this (allowUserLocalPluginImports or allowThirdPartyPluginImports)")
 PY
 ```
 
@@ -116,17 +100,28 @@ This prints something like:
 loadAllPlugins completed in 42.3ms (claude=true, userLocal=false, userSettings=true, marketplace=0 sources, total=3 plugins, failures=0)
 ```
 
-`userLocal=false` means local sideload is policy-blocked — skip straight to path 2 or path 4.
+`userLocal=false` means local sideload is policy-blocked — skip straight to path 1/2.
 `userLocal=true` means path 3 will work. If neither signal is available at all (nothing has
 launched Cursor yet), assume `userLocal=true` and try path 3 first; the result after restart
 will confirm or refute it.
 
 ## Apply a path, most legitimate first
 
-Try these in order. Paths 1 and 2 need a human in the Cursor UI and can't be automated from
-here — print the exact steps and keep going instead of stopping to wait, so the user ends up
-with a working setup (path 3 or 4) while any admin/manual step is still pending. Never leave the
-user with nothing just because the "best" path needs someone else to act.
+Pick from the policy read above. Paths 1 and 2 need a human in the Cursor UI and can't be
+automated from here. Path 3 is the only automatable install — only run it when local sideload
+is allowed. If local sideload is blocked and marketplace import is allowed, print the path 1/2
+steps, then distinguish **import still pending** from **import already landed**:
+
+```bash
+ls -1dt "$HOME"/.cursor/plugins/cache/*/clay/*/bin/clay 2>/dev/null | head -n1
+```
+
+A printed path means the marketplace plugin is on disk — **skip path 3** (sideload stays
+blocked) and **continue to `SKILL.md` step 3** so the PATH forwarder can point at that
+launcher. An empty result means the import hasn't landed — **stop** and wait for the user
+(or admin) to import + fully restart Cursor, then re-run `SKILL.md` step 1 (it should now
+see the cache and continue). There is no self-serve fallback once path 4 is gone, and
+applying path 3 with sideload blocked just leaves a dead never-loading entry.
 
 **1/2. Marketplace import — team (admin) or personal (any user).** Both are UI-only, not
 automatable from here, and use the same flow: Settings → Plugins → Add Marketplace → Import from
@@ -136,8 +131,12 @@ with the `team.plugins.manage` permission (team role OWNER); personal scope need
 only offer it if the policy read above says it's allowed — `allowThirdPartyPluginImports` gates
 both scopes, since `clay-run/agent-plugins` is a third-party marketplace either way. The import
 itself is a server-side RPC tied to the account — there's no CLI/script shortcut to complete it,
-only to know in advance whether it'll work. State the steps and move on; after the user (or their
-admin) does this and fully restarts Cursor, re-run `SKILL.md` step 1 to verify.
+only to know in advance whether it'll work. State the steps. If local sideload is also allowed,
+you can still apply path 3 below so they have a working install while the marketplace step is
+pending. If local sideload is blocked, run the marketplace-cache check above: a launcher means
+the import has landed — skip path 3 and continue to `SKILL.md` step 3. No launcher means the
+import is still pending — **stop here**; after the user (or their admin) imports and fully
+restarts Cursor, re-run `SKILL.md` step 1 (it should now find the cache and continue).
 
 **3. Local sideload (automatable, gated by `allowUserLocalPluginImports`).** Skip this path
 entirely unless the policy read above (or the plugin-log fallback) showed local sideload is
@@ -168,95 +167,16 @@ if [ "$plugin_root" != "$target_real" ]; then
 fi
 ```
 
-**4. Direct MCP registration — "Option A" (automatable, gated by `allowedMcpConfiguration`).**
-Independent of the entire plugin/marketplace system, so it works even when every plugin policy
-is locked down — but it's a separate policy surface, not a guaranteed fallback: the `mcp_allowed`
-check above can also come back blocked (org disabled all user-defined MCP servers, or restricted
-them to an allowlist that excludes `clay`). If it's blocked, stop and tell the user only an admin
-can help — don't attempt this path. The `mcp_allowed` check itself is a heuristic inferred from
-Cursor's policy schema, not a guarantee — an empty allowlist with `allowUserOverrideMcpServers:
-false` is read as "no restriction configured," but some org configs may intend that combination as
-"no user-defined MCP servers at all." If Option A still doesn't work after applying it, treat that
-as the real signal and fall back to telling the user only an admin can help. If allowed, tradeoff:
-MCP tools only — no bundled skills or hooks, which means the `setup` skill won't be available as a
-first-class skill afterward either. That's fine to re-run later: the permanent copy this path
-creates (below) includes this same `cursor-install.md`, so read it from
-`~/.config/clay-plugin/clay/skills/setup/cursor-install.md` next time — no need to keep the
-`/tmp` clone from `GETTING_STARTED.md` around after this setup run finishes.
+When every plugin-import policy above is blocked there is no self-serve path left — stop and
+tell the user an admin has to unblock `allowUserLocalPluginImports` or
+`allowThirdPartyPluginImports`.
 
-First, keep a permanent copy of the plugin's files outside any directory Cursor scans as a
-plugin source (so it never shows up as a broken, unloaded plugin), but inside a directory
-`SKILL.md` step 3's PATH search already checks:
+## Clean up after an earlier run
+
+Whichever path ends up active, clear out what earlier runs of this skill left behind so
+re-running converges instead of piling up dead entries. Always run this, on every path:
 
 ```bash
-# <THIS_SKILL_DIR> is the setup skill's own directory, e.g. .../clay/skills/setup:
-plugin_root="$(cd "<THIS_SKILL_DIR>/../.." && pwd -P)"
-# Same guard as path 3: a bad substitution must fail before the rm -rf below.
-[ -n "$plugin_root" ] && [ -f "$plugin_root/.cursor-plugin/plugin.json" ] \
-  || { echo "could not resolve plugin root from <THIS_SKILL_DIR>" >&2; exit 1; }
-target="$HOME/.config/clay-plugin/clay"
-target_real="$(cd "$target" 2>/dev/null && pwd -P)"
-if [ "$plugin_root" != "$target_real" ]; then
-  mkdir -p "$(dirname "$target")"
-  rm -rf "$target"
-  cp -R "$plugin_root" "$target"
-fi
-```
-
-Then merge (never clobber — other MCP servers may already be configured) a `clay` entry into
-`~/.cursor/mcp.json`:
-
-```bash
-mcp_json="$HOME/.cursor/mcp.json"
-mkdir -p "$(dirname "$mcp_json")"
-if command -v jq >/dev/null 2>&1; then
-  tmp="$(mktemp)"
-  if [ -f "$mcp_json" ]; then
-    cat "$mcp_json" > "$tmp" || { echo "could not read $mcp_json; leaving it untouched" >&2; exit 1; }
-  else
-    echo '{}' > "$tmp"
-  fi
-  if jq '.mcpServers.clay = {command:"clay", args:["mcp"]}' "$tmp" > "$tmp.out"; then
-    mv "$tmp.out" "$mcp_json"
-  else
-    echo "could not parse $mcp_json as JSON; leaving it untouched" >&2
-    rm -f "$tmp" "$tmp.out"
-    exit 1
-  fi
-  rm -f "$tmp"
-else
-  python3 - "$mcp_json" <<'PY'
-import json, sys
-path = sys.argv[1]
-try:
-    with open(path) as f:
-        raw = f.read()
-except FileNotFoundError:
-    raw = "{}"
-try:
-    config = json.loads(raw)
-except json.JSONDecodeError:
-    sys.exit(f"could not parse {path} as JSON; leaving it untouched")
-config.setdefault("mcpServers", {})["clay"] = {"command": "clay", "args": ["mcp"]}
-with open(path, "w") as f:
-    json.dump(config, f, indent=2)
-    f.write("\n")
-PY
-fi
-```
-
-## Don't run two paths at once
-
-Whichever path ends up active, clean up the others so re-running this skill later converges
-instead of piling up duplicate `clay` MCP registrations. One case can't be cleaned up in this
-run: path 4 applied now while a marketplace import is still pending with the user or an admin.
-When that import completes later, both registrations exist at once — `SKILL.md` step 1 checks
-for exactly that dual registration on any later run and points back to this section.
-
-**Landed on path 3 or a marketplace path?** Remove any Option A leftovers:
-
-```bash
-rm -rf "$HOME/.config/clay-plugin/clay"
 mcp_json="$HOME/.cursor/mcp.json"
 if [ -f "$mcp_json" ]; then
   if command -v jq >/dev/null 2>&1; then
@@ -284,14 +204,32 @@ PY
 fi
 ```
 
-**Landed on path 4 (Option A) because `userLocal=false`?** Remove any dead local-sideload copy
-so Cursor doesn't show a permanently-broken plugin entry:
+Earlier setup runs may have left a permanent plugin copy at `~/.config/clay-plugin/clay`.
+Deleting it unconditionally can leave the machine with no CLI at all — on an org where
+plugin imports were blocked no plugin cache was ever populated, so its `bin/clay` can be
+the only launcher `SKILL.md` step 3's forwarder is able to resolve. Remove it only once a
+launcher exists elsewhere (keep this list in sync with step 3's pre-flight, minus the
+entry being deleted):
+
+```bash
+if sh -c 'ls -1dt \
+  "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/*/clay/*/bin/clay \
+  "${CODEX_HOME:-$HOME/.codex}"/plugins/cache/*/clay/*/bin/clay \
+  "$HOME"/.cursor/plugins/cache/*/clay/*/bin/clay \
+  "$HOME"/.cursor/plugins/local/clay/bin/clay \
+  2>/dev/null | grep -q .'; then
+  rm -rf "$HOME/.config/clay-plugin/clay"
+fi
+```
+
+**Landed on path 1 or 2 (a marketplace path)?** Remove any dead local-sideload copy so Cursor
+doesn't show a permanently-broken plugin entry. **Skip this after path 3** — it installs into
+exactly this directory, so running it there deletes the install you just made:
 
 ```bash
 rm -rf "$HOME/.cursor/plugins/local/clay"
 ```
 
 After applying a path, **fully quit Cursor (Cmd/Ctrl+Q) and reopen it** — a new chat or
-"Reload Window" is frequently not enough to pick up a newly-added local plugin or a new
-`mcp.json` entry, unlike the lighter session-refresh restart in `SKILL.md` step 4. Once done,
+"Reload Window" is frequently not enough to pick up a newly-added local plugin. Once done,
 return to `SKILL.md` and continue with step 3.

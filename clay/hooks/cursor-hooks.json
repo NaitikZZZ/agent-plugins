@@ -6,11 +6,6 @@
         "command": "./hooks/approve-cli.sh cursor",
         "matcher": "clay"
       }
-    ],
-    "beforeMCPExecution": [
-      {
-        "command": "./hooks/approve-mcp.sh cursor"
-      }
     ]
   }
 }

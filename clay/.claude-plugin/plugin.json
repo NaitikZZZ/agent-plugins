@@ -1,7 +1,7 @@
 {
   "name": "clay",
   "description": "Build with Clay in Claude Code",
-  "version": "2.4.0",
+  "version": "2.6.0",
   "author": { "name": "Clay" },
   "hooks": {
     "PreToolUse": [
@@ -20,15 +20,6 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/approve-skills.sh claude"
-          }
-        ]
-      },
-      {
-        "matcher": "mcp__plugin_clay_clay__.*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/approve-mcp.sh claude"
           }
         ]
       }

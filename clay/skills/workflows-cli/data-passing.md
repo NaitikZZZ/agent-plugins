@@ -1,8 +1,8 @@
 # Data Passing in Clay Workflows
 
 How you wire data between nodes depends on the node type. There are two
-mechanisms; the shapes below are exactly what `edit_node` accepts and what `read`
-returns — wire data this way, then `read` the node back to confirm it saved.
+mechanisms; the shapes below are exactly what `clay workflows nodes create`/`update` accept and what `graph get` / `nodes get`
+returns — wire data this way, then `nodes get` / `graph get --mode full` to confirm it saved.
 
 ## Method 1: Pinned inputs on agent nodes (typed, deterministic)
 
@@ -84,19 +84,20 @@ Tool nodes (`nodeType: "tool"`) do **not** wire action inputs through
 
 Each value is one of:
 
-| `type`      | shape                                              | meaning                                                                       |
-| ----------- | -------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `static`    | `{ "type": "static", "value": … }`                 | fixed value baked into the node                                               |
-| `reference` | `{ "type": "reference", "expression": "{{var}}" }` | pull from an available variable (upstream output / trigger input)             |
-| `item`      | `{ "type": "item", "path": "$.field" }`            | the current list item, in list mode (`$` = whole item, `$.field` = one field) |
-| `skip`      | `{ "type": "skip" }`                               | leave the parameter unset                                                     |
+| `type`             | shape                                                                   | meaning                                                                                                                |
+| ------------------ | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `static`           | `{ "type": "static", "value": … }`                                      | fixed value baked into the node                                                                                        |
+| `reference`        | `{ "type": "reference", "expression": "{{var}}" }`                      | pull from an available variable (upstream output / trigger input)                                                      |
+| `item`             | `{ "type": "item", "path": "$.field" }`                                 | the current list item, in list mode (`$` = whole item, `$.field` = one field)                                          |
+| `reference` (item) | `{ "type": "reference", "expression": "https://{{__item.field}}/api" }` | mix the current list item into surrounding text (list mode); `{{__item}}` = whole item, `{{__item.field}}` = one field |
+| `skip`             | `{ "type": "skip" }`                                                    | leave the parameter unset                                                                                              |
 
 **Pipe keys (`parent|sub`):** grouped/nested action parameters are addressed
 with a pipe. A `fields` group with `domain` and `fieldsToFilterBy` sub-fields is
 mapped as `fields|domain` and `fields|fieldsToFilterBy`.
 
 **`inputMappingConfig` lives on the tool, not the node.** Setting it updates the
-tool and re-syncs every node bound to that tool — which is why `edit_node` gives
+tool and re-syncs every node bound to that tool — which is why node create/update gives
 each node its own tool instance: it keeps a tool only when the node already has
 it, and otherwise creates a new one (same action, same credentials) even when you
 pass a `toolId` or an `actionKey` that already has a workspace tool. Mappings you
@@ -109,7 +110,7 @@ a tool node's `inputSchema` that isn't a real action parameter is **silently
 dropped on save**, so any `{{var}}` referencing it resolves to nothing. Put the
 `reference` directly in `inputMappingConfig` instead (e.g.
 `"fields|domain": { "type": "reference", "expression": "{{domain}}" }`), then
-`read` the node back to confirm it persisted.
+`nodes get` the node back to confirm it persisted.
 
 **Wiring a specific upstream output into a parameter.** When the value isn't
 already an input the node receives — it's a precise field of an upstream output,
@@ -144,7 +145,7 @@ agent node pins one (`sourceNodeId` + `sourcePath`) and reference it by name in
 
 The input is normalized to the action's own parameters on save, but the binding
 is preserved as long as `inputMappingConfig` references it — so the `{{owner_name}}`
-reference resolves. `read` the node back and confirm both the input ref and the
+reference resolves. `nodes get` the node back and confirm both the input ref and the
 mapping persisted.
 
 ### Output structure of enrich (tool) nodes
@@ -165,12 +166,14 @@ To discover the exact field names, in order of preference:
    action's declared output fields, available before the node has ever run. Each entry's
    `outputPath` is the field, so the path is `$.result.<outputPath>`.
 2. Check the `recentOutputPaths` field on the node (populated from the most recent run), or
-3. Run the action once with `execute_clay_action` and look at the returned fields — those keys
-   will be available as `$.result.<field>`. Needed when the action declares no output schema,
-   so `outputParameters` comes back empty.
+3. Run the action once with `clay workflows actions test <packageId> <actionKey> --inputs
+<json|file|->` and look at the fields under `.result` — those keys will be available as
+   `$.result.<field>`. Needed when the action declares no output schema, so `outputParameters`
+   comes back empty.
 
-**Example:** if `execute_clay_action` returns `{ "name": "Acme", "domain": "acme.com" }`, the
-correct paths are `$.result.name` and `$.result.domain`.
+**Example:** if `clay workflows actions test` returns
+`{ "result": { "name": "Acme", "domain": "acme.com" } }`, the correct paths are `$.result.name`
+and `$.result.domain`.
 
 ## Discovering an action's dynamic fields
 
@@ -202,9 +205,9 @@ clay workflows actions dynamic-fields pkg_abc123 hubspot-create-object fields --
 
 ## Choosing a method
 
-| Scenario                                             | Method                                                                |
-| ---------------------------------------------------- | --------------------------------------------------------------------- |
-| Numeric scores, IDs, booleans into an **agent** node | Pinned inputs (`sourceNodeId`/`sourcePath`)                           |
-| Data from 2+ hops back into an **agent** node        | Pinned inputs                                                         |
-| Any input into a **tool** node                       | `inputMappingConfig` (`static` / `reference`)                         |
-| An input into a **repeating (list mode) tool** node  | `inputMappingConfig` `item` (`{ "type": "item", "path": "$.field" }`) |
+| Scenario                                             | Method                                                                                                                                                  |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Numeric scores, IDs, booleans into an **agent** node | Pinned inputs (`sourceNodeId`/`sourcePath`)                                                                                                             |
+| Data from 2+ hops back into an **agent** node        | Pinned inputs                                                                                                                                           |
+| Any input into a **tool** node                       | `inputMappingConfig` (`static` / `reference`)                                                                                                           |
+| An input into a **repeating (list mode) tool** node  | Enable `listMode: true` + `listEntriesRef` on the node first (parent skill), then `inputMappingConfig` `item` (`{ "type": "item", "path": "$.field" }`) |

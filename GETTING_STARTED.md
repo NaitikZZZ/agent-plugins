@@ -5,7 +5,7 @@
 > putting `clay` on PATH, and signing in are all things the agent can do on
 > your behalf by following the steps below.
 
-Build with Clay in your AI coding agent — skills, MCP tools, and the Clay CLI.
+Build with Clay in your AI coding agent — skills and the Clay CLI.
 
 ## Installation
 
@@ -44,15 +44,14 @@ needs to a permanent location.
 
 ## Run the `setup` skill
 
-Once installed, run the bundled **`setup` skill** now, in this session, before anything else below. It puts `clay` on PATH, signs you in, and verifies both the CLI and the MCP server work.
-
-**Important — restarting your agent afterward is not optional:** `clay mcp` resolves its session once at startup, so an already-running MCP server won't see a sign-in that happened after it launched — skipping the restart is the most common reason `clay login` looks like it worked but the MCP tools still fail. How you restart is platform-specific; see the skill for the exact steps.
+Once installed, run the bundled **`setup` skill** now, in this session, before anything else below. It puts `clay` on PATH, signs you in, and verifies the CLI works.
 
 - Try invoking the plugin's `setup` skill directly by its fully qualified name, `clay:setup` — Claude Code's Skill tool supports this, and Codex or Cursor may too depending on version.
 - If it doesn't, or the skill doesn't show up right after installing (some platforms don't register a newly installed plugin until restarted), locate `SKILL.md` yourself and follow it like a runbook:
 
   ```
-  find ~/.codex ~/.cursor ~/.claude ~/.config -type f -path '*/skills/setup/SKILL.md' 2>/dev/null | sort | tail -n1
+  find ~/.codex ~/.cursor ~/.claude ~/.config -type f \
+    \( -path '*/clay/skills/setup/SKILL.md' -o -path '*/clay/*/skills/setup/SKILL.md' \) 2>/dev/null | sort | tail -n1
   ```
 
   Read the path that prints and carry out its steps directly.

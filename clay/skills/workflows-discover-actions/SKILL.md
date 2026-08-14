@@ -7,8 +7,7 @@ allowed-tools: Bash(clay *), Bash(grep *), Bash(cat *), Bash(wc *), Bash(jq *), 
 # Discovering Clay actions
 
 This skill helps you find available Clay actions for use in Clay workflow nodes,
-via the `clay` CLI. (In Codex/Cursor, run the `setup` skill once if `clay` is not
-yet on your PATH.)
+via the `clay` CLI. If `clay` isn't on PATH, run the `setup` skill.
 
 Not to be confused with `clay routines` — that lists saved function/workflow
 routines in the workspace, a different concept from workflow actions. For
@@ -29,9 +28,9 @@ Each catalog entry has:
 - `dataStrengths` — what this action is best at (editorial metadata)
 - `whyUseful` — when to use this action
 - `configuredTools` — existing tool instances in this workspace, each with:
-  - `toolId` — identifies an already-configured instance of the action. Passing it to `edit_node`
-    does **not** share that instance: unless the node already uses it, `edit_node` creates a new
-    tool with the same action and credentials
+  - `toolId` — identifies an already-configured instance of the action. Passing it when creating
+    or updating a node does **not** share that instance: unless the node already uses it, the
+    edit creates a new tool with the same action and credentials
   - `appAccountId` / `appAccountName` — bound credentials
 - `availableAppAccounts` — app accounts the user has connected (for actions requiring API keys)
 - `priorityTier` — lower is better (0 = functions, 1 = Clay first-party, 2 = has app account, 3 = Clay credits, 4 = requires key)
@@ -47,8 +46,8 @@ covers both directions instead of returning to the catalog for outputs.
 ### Using catalog data when adding tools
 
 Every tool node gets its own tool instance — input mappings live on the tool, so a shared instance
-would make one node's mappings overwrite another's (including nodes in other workflows). `edit_node`
-enforces this: it only keeps a tool the node already has, and otherwise creates a new one.
+would make one node's mappings overwrite another's (including nodes in other workflows). Node edits
+enforce this: they only keep a tool the node already has, and otherwise create a new one.
 
 1. **Add the action** — pass `actionKey` + `actionPackageId`:
    ```json
@@ -165,10 +164,12 @@ This returns the action's `packageId`, `actionKey`, `displayName`, `inputParamet
 flattened to leaf paths — available before the node has ever run). Pipe to
 `jq '.inputParameters'` or `jq '.outputParameters'` to see just one side. An enrich
 (tool) node stores the action payload under `result`, so an output's wiring path is
-`$.result.<outputPath>` — see the workflows skill's `data-passing.md` ("Output
+`$.result.<outputPath>` — see the workflows entry-point skill's `data-passing.md`
+("Output
 structure of enrich (tool) nodes") for the full addressing rules. `outputParameters`
 comes back empty for actions that declare no output schema; in that case, run the
-action once with `execute_clay_action` and read the paths off its result.
+action once and read the paths off its result — `clay workflows actions test` (Sculptor:
+`execute_clay_action`).
 
 ## Dynamic (input-dependent) fields
 
@@ -185,5 +186,6 @@ clay workflows actions dynamic-fields <packageId> <actionKey> <parameterPath> \
 `--type select` resolves a dependent dropdown's values; `--type input` resolves a
 revealed field set (names come back pipe-namespaced, e.g. `fields|name`). It's
 iterative — fill one input, re-run with it in `--inputs` for the next. See the
-workflows skill's `data-passing.md` ("Discovering an action's dynamic fields")
+workflows entry-point skill's `data-passing.md` ("Discovering an action's dynamic
+fields")
 for the full flow and how the results map into `inputMappingConfig`.

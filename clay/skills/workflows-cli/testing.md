@@ -1,18 +1,6 @@
 # Testing Workflows
 
-## Clay CLI
-
-You have access to the `clay` CLI for running and inspecting workflow test runs.
-Invoke it as `clay …` (no path prefix, no `python3`). In Claude Code it is on your
-PATH automatically; in Codex/Cursor, run the `setup` skill once to install it.
-
-Requires a signed-in session (`clay login`; run the `setup` skill if `clay whoami`
-fails on auth). The workspace is resolved from the stored session, so there is no
-workspace id to pass.
-
-Every command prints JSON to stdout on success and a typed error envelope to
-stderr on failure, with categorical exit codes (0 ok, 2 validation, 3 auth,
-5 network, 6 not-found). Pipe stdout to `jq`.
+If `clay` isn't on PATH or `clay whoami` fails on auth, run the `setup` skill.
 
 ## Commands
 
@@ -25,10 +13,9 @@ clay workflows runs test <workflowId>                  # no inputs
 clay workflows runs test <workflowId> --audience-segment <segmentId> --limit 5
 clay workflows runs list <workflowId> --audience-segment <segmentId>
 
-# Partial run: execute one node only, then terminate
-# Exactly one of --source-run (reuse that run's step inputs) or --inputs (manual).
+# Partial single-node test (exactly one of --source-run or --inputs)
 clay workflows nodes test <workflowId> <nodeId> --source-run <runId>
-clay workflows nodes test <workflowId> <nodeId> --inputs '{"domain":"clay.com"}'
+clay workflows nodes test <workflowId> <nodeId> --inputs '{"param":"value"}'
 ```
 
 ### Draft vs live when testing
@@ -36,16 +23,13 @@ clay workflows nodes test <workflowId> <nodeId> --inputs '{"domain":"clay.com"}'
 - **Plain / manual `clay workflows runs test`** (with or without `--inputs`) starts a run
   via the manual trigger and exercises the **current draft**. Use this to verify
   unpublished edits.
-- **`clay workflows nodes test`** starts a partial draft run of a single node (current
-  graph), then terminates. Use it to debug one node without re-running the whole
-  workflow.
 - **`--audience-segment`** starts runs through that audience segment trigger. After the
   workflow is published, those runs use the **live** version — not draft-only edits you
   have not published yet. Do not conclude “the draft works” from a successful
   `--audience-segment` run on a published workflow; publish first if you need the live
   path to pick up draft changes, or use a manual test to validate the draft.
 
-`--inputs` and `--audience-segment` cannot be combined on `runs test`. See `publishing.md`.
+`--inputs` and `--audience-segment` cannot be combined. See `publishing.md`.
 
 ```bash
 # Status / progress for a run
@@ -63,26 +47,12 @@ clay workflows runs steps <workflowId> <runId> --node-id <nodeId>
 clay workflows runs pause <workflowId> <runId>
 clay workflows runs resume <workflowId> <runId>
 
-# List all workflows
-clay workflows list
-
-# Get a workflow (returns { id, name, url })
-clay workflows get <workflowId>
-
-# Create a new workflow
-clay workflows create --name "My Workflow"
-
 # Publish the tested draft as live
 clay workflows publish <workflowId> --name "July enrichment rollout"
 ```
 
-When you create a new workflow, post a clickable Markdown link near the top of
-your reply as soon as it exists — e.g. `[Open workflow](<url>)` — using the `url`
-from `clay workflows create` or `clay workflows get`. Do not leave the URL in
-raw command output; the user should be able to click straight into the editor.
-This is most useful in a headless environment where the user has no Clay tab
-already open; the in-product assistant's user is already viewing the workflow.
-See `presenting.md` ("Workflow editor link").
+When you create or first load a workflow, share its `url` as a clickable Markdown
+link (`[Open workflow](<url>)`) — see `presenting.md`.
 
 ## Watching a run to completion
 
@@ -143,17 +113,11 @@ Structure the recap as a short per-node walkthrough (or a small table: node → 
 3. Inspect failures: `clay workflows runs steps wf_abc wfr_xyz --status failed | jq '.data[].errors'`
 4. Walk the user through the trace node-by-node (see "Tell the user what the run actually did" above), not as raw JSON.
 
-## Testing & exploration MCP tools
+## Testing & exploration before wiring a node
 
-- **execute_clay_action**: Run any Clay action to see its output before using it in a workflow
-  - Provide `actionPackageId`, `actionKey`, and `inputs`
-  - Returns raw action result — use this to understand output format before building nodes
-  - Note: actions consume credits
-- **run_code**: Run Python code in a sandbox to test logic before putting it in code nodes
-  - Code must define `handler(context)` returning a dict
-  - Supports `context.call_tool()` if tools are provided
-  - Supports `context.get_input()` if inputs are provided
-  - Optionally install pip packages
+Use `clay workflows actions test` and `clay workflows code test` as documented in
+the parent skill. After wiring, confirm the persisted config with
+`clay workflows nodes get` or `graph get --mode full`.
 
 ## Pro tips
 

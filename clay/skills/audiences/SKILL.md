@@ -12,9 +12,9 @@ membership changes as records change.
 
 **Audiences is the default home for the workspace's own people and companies.**
 When a user mentions people, companies, contacts, leads, accounts, or customers
-without naming a surface, they mean these records — start here, not in `tables`
-(a separate surface, right only when the user names a table) and not in `search`
-(net-new prospects that are not in the workspace yet).
+without naming a surface, they mean these records — start here, not in the tables
+entry-point skill (a separate surface, right only when the user names a table) and not in
+`search` (net-new prospects that are not in the workspace yet).
 
 Read this before any audiences work. Four supporting references:
 
@@ -29,8 +29,8 @@ Read this before any audiences work. Four supporting references:
   renewal, expansion, churn, "our customers". Deals are read-only, and a deal
   query is rooted at **people or companies** — you filter people or companies
   by their deals rather than filtering deals directly.
-- The `workflows` skill's `audiences.md` — writing values onto records
-  (the `upsert-audiences-record` action) and triggering a workflow off an audience.
+- The workflows entry-point skill's `audiences.md` — writing values onto records (the
+  `upsert-audiences-record` action) and triggering a workflow off an audience.
 
 **Read with the CLI, write records with the action.** `clay audiences` covers
 every Audiences primitive — segments, fields, and reading records — but it has no

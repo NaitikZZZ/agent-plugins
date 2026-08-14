@@ -4,7 +4,7 @@ description: Clay tables — sweep a table for errored rows and report grouped b
 allowed-tools: Bash(clay *), Bash(jq *), Read
 ---
 
-# Playbook: error sweep
+# Error sweep
 
 **Use when:** "what's erroring in {table}?", "show failed rows", "is {action} failing?" — a table-level question with no specific record in hand. Goal: find the errored rows, read their messages, and report **grouped by root cause**, not row by row.
 
@@ -14,7 +14,7 @@ Only **`action`** columns can be in `error`. `basic` and `source` columns don't 
 
 Before sweeping, learn what _can_ error.
 
-1. Resolve the table to a `tbl_...` id — use `clay tables list --filter workbook.id=<wbk_...>` when the workbook is known (resolve the id via `clay workbooks list`), otherwise `clay tables list` and pick by `.name` with `jq`. Do not use `--filter queryEnabled=true` unless you only want query-synced tables (it hides the rest). If the user named no table or workbook, ask rather than sweeping the workspace.
+1. Resolve the table as in the tables entry-point skill ("Finding a table").
 2. **`clay tables columns get <tableId>`** (shape in the command's `--help`). Build the picture:
    - Which columns are `type: "action"` — these are the ones that fail. Keep a `f_id → name` map for readable reporting.
    - For each action column, note `authAccountId` (auth-related failures), `conditionalRunFormulaText` (a gate — a skipped action usually shows as `empty`, not a failure), and `inputsBinding` (what feeds it — needed if a failure turns out to be a bad/missing input).

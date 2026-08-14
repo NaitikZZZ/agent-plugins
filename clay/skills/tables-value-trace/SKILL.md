@@ -4,7 +4,7 @@ description: Clay tables — explain one cell by walking a column backward throu
 allowed-tools: Bash(clay *), Bash(jq *), Read
 ---
 
-# Playbook: value-trace
+# Value-trace
 
 **Use when:** you have a record and want to explain **one cell** — "where did this email come from?", "why did Enrich Person error?", "why didn't Push to HubSpot run?", "why is this value empty?". This walks a single column **backward** through its dependencies to find the origin or the root cause. Causation, not state — `/tables-trace` gives you the state snapshot first.
 
@@ -23,7 +23,7 @@ You need this row and the target column. If you don't have the row yet, locate i
 
 ## 2. Get the structure — `clay tables columns get`
 
-On the table the row lives in. Build the dependency catalog with the token-extraction recipe in `tables/dependency-catalog.md` — it yields `{ id, name, type, role, integration, gate, dependsOn }` per column. You only need to walk the target column and its transitive `dependsOn`, but computing the whole catalog once is cheap and lets you resolve every edge by name.
+On the table the row lives in. Build the dependency catalog with the token-extraction recipe in the tables entry-point skill's `dependency-catalog.md` — it yields `{ id, name, type, role, integration, gate, dependsOn }` per column. You only need to walk the target column and its transitive `dependsOn`, but computing the whole catalog once is cheap and lets you resolve every edge by name.
 
 ## 3. Get this row's data
 

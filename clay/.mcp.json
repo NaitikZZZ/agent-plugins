@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "clay": {
-      "command": "${CLAUDE_PLUGIN_ROOT}/bin/clay",
-      "args": ["mcp"]
-    }
-  }
-}
