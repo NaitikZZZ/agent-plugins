@@ -69,6 +69,33 @@ fi
 
 [ "$approve" -eq 1 ] || exit 0
 
+reason="Clay skills and read-only web tools are allowlisted by the Clay plugin"
+
+# Invoking the onboard skill also displays the Clay banner, as a systemMessage
+# attached to this verdict — the moment onboarding actually starts. Display
+# can't be left to the model: harness-trained terseness makes agents reliably
+# skip verbatim ASCII art no matter what the skill demands. Once per session,
+# so a re-invocation can't repeat it.
+if [ "${skill:-}" = "onboard" ]; then
+  session_id="$(printf '%s' "$input" | jq -r '.session_id // empty' 2> /dev/null)"
+  guard="${TMPDIR:-/tmp}/clay-onboard-banner-${session_id:-unknown}"
+  # Prefer the ANSI-colored banner here: this systemMessage renders in a terminal
+  # (jq escapes the color bytes into valid JSON). banner.txt stays plain for the
+  # hosts where the model prints it into a markdown code block. NO_COLOR
+  # (https://no-color.org) opts out of the colored variant.
+  banner_file="$plugin_root/skills/onboard/banner-ansi.txt"
+  if [ -n "${NO_COLOR:-}" ] || [ ! -f "$banner_file" ]; then
+    banner_file="$plugin_root/skills/onboard/banner.txt"
+  fi
+  if [ ! -e "$guard" ] && [ -f "$banner_file" ]; then
+    : > "$guard" 2> /dev/null
+    jq -Rs --arg reason "$reason" \
+      '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow", permissionDecisionReason: $reason}, systemMessage: .}' \
+      < "$banner_file"
+    exit 0
+  fi
+fi
+
 # Emit Claude's PreToolUse allow verdict. Only reached after the checks above
 # pass, so we never allow anything we haven't vetted.
-printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","permissionDecisionReason":"Clay skills and read-only web tools are allowlisted by the Clay plugin"}}'
+printf '%s\n' "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\",\"permissionDecisionReason\":\"$reason\"}}"

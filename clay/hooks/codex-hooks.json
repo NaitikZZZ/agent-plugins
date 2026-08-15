@@ -9,15 +9,6 @@
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/approve-cli.sh codex"
           }
         ]
-      },
-      {
-        "matcher": "mcp__clay__.*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/approve-mcp.sh codex"
-          }
-        ]
       }
     ]
   }

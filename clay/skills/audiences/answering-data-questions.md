@@ -10,11 +10,11 @@ When a user mentions people, companies, contacts, leads, accounts, or customers
 without naming a surface, they mean **their workspace's records — Audiences**.
 Go straight to `clay audiences`.
 
-| The user means                                    | Surface                            |
-| ------------------------------------------------- | ---------------------------------- |
-| "my/our/their" people, companies, leads, accounts | **Audiences** (`clay audiences`)   |
-| net-new prospects not in the workspace yet        | `search` (Clay's GTM database)     |
-| a named table they built                          | `tables` — only when they name one |
+| The user means                                    | Surface                                                |
+| ------------------------------------------------- | ------------------------------------------------------ |
+| "my/our/their" people, companies, leads, accounts | **Audiences** (`clay audiences`)                       |
+| net-new prospects not in the workspace yet        | `search` (Clay's GTM database)                         |
+| a named table they built                          | the tables entry-point skill — only when they name one |
 
 Do **not** open `clay tables --help` to answer a question about people or
 companies. Tables are a separate surface holding whatever the user built there;
@@ -88,7 +88,8 @@ If they want it filled:
   `upsert-audiences-record`. Start with that shape — trigger on an audience of
   the records missing the field, enrich, upsert — and build the reversible draft
   incrementally. Confirmation is required before the credit-consuming run, not
-  before draft construction. See the `workflows` skill's `audiences.md`.
+  before draft construction. See the workflows entry-point skill's `audiences.md`
+  for the trigger and node mechanics.
 - The audience of records missing the field is itself the input: an `Empty`
   filter on that field, saved with `clay audiences create`, becomes the
   workflow's trigger.

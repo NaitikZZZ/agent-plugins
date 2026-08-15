@@ -1,6 +1,6 @@
 ---
-name: workflows-simplify
-description: 'Clay workflows — simplify a workflow: merge redundant nodes, cut unnecessary complexity, and replace LLM nodes with deterministic alternatives where possible.'
+name: workflows-simplify-cli
+description: 'Clay workflows — simplify a workflow via the CLI (`clay workflows` commands): merge redundant nodes, cut unnecessary complexity, and replace LLM nodes with deterministic alternatives where possible.'
 ---
 
 # Simplifying a workflow
@@ -9,13 +9,13 @@ Analyze the current workflow and suggest concrete simplifications to reduce comp
 
 ## Process
 
-1. **Read the workflow** using `read` (full mode) to get all node details
+1. **Read the workflow** using `clay workflows graph get <workflowId> --mode full` to get all node details
 2. **Analyze each node** against the simplification checklist below
 3. **Present findings** as a prioritized list of suggestions with specific changes, alongside a render of the **current graph** (`clay workflows diagram <workflowId>`) so the user can see which nodes each suggestion affects
-4. **Apply authorized changes** — edit the workflow only when the user's request authorizes modifications. Once authorized, apply clearly behavior-preserving improvements as you go and ask before changes with a material behavior or quality trade-off
-5. **Show the result** — after applying, run `validate_workflow` with `prettier=true` and render the **updated graph** so the simplification is visible, not just described
+4. **Apply authorized changes** — edit the workflow only when the user's request authorizes modifications, via `clay workflows nodes update`/`create`/`delete`. Once authorized, apply clearly behavior-preserving improvements as you go and ask before changes with a material behavior or quality trade-off
+5. **Show the result** — after applying, run `clay workflows graph format <workflowId>` and render the **updated graph** so the simplification is visible, not just described
 
-Narrate throughout and prefer the diagram over raw node JSON — see `workflows/presenting.md`.
+Narrate throughout and prefer the diagram over raw node JSON — see the `workflows-cli` skill's `presenting.md`.
 
 ## Simplification Checklist
 
@@ -50,7 +50,7 @@ Two adjacent nodes can often be combined into one if:
 When a downstream node needs specific typed data from an upstream node:
 
 - Add `outputSchema` to the upstream node
-- On the downstream agent node, pin each input via `sourceNodeId`/`sourcePath` inline on the `inputSchema` property (see `workflows/data-passing.md`)
+- On the downstream agent node, pin each input via `sourceNodeId`/`sourcePath` inline on the `inputSchema` property (see the `workflows-cli` skill's `data-passing.md`)
 - This preserves exact values across nodes
 
 ### Simplify tool usage
@@ -71,4 +71,4 @@ Present suggestions as:
 2. **Why** — what complexity or cost this removes
 3. **How** — the concrete edit (new node type, merged prompt, code snippet)
 
-Pair the suggestion list with the current-graph render so each affected node is easy to locate. For analysis or recommendation requests, present the suggestions without editing. If the user asks you to modify the workflow, apply clearly behavior-preserving improvements as you identify them and state your assumptions. Ask only when an edit has a meaningful behavior or quality trade-off. Then run `validate_workflow` with `prettier=true` and show the updated graph so the user can see the before/after difference.
+Pair the suggestion list with the current-graph render so each affected node is easy to locate. For analysis or recommendation requests, present the suggestions without editing. If the user asks you to modify the workflow, apply clearly behavior-preserving improvements as you identify them and state your assumptions. Ask only when an edit has a meaningful behavior or quality trade-off. Then run `clay workflows graph format <workflowId>` and show the updated graph so the user can see the before/after difference.

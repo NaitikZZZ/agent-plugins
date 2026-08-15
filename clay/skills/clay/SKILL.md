@@ -8,6 +8,8 @@ description: Clay — start here. A table of contents for working with Clay and 
 Clay is a GTM (go-to-market) data and automation product. This skill is a table of
 contents: find what you want to do and go to that skill.
 
+Campaigns and Sequencer are interchangeable names for the same product surface. When the `campaigns` skill is available, route requests using either name to that skill and `clay campaigns`. A sequence is the message flow within a campaign.
+
 ## How to work
 
 Whatever you're doing in Clay, work transparently so the user can follow along:
@@ -51,7 +53,7 @@ abilities. Get the framing right:
 
 ## Choosing the right primitive
 
-Clay exposes four core primitives (callable from the plugin/CLI/MCP/API):
+Clay exposes four core primitives (callable from the plugin/CLI/API):
 
 | Primitive               | What it's for                                                                       |
 | ----------------------- | ----------------------------------------------------------------------------------- |
@@ -66,8 +68,8 @@ Follow this escalation order — reach for the earliest option that fits:
    customers, or deals? Start here. Counts, fill rates, lookups, and saved segments all live in
    Audiences, and reading what the workspace already has is free and instant. Only move on once
    you know the data isn't already there — searching or enriching first spends the user's money
-   to rediscover data they have. Don't route a question about their own records to `tables`;
-   that's a separate surface, and only when the user names a table.
+   to rediscover data they have. Don't route a question about their own records to the
+   tables entry-point skill; that's a separate surface, and only when the user names a table.
 2. **Search** — need a list of people or companies **new to the workspace**? This is the next stop (it's a primitive, not a routine).
    - **Advanced queries (beta)** are the default and support filters-mode criteria, cross-entity filters, and nested Boolean logic.
    - Use **structured filters** (filters mode) if the user prefers its older structure or has existing filters-mode searches.
@@ -80,13 +82,13 @@ Follow this escalation order — reach for the earliest option that fits:
    `clay routines list` — check the catalog before building anything.
 4. **Custom function** — your team's reusable logic for things no managed function covers
    (account scoring, inbound routing, CRM cleanup, etc.). **Custom functions cannot be built
-   from the CLI/MCP/API** — they can only be **invoked**. If a task needs a _new_ custom
+   from the CLI/API** — they can only be **invoked**. If a task needs a _new_ custom
    function, surface that to the user; it must be created in the Clay app.
 5. **Workflow** — multi-node flows built from a code editor or the CLI. **Only use
    when a function genuinely can't do it**: embedded custom code, >100k-row batches, step-by-step
    run inspection, or inputs from diverse sources stitched together.
 6. **Tables** — query data from an existing table. You **cannot** create new tables through the
-   plugin/CLI/MCP/API; if a task needs a new table, surface that to the user.
+   plugin/CLI/API; if a task needs a new table, surface that to the user.
 
 If you are unsure what to surface, ask the user. There are often multiple ways to accomplish the same task,
 so when the choice is ambiguous, do not pick one arbitrarily.
@@ -107,17 +109,17 @@ Before running a credit-consuming routine, check its per-item `estimatedCreditCo
 
 ## Skills
 
-| Skill                 | Use it for                                                                                                    |
-| --------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `audiences`           | Any question about the workspace's own people/companies/deals — counts, fill rates, lookups, and segments.    |
-| `search`              | Finding people or companies in Clay's GTM database with advanced queries or existing filters-mode searches.   |
-| `routines`            | Creating a routine from an existing function/workflow, running a saved routine, and fetching its results.     |
-| `tables`              | Reading, querying, and exporting data from an existing Clay table (creating tables is not supported).         |
-| `cli`                 | Ephemeral, programmatic access to Clay capabilities from a shell — run a routine, query a table, search, etc. |
-| `public-api`          | Building services and applications on top of Clay over HTTP.                                                  |
-| `workflows`           | Building and editing net-new Clay workflows (multi-step automations).                                         |
-| `workflows-vs-tables` | Explaining the difference between Workflows and Tables, or recommending which to use.                         |
-| `clay-feedback`       | Sending a bug report or product feedback to the Clay team.                                                    |
+| Skill                 | Use it for                                                                                                        |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `audiences`           | Any question about the workspace's own people/companies/deals — counts, fill rates, lookups, and segments.        |
+| `search`              | Finding people or companies in Clay's GTM database with advanced queries or existing filters-mode searches.       |
+| `routines`            | Creating a routine from an existing function/workflow, running a saved routine, and fetching its results.         |
+| `tables-cli`          | Reading, querying, and exporting data from an existing Clay table via the CLI (creating tables is not supported). |
+| `cli`                 | Ephemeral, programmatic access to Clay capabilities from a shell — run a routine, query a table, search, etc.     |
+| `public-api`          | Building services and applications on top of Clay over HTTP.                                                      |
+| `workflows-cli`       | Building and editing Clay workflows via the CLI.                                                                  |
+| `workflows-vs-tables` | Explaining the difference between Workflows and Tables, or recommending which to use.                             |
+| `clay-feedback`       | Sending a bug report or product feedback to the Clay team.                                                        |
 
 ## If another Clay MCP is connected
 

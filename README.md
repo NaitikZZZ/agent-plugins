@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <strong>Build with Clay in your AI coding agent</strong> — skills, MCP tools, and the <code>clay</code>
+  <strong>Build with Clay in your AI coding agent</strong> — skills and the <code>clay</code>
   CLI, for Claude Code, Codex, and Cursor.
 </p>
 

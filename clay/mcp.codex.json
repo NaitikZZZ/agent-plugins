@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "clay": {
-      "command": "./clay",
-      "args": ["mcp"],
-      "cwd": "bin"
-    }
-  }
-}

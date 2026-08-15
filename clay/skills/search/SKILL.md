@@ -9,8 +9,8 @@ allowed-tools: Bash(clay *), Bash(jq *)
 Search Clay's GTM database with advanced queries and return matching records — people or
 companies. Use filters mode when the user prefers its older structure or has existing filters-mode searches.
 
-This is different from `tables` (which queries data already in a Clay table) and from
-`workflows` (multi-step automations). Reach for search when the user wants to _find_
+This is different from the tables entry-point skill (which queries data already in a Clay table) and from
+the workflows entry-point skill (multi-step automations). Reach for search when the user wants to _find_
 prospects or accounts.
 
 ## How it works
@@ -34,13 +34,8 @@ Before authoring an advanced query, run `clay search query-mode reference` and u
 reference. Use `filters-mode` when the user prefers its older structure or has existing filters-mode
 searches.
 
-## CLI reference
-
-Use the `clay` CLI. (In Codex/Cursor, run the `setup` skill once if `clay` isn't found
-or `clay whoami` fails on auth.) Authenticate with `clay login`; the workspace is
-resolved from the stored session. Output is JSON — pipe it to `jq`. Run
-`clay search --help` (and `clay search <cmd> --help`) for the authoritative flags and
-output shapes.
+Run `clay search --help` (and `clay search <cmd> --help`) for flags and output shapes.
+If `clay` isn't on PATH or `clay whoami` fails on auth, run the `setup` skill.
 
 ## When a criterion isn't supported
 
@@ -56,15 +51,12 @@ a routine does:
    attribute the user actually asked about, then filter or act on that routine's output.
 
 Tell the user the field isn't a native search filter and offer this search → routine path
-rather than returning nothing. Read the `routines` skill (`skills/routines/SKILL.md`) for how
-to find and run one, and see the "Next: enrich or act on the results" section below for the
-handoff command.
+rather than returning nothing. See the `routines` skill and "Next: enrich or act on the
+results" below for the handoff.
 
 ## Start a search
 
 ### Advanced search (default)
-
-Read the query reference, then create a search:
 
 ```bash
 clay search query-mode reference
@@ -73,58 +65,27 @@ clay search query-mode create --query '<query>'
 
 `create` returns `{ "searchId": "srch_..." }`.
 
-#### Fetch the first page (advanced search)
-
-```bash
-clay search query-mode run <searchId> [--limit <n>]
-```
-
-Returns `{ "data": [ ... ], "hasMore": <boolean> }`. `--limit` is the page size; omit it
-to use the server default. Call again while `hasMore` is `true` to keep paging.
-
-#### Page through all results (advanced search)
-
-Use the same `run` command with the same `searchId`. Each call returns the next page:
-
-```bash
-clay search query-mode run srch_abc123 --limit 50 | jq -c '.data[]'
-```
-
-Repeat that command while the page's `hasMore` is `true`; stop when it is `false`.
-
 ### Filters mode
 
-Use filters mode when the user prefers its older structure or has an existing filters-mode
-search. Discover the available fields, then create a search:
+Use when the user prefers its older structure or has an existing filters-mode search:
 
 ```bash
 clay search filters-mode fields --source-type people | jq '.fields[].name'
-```
-
-```bash
 clay search filters-mode create --source-type people --filters '{"job_title_keywords":["growth engineer"],"location_cities_include":["San Francisco"]}'
 ```
 
 `create` returns `{ "searchId": "srch_..." }`.
 
-#### Fetch the first page (filters mode)
+### Paging (both modes)
+
+`run` returns `{ "data": [ ... ], "hasMore": <boolean> }`. `--limit` is the page size;
+omit it for the server default. Reuse the same `searchId`; each call returns the next
+page. Repeat while `hasMore` is `true`; stop when it is `false`.
 
 ```bash
-clay search filters-mode run srch_abc123 --limit 25 | jq '.data'
-```
-
-Returns `{ "data": [ ... ], "hasMore": <boolean> }`. `--limit` is the page size; omit it
-to use the server default.
-
-#### Page through all results (filters mode)
-
-Use the same `run` command with the same `searchId`. Each call returns the next page:
-
-```bash
+clay search query-mode run <searchId> [--limit <n>]
 clay search filters-mode run srch_abc123 --limit 50 | jq -c '.data[]'
 ```
-
-Repeat that command while the page's `hasMore` is `true`; stop when it is `false`.
 
 ## Quotas (do not retry)
 
@@ -156,13 +117,8 @@ Details**, **Company Job Openings**. Match on each routine's input schema
 (`clay routines get <id>`), not its name. Only fall through to the action catalog or a new
 workflow when no managed or custom routine fits.
 
-Search only _finds_ records. To do something with them — enrich them (emails, firmographics,
-social profiles, …) or take an action (send to a CRM, trigger outreach, etc.) — feed the
-results into a saved routine. Read the `routines` skill (`skills/routines/SKILL.md`)
-
-**Search → results → run a routine is the common workflow.** Most searches aren't the end
-goal — the user wants the found records enriched or acted on. After returning results,
-default to offering this next step rather than stopping at the raw matches.
+Search only _finds_ records. After returning results, offer to feed them into a saved
+routine (enrichment, CRM write, outreach). See the `routines` skill.
 
 ```bash
 clay routines list

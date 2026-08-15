@@ -1,6 +1,6 @@
 ---
 name: workflows-vs-tables
-description: Clay Workflows vs Tables — conceptual explainer for a customer asking what the difference is or which one to use. Read this when explaining the two products or recommending one for a use case. Users cannot build tables via the CLI/MCP/API; if a task needs a new table, surface that to the user & explain workflows are the only way to build in via CLI/MCP/API today.
+description: Clay Workflows vs Tables — conceptual explainer for a customer asking what the difference is or which one to use. Read this when explaining the two products or recommending one for a use case. Users cannot build tables via the CLI/API; if a task needs a new table, surface that to the user & explain workflows are the only way to build in via CLI/API today.
 ---
 
 # Clay Workflows vs. Clay Tables
@@ -37,7 +37,7 @@ Compared to tables, workflows:
 - Have no 50k-row limit and no archived rows to manage
 - Come with purpose-built observability for tracking runs and debugging failures
 - Support custom code execution via code nodes, for logic tables/formulas can't express
-- Can be built with the help of AI coding agents, including this plugin's `workflows` skill
+- Can be built with the help of AI coding agents via the workflows entry-point skill
 
 ### Search as a source
 
@@ -61,7 +61,7 @@ needing to split a flow into multiple workflows.
 - Needs to run on a schedule/trigger, repeatedly, without someone babysitting it → **Workflows**
 - Outgrowing a table (hitting the row limit, needing branching logic, needing it to run
   unattended) → rebuild the _logic_ as a **Workflow** (see "Rebuilding a Table as a Workflow" in
-  the `tables` skill)
+  the tables entry-point skill)
 - Wants to build the whole thing via CLI/agent, not the Clay app UI → **Workflows** — tables
   aren't supported as a build target at all here, only as something to read from (see below)
 
@@ -69,12 +69,12 @@ This is a different question from "which primitive should _the agent_ use to exe
 right now" — that decision (search → managed function → custom function → workflow → table) is
 covered by the escalation order in `clay/SKILL.md`, not here.
 
-## What this plugin can and can't do across the two
+## What you can and can't do across the two
 
-- This plugin's CLI/MCP can **build and edit Workflows** (see the `workflows` skill) but
-  **cannot build or edit Tables** — table creation only happens in the Clay app (see the `tables`
-  skill).
-- This plugin **can read** from existing tables (schema + query) to use as input or reference
+- You can **build and edit Workflows** (see the workflows entry-point skill) but
+  **cannot build or edit Tables** — table creation only happens in the Clay app (see
+  the tables entry-point skill).
+- This skill **can read** from existing tables (schema + query) to use as input or reference
   while building a workflow.
 - There's no automatic migration path from a table to a workflow. If a customer wants their table
   logic rebuilt as a workflow, that's a rebuild of the logic, not a data migration — their
@@ -82,7 +82,7 @@ covered by the escalation order in `clay/SKILL.md`, not here.
 
 ## Related skills
 
-- `tables` — querying/reading data from an existing table
-- `workflows` — building and editing workflows via this plugin
+- the tables entry-point skill — querying/reading data from an existing table
+- the workflows entry-point skill — building and editing workflows
 - `clay` — the primitive-selection guide for what the agent itself should build with when
   automating a task

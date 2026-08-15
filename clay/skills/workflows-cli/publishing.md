@@ -5,7 +5,7 @@ makes that draft the **live** version automation runs. Until the user publishes,
 live audience / schedule / webhook (etc.) automation does not pick up your edits.
 
 When the user wants automation to go live (or to ship draft changes after a prior
-publish), run `clay workflows publish <workflowId>`. Do not claim that `edit_node`,
+publish), run `clay workflows publish <workflowId>`. Do not claim that node edits,
 a test run, or `snapshots restore` published anything.
 
 Speak to the user in **draft / live / publish** terms for the workflow as a
@@ -15,17 +15,18 @@ publishes — publishing is what takes triggers live. There is no per-trigger
 "set live" action, so never say you "set a trigger live" or that a trigger you
 just added is already live.
 
-Users **can** pause and resume an individual trigger from the workflow editor —
-that is a real per-trigger control. Resuming a paused trigger returns it to live;
-it is not a publish, and going live for the first time is only ever through
-publishing.
+Users **can** pause and resume an individual trigger with
+`clay workflows triggers update <triggerId> --input '{"status":"paused"}'` or
+`{"status":"live"}`. A status change must be sent alone (not alongside other
+fields). Resuming a paused trigger returns it to live; it is not a publish, and
+going live for the first time is only ever through publishing.
 
 ## Concepts
 
 | Concept                    | Meaning                                                                                                                                                             |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Draft**                  | The current editable graph (nodes, edges, prompts, tools). A never-published workflow is still a first draft.                                                       |
-| **Draft-history snapshot** | An automatic freeze of the graph (before `edit_node`, at run start). Undo/history only — not a release. See `/workflows-snapshots`.                                 |
+| **Draft-history snapshot** | An automatic freeze of the graph (after a graph-mutating CLI edit, at run start). Undo/history only — not a release. See `/workflows-snapshots`.                    |
 | **Publish**                | Ship the current draft as a numbered live version, activating its triggers. A trigger the user paused in the UI stays paused (publish does not silently resume it). |
 | **Live**                   | The published version automation runs. After the first publish, further draft edits do **not** change live automation until the user publishes again.               |
 
@@ -35,7 +36,8 @@ keeps the same version.
 
 Publishing is the only way a trigger goes live for the first time: there is no
 per-trigger "set live" step. Pausing and resuming an existing trigger is a
-separate per-trigger action and does not publish a new workflow version.
+separate per-trigger action (`triggers update` with `status`) and does not
+publish a new workflow version.
 
 ## Restore is not publish
 
@@ -46,7 +48,7 @@ match the restored draft.
 
 ## What you should do
 
-1. Build against the draft (`edit_node`, `validate_workflow`). To verify **unpublished**
+1. Build against the draft (`clay workflows nodes …`, `graph validate`/`format`). To verify **unpublished**
    edits, use a plain / manual `clay workflows runs test` (no `--audience-segment`) —
    that exercises the current draft. Do not treat `--audience-segment` as a draft test
    after the workflow is published (that path runs the live version; see below).

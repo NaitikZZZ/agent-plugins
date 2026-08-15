@@ -4,15 +4,15 @@ description: 'Clay tables — locate a record by identifier and snapshot its sta
 allowed-tools: Bash(clay *), Bash(jq *), Read
 ---
 
-# Playbook: trace a record
+# Trace a record
 
-**Use when:** you have an identifier and want to find the record and see its overall state — "trace 12345", "where is jane@acme.com?", "what enrichments ran for this lead?", "is this record done?". This is a **locate + snapshot**: which table(s) hold it, and each cell's status. It does **not** explain _why_ a cell holds what it holds — that's `/tables-value-trace`, which this playbook hands off to.
+**Use when:** you have an identifier and want to find the record and see its overall state — "trace 12345", "where is jane@acme.com?", "what enrichments ran for this lead?", "is this record done?". This is a **locate + snapshot**: which table(s) hold it, and each cell's status. It does **not** explain _why_ a cell holds what it holds — that's `/tables-value-trace`.
 
 Treat each in-scope table independently. Tables may not share identifiers or have any relationship; presence (or absence) in one says nothing about another.
 
 ## 1. Settle scope
 
-Resolve which table(s) to look in: use `clay tables list --filter workbook.id=<wbk_...>` when the workbook is known (resolve the id via `clay workbooks list`), otherwise `clay tables list` and pick by `.name` with `jq`. Do not use `--filter queryEnabled=true` unless you only want query-synced tables (it hides the rest). Or pass a `tbl_...` id directly. If the user named no scope, **ask** — don't sweep the whole workspace. `{id}` is whatever the user gave (email, HubSpot ID, row id, etc.). (ID prefixes: `tbl_` table, `f_` column, `rec_` row, `wbk_` workbook.)
+Resolve which table(s) to look in as in the tables entry-point skill ("Finding a table"), or pass a `tbl_...` id directly. `{id}` is whatever the user gave (email, HubSpot ID, row id, etc.).
 
 If `{id}` is already a `rec_...` row id and the table is known, skip discovery and go straight to **get the row** (step 4).
 
@@ -83,7 +83,7 @@ Account Match — active (updated 2026-04-12):
 
 - **Found in both active and archive** → likely re-processed; compare `updatedAt` and say which is newer.
 - **Not found** in an in-scope table → say so plainly; it may live in a table you didn't search, or the identifier may be off. Don't treat absence as proof of anything about another table.
-- **An `error` or surprising/empty value** the user wants explained → that's where this playbook ends and `/tables-value-trace` begins.
+- **An `error` or surprising/empty value** the user wants explained → that's where this skill ends and `/tables-value-trace` begins.
 
 ## Hand-offs
 

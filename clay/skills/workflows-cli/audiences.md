@@ -10,9 +10,7 @@ CLI here.
 
 **Read with the CLI, write records with the action.** `clay audiences` has no
 command that writes a field value onto a record, so any workflow step that
-populates people or companies uses the action below. Audiences itself is
-CLI-only — no MCP tool or `surfaces_*` resource type reads segments or fields,
-so don't go looking for one.
+populates people or companies uses the action below.
 
 ## The backfill shape: audience → enrich → upsert back
 

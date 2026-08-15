@@ -4,7 +4,7 @@ description: Clay tables — check the row-capacity ceiling when imports stall, 
 allowed-tools: Bash(clay *), Bash(jq *), Read
 ---
 
-# Playbook: capacity check
+# Capacity check
 
 **Use when:** "why aren't new rows being added?", "why is the import stuck?", "is this table full?", or any question about rows failing to appear. Check capacity **before** assuming a run, config, or enrichment problem — a full table silently stops accepting rows, which looks like a broken import.
 
@@ -21,7 +21,7 @@ So the table is constrained if **`rowCount` OR any source's `numSourceRecords`**
 
 ## Procedure
 
-1. Resolve the table to a `tbl_...` id — use `clay tables list --filter workbook.id=<wbk_...>` when the workbook is known (resolve the id via `clay workbooks list`), otherwise `clay tables list` and pick by `.name` with `jq`. Do not use `--filter queryEnabled=true` unless you only want query-synced tables (it hides the rest). If the user named no table or workbook, ask rather than sweeping the workspace.
+1. Resolve the table as in the tables entry-point skill ("Finding a table").
 2. Run **`clay tables get`** for `rowCount`, and **`clay tables columns list`** for the source counts (shapes in each command's `--help`). Two commands — no row scan needed.
 3. Read the numbers against the default ceiling (source counts live on source columns), with two separate commands.
 

@@ -10,7 +10,15 @@ Snapshots are immutable, point-in-time captures of the entire workflow graph —
 
 ## Key concepts
 
-- **Automatic creation**: A snapshot is created automatically before every `edit_node` call and when a run starts
+- **Automatic creation**: after every graph-mutating node edit
+  (`clay workflows nodes` create|update|delete; Sculptor: `edit_node`) and when a
+  run starts. `data[0]` is newest-by-`createdAt`, **not** necessarily the current
+  graph. Sharing/binding a trigger onto an existing node does **not** snapshot —
+  undo that create by deleting the trigger, not restore. Settings-only trigger
+  update/delete also do not snapshot — revert or recreate the settings; do not
+  delete the trigger and do not restore. `graph format` takes two snapshots when
+  validation has no errors (pre-layout, then post-layout); details under Undo.
+- **Restore does not reshuffle the list**: `snapshots restore` rewrites the draft but does not create or reorder snapshots. Duplicate hashes reuse the existing row without updating `createdAt`. After a restore, `data[0]` can be a later history entry that is not the current graph, so the next edit's `data[1]` is often that stale entry rather than the pre-edit graph. Compare the latest snapshot to the current graph (or find the list row that matches) before treating `data[1]` as the undo target.
 - **Content-addressed**: Each snapshot has a SHA-256 hash of its contents. Identical workflow states deduplicate to the same hash
 - **Immutable**: Once created, a snapshot's graph content never changes
 - **Run isolation**: Runs are pegged to a specific snapshot. Editing the workflow doesn't affect in-flight runs
@@ -24,17 +32,15 @@ The same snapshot table holds two roles:
 | **Draft-history**     | Auto on edits / run start             | Undo log and run pegging. No release number.                                           |
 | **Published version** | User clicks **Publish** in the editor | Numbered release (`version`, optional `name`). Becomes the live graph automation runs. |
 
-Publishing marks a snapshot of the current draft as a numbered release; it does not create a separate store. See `workflows/publishing.md` for draft vs live (do not explain snapshot-binding internals to users).
+Publishing marks a snapshot of the current draft as a numbered release; it does not create a separate store. See the workflows entry-point skill's `publishing.md` for draft vs live.
 
-**This skill is for undo/history** (`list` / `get` / `restore`). It is not release management — publishing is a separate command (`clay workflows publish`, see `workflows/publishing.md`), and there is no CLI to list only published versions.
+**This skill is for undo/history** (`list` / `get` / `restore`). Publishing is a separate command (`clay workflows publish`); there is no CLI to list only published versions.
 
-`clay workflows snapshots list` projects only `id`, `hash`, `createdAt`, `nodeCount`, and `edgeCount`. It does **not** show `version` / `name` / which snapshot is live. Treat the list as an undo log, not a release picker.
+`clay workflows snapshots list` projects only `id`, `hash`, `createdAt`, `nodeCount`, and `edgeCount`. It does **not** show `version` / `name` / which snapshot is live. Treat the list as newest-first history, not a release picker — after a restore it is not a linear undo stack.
 
 ## CLI reference
 
-Use the `clay` CLI. (In Codex/Cursor, run the `setup` skill once if `clay` isn't
-found or `clay whoami` fails on auth.) Authenticate with `clay login`; the workspace
-is resolved from the stored session. Output is JSON — pipe it to `jq`.
+If `clay` isn't on PATH or `clay whoami` fails on auth, run the `setup` skill.
 
 ### List recent snapshots
 
@@ -43,7 +49,8 @@ clay workflows snapshots list <workflowId>
 ```
 
 Returns `{ data: [...] }`, newest first, each with `id`, `hash`, `createdAt`, and
-`nodeCount`/`edgeCount`. So `data[0]` is the most recent snapshot.
+`nodeCount`/`edgeCount`. So `data[0]` is the most recent snapshot by `createdAt`,
+which may not be the current graph (see restore above).
 
 ### Show a snapshot (whole graph, or one node)
 
@@ -70,7 +77,8 @@ diff <(jq -S . old.json) <(jq -S . new.json)
 raw `diff` output — e.g. "Node _Find Email_'s prompt changed; the edge _Research →
 Draft_ was removed; a new _Score Lead_ agent node was added." When the change alters
 the graph's structure (nodes or edges added/removed/rewired), render before/after
-Mermaid diagrams so the user can see it, not just read it (see `workflows/presenting.md`).
+Mermaid diagrams so the user can see it, not just read it (see the workflows
+entry-point skill's `presenting.md`).
 
 The only built-in diagram command always renders the workflow's **current** graph:
 
@@ -94,15 +102,18 @@ clay workflows snapshots restore <workflowId> <snapshotId>
 
 Restores the workflow to the exact state captured in the snapshot. This replaces
 all current nodes, edges, prompts, scripts, and tools. Restore is destructive and
-does NOT snapshot the current graph first — the pre-restore state is recoverable
-only if it was already captured (snapshots are taken automatically before each
-edit and at run start). If the current graph has unsnapshotted changes you might
-want back, run `snapshots list` first and note the latest snapshot id.
+does NOT snapshot the current graph first, and does **not** move the restored
+snapshot to the top of `list` — `data[0]` can still be a later history entry.
+The pre-restore state is recoverable only if a later edit or run already
+triggered a fresh snapshot capturing it (snapshots are taken automatically
+**after** each graph-mutating edit and at run start). If the current graph has
+unsnapshotted changes you might want back, run `snapshots list` first and note
+the snapshot that **matches** the current graph, not blindly `data[0]`.
 
 **Restore ≠ publish.** Restore rewrites the **draft** only. It does not change which
 snapshot is live, and undoing an edit does not roll back live automation. If the
 user wants live triggers to match the restored draft, they must **Publish** again
-in the editor (see `workflows/publishing.md`).
+in the editor (see the workflows entry-point skill's `publishing.md`).
 
 **Before restoring, show the user what will change.** Summarize the difference
 between the current graph and the target snapshot in plain language, and — when the
@@ -114,14 +125,59 @@ state. After restoring, render the restored graph so they can see the result.
 
 ### Undo the last edit
 
-Every `edit_node` call creates a snapshot before applying changes, so the most
-recent snapshot (`data[0]`) is the state right before the last edit.
+Every **graph**-mutating write schedules a snapshot **after** it completes — fire-and-forget,
+so the new row may lag. Do **not** assume `data[0]` is the current graph or that `data[1]` is
+the pre-edit graph.
+
+Trigger create only snapshots when it allocates a **new** canvas node. Sharing an existing
+`workflowNodeId` is not in the snapshot hash — undo that create with
+`clay workflows triggers delete` (Sculptor: surface delete), not restore. Settings-only
+trigger update/delete also are not snapshotted: revert or recreate the settings; do not
+delete the trigger and do not restore.
+
+`graph format` is two steps when validation has **no errors**: a **pre-layout** snapshot is
+awaited, then a **post-layout** snapshot is scheduled. Restore the pre-layout id (same
+nodes/edges, different positions). If validation had errors, the pre-layout snapshot is
+skipped — `.data[1]` may be an older unrelated snapshot; do not restore it. If the graph
+had no prior snapshot, wait until the post-layout row has landed before treating
+`.data[1]` as the undo target.
+
+**Compare `snapshots get` vs the current graph** (`clay workflows graph get --mode full`;
+Sculptor: MCP `read` with `mode: "full"`) to tell current from newest-by-`createdAt`. If no
+row matches, the post-edit snapshot may still be in flight — poll or restore `.data[0]`
+(step 4); do not search for a snapshot of the unsnapshotted current graph. Only use
+`Bash(clay *)` / `Bash(jq *)` — poll by repeating `list`, not a shell `for`/`seq`/`sleep`
+loop (those are outside this skill's `allowed-tools`).
 
 ```bash
-# Find the most recent snapshot, then restore to it
-snap=$(clay workflows snapshots list <workflowId> | jq -r '.data[0].id')
-clay workflows snapshots restore <workflowId> "$snap"
+clay workflows snapshots list <workflowId> | jq -r '.data[0].id'   # newest — not always current
+clay workflows snapshots list <workflowId> | jq -r '.data[1].id'   # next older — not always pre-edit
+clay workflows snapshots restore <workflowId> <snapshotId>
 ```
+
+1. **Find `before_id` before the edit:** if `.data[0]` matches the current graph, `before_id`
+   is `.data[0].id`. If not, walk the list until a row matches — that id is `before_id`. If
+   none match, there is no restorable pre-edit snapshot; do not pass a null id to `restore`.
+2. **With `before_id` (node/trigger edits):** after the write, restore **`before_id`**. Do not
+   restore `.data[1]` as a proxy — after a restore that id can be a later history entry.
+3. **With `before_id` (after `graph format`):** restore **`before_id`** only if that id
+   matched the current graph **before** format. If you had no matching snapshot before
+   format, call `list` until `.data[0]` matches the current (post-layout) graph, then
+   restore `.data[1].id` **only if it is the pre-layout graph** (same nodes/edges, different
+   positions). If validation had errors, that pre-layout row was never created — `.data[1]`
+   can be an older unrelated snapshot; if so (or if `.data[1]` is missing), report no
+   restorable pre-layout snapshot rather than rolling back more than the layout.
+4. **Without `before_id` (late undo):** compare `.data[0]` to the current graph. If they
+   match, restore `.data[1].id` **only if it exists** — and only when you know `.data[0]` was
+   already the current snapshot before the last edit (usual linear history). If `.data[1]` is
+   missing, report no restorable pre-edit state. If they do **not** match, walk the list for
+   a row that matches the current graph. If an **older** row matches (post-restore), restore
+   **that** id — not `.data[1]`, which can roll the workflow forward. If **no** row matches,
+   the post-edit snapshot has not landed (fire-and-forget lag): poll `list` a few times. If
+   `.data[0]` then matches, follow the match case above. If still none, restore `.data[0]`
+   (still the pre-edit graph in linear history). Do not look for a snapshot of the current
+   unsnapshotted graph — it cannot exist until that async row lands. Do not pass a null
+   snapshot id to `restore`.
 
 To undo multiple edits, pick an older snapshot id from the list instead.
 
