@@ -56,7 +56,145 @@ Swap `email` for any field id from `clay audiences fields list`, and swap the
 `CONTACT` / `contact_entity_field_values` pair for `ACCOUNT` /
 `account_entity_field_values` to filter companies.
 
-## Validate before you create
+## Filter by signal activity
+
+Signal events captured on a record (see `SKILL.md`, "Signals write activities
+onto records") are filterable through the `signal_events` dataPath root — this
+is how "companies with a job posting in the last 30 days" is expressed, and it
+is what the app's signal-based segments store.
+
+Every example below is a whole filter, rooted at a `GroupOp` — `--filter` runs
+`ConditionalExpressionGroup.safeParse`, so a bare `BinOp` or `ColOp` is rejected as
+a `validation_error` before any request is made.
+
+**Any event of a type within a window** — a `BinOp` whose `key` is the type's
+aggregate-occurrences key and whose operator is a relative-time window:
+
+```json
+{
+  "type": "GroupOp",
+  "combinationMode": "And",
+  "items": [
+    {
+      "type": "BinOp",
+      "key": "signal_JobPost_aggregate_occurrences",
+      "dataPath": ["signal_events"],
+      "operator": "WithinLast",
+      "value": 30,
+      "timeUnit": "day",
+      "entityType": "ACCOUNT"
+    }
+  ]
+}
+```
+
+The key is `signal_<Type>_aggregate_occurrences` where `<Type>` is the
+`signal.type` spelling from `clay signals list`: `JobChange`, `JobPost`,
+`NewHire`, `News`, `Promotion`, `LinkedinPostMentions`, `PersonTopicIntent`,
+`CompanyTopicIntent`, `WebsiteVisitorTracking`. `Custom` and `FakeSignal`
+events are not filterable this way.
+
+**Events from one specific signal** — put the window clause and a `signal_id`
+equality inside a `ColOp` over `signal_events`. The id is the `sig_…` value
+(`signal.id` in `clay signals list` output — one of the few places that id,
+rather than `td_…`, is what you need):
+
+```json
+{
+  "type": "GroupOp",
+  "combinationMode": "And",
+  "items": [
+    {
+      "type": "ColOp",
+      "dataPath": ["signal_events"],
+      "operator": "AnyItems",
+      "entityType": "ACCOUNT",
+      "condition": {
+        "type": "GroupOp",
+        "combinationMode": "And",
+        "items": [
+          {
+            "type": "BinOp",
+            "key": "signal_JobPost_aggregate_occurrences",
+            "dataPath": ["signal_events"],
+            "operator": "WithinLast",
+            "value": 30,
+            "timeUnit": "day",
+            "entityType": "ACCOUNT"
+          },
+          {
+            "type": "BinOp",
+            "dataPath": ["signal_events", "signal_id"],
+            "operator": "Equal",
+            "value": "sig_abc123",
+            "entityType": "ACCOUNT"
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+**Event payload predicates go inside the same `ColOp` condition as the window
+clause — never beside it in the root group.** Deeper `dataPath`s reach into the
+event's data, e.g. `["signal_events", "data", "confidence"]` or
+`["signal_events", "data", "jobPostData", "title"]`.
+
+Clauses inside one `ColOp` condition lower to a **single** `signal_events` scan, so
+they all have to hold for the **same event**. Two signal clauses sitting side by side
+in the root group lower to **separate** scans, each free to match a different event —
+so "a job post in the last 30 days" AND "title contains VP" would match a company
+whose VP posting is two years old and whose recent posting is for an intern. Bind
+them together instead:
+
+```json
+{
+  "type": "GroupOp",
+  "combinationMode": "And",
+  "items": [
+    {
+      "type": "ColOp",
+      "dataPath": ["signal_events"],
+      "operator": "AnyItems",
+      "entityType": "ACCOUNT",
+      "condition": {
+        "type": "GroupOp",
+        "combinationMode": "And",
+        "items": [
+          {
+            "type": "BinOp",
+            "key": "signal_JobPost_aggregate_occurrences",
+            "dataPath": ["signal_events"],
+            "operator": "WithinLast",
+            "value": 30,
+            "timeUnit": "day",
+            "entityType": "ACCOUNT"
+          },
+          {
+            "type": "BinOp",
+            "dataPath": ["signal_events", "data", "jobPostData", "title"],
+            "operator": "Contain",
+            "value": "VP",
+            "entityType": "ACCOUNT"
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+Payload shapes differ per signal type; read a real event's shape (or an existing
+segment's filter) before authoring one, and always keep the aggregate-occurrences
+clause in the condition so the scan stays scoped to that signal type and window.
+
+A signal `ColOp` does compose with ordinary **field** predicates in the root group —
+ICP fit AND recent signal activity is the standard signal-based-play segment, and a
+field predicate is evaluated against the record rather than an event, so there is no
+event for it to disagree about. The rule above is only about two `signal_events`
+clauses: those belong in one condition, not side by side. Validate with
+`records search-count --filter` like any other filter.
 
 **Run `records search-count --filter` before `audiences create`.** One call tells
 you both that the AST is valid and that it selects a sane number of records —
