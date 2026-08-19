@@ -124,13 +124,17 @@ listing fields first:
   `sfdc_owner_id`, `signal_summary`, `technographics`
 - **deals** — see `custom_objects.md`
 
+`signal_summary` is derived from the signal events a signal has written onto the
+record, not something you set — to see which signals feed it, use the `signals`
+skill.
+
 Anything else is workspace-defined — get its id from `fields list`.
 
 ## Records
 
 ```bash
 clay audiences records search-count --entity-type people --audience-id <id>   # count a scope server-side
-clay audiences records search-ids   --entity-type people --audience-id <id>   # matching ids, 50/page + .cursor
+clay audiences records search-ids   --entity-type people --audience-id <id>   # matching ids, --limit per page + .cursor
 clay audiences records get --entity-type people --ids 1,2,3                   # field values, max 100 ids
 ```
 
@@ -161,6 +165,47 @@ the user usually wants back — which contacts or accounts the deals belong to. 
 100 for field values, keyed by field id (unset fields may be omitted). Records
 not found are omitted rather than erroring. To size a scope, use `search-count`,
 not a paging loop over `search-ids`.
+
+### Budget the walk before you start it
+
+`search-count` first, then decide whether a full walk fits. Both stages spend the
+same per-command budgets, and the second one dominates:
+
+- **ids** — `search-ids` pages at `--limit` ids per call (default 50, max 10,000).
+  Size it from the count: aim for about 10 calls.
+- **field values** — `records get` takes 100 ids per call and is charged per id
+  against its hourly budget, so the detail pass costs `count/100` calls that no
+  batching shrinks. You can only make up to 60 calls per minute.
+
+When that does not fit your data size, **narrow the scope instead of grinding through it**:
+tighten the filter — a shorter date window is usually the biggest
+win, then a single stage, owner, or segment — or read one page and label the answer
+a sample of that scope. Never start an unbounded paging loop and hope it lands: it
+spends the workspace's budget and the user gets a stalled turn instead of an answer.
+
+## Signals
+
+Signals write activities onto records.
+
+Signal CLI commands are currently only available in experimental build of the CLI.
+If you don't see `clay signals` command, don't try to process signals and tell user
+to go to use the Clay app instead.
+
+A **signal** on an audience — a watch for job changes, new hires, funding news,
+job postings — stores each captured event as an **activity attached to the
+person or company entity**, not as a row anywhere. Three consequences:
+
+- **The CLI cannot fetch activities yet.** `records get` returns field values
+  only. The record-level traces of signal activity readable today are the
+  derived `signal_summary` field and a filter over `signal_events` (below); the
+  full per-event detail is in the app's record view, or via the
+  `get-audiences-activity` workflow action.
+- **Filters can select on them.** "Companies with a job posting in the last 30
+  days" is a `signal_events` predicate — see `filters.md`, "Filter by signal
+  activity".
+- For which signals exist, what one watches, and why one is not producing
+  events, see the `signals` skill — that is where to start for "is this
+  audience's signal firing?"
 
 ## Error codes
 

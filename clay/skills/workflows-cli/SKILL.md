@@ -87,6 +87,9 @@ them with `clay workflows triggers …`. Clay table triggers remain UI-only.
   existing workflow.
 - Update name: `clay workflows update <workflowId> --name "New name"` — returns the updated
   workflow.
+- Delete: `clay workflows delete <workflowId>` — admin-only, deletes the workflow and its triggers,
+  and cannot be undone from the CLI. Run it only when the user explicitly asks to delete the
+  workflow. A repeated delete returns `not_found` rather than succeeding again.
 
 ### Reading a workflow
 
@@ -257,7 +260,6 @@ their own CLI commands elsewhere rather than a `clay workflows` subcommand:
 - **Function schemas** — `clay functions get <functionId>` returns `inputSchema` and `outputSchema`.
   `clay workflows actions list` carries the `functionId` to pass it.
 
-Search DSL has no CLI command. Neither does deleting a workflow itself — the CLI's `workflows`
-group has no `delete` command for the workflow resource. When a capability isn't listed here and
-has no `clay` command, it's genuinely unavailable rather than hidden — tell the user that instead
-of hunting for a command that will not appear.
+Search DSL has no CLI command. When a capability isn't listed here and has no `clay` command, it's
+genuinely unavailable rather than hidden — tell the user that instead of hunting for a command that
+will not appear.

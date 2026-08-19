@@ -55,7 +55,7 @@ answer, not a bug to retry or work around.
 
 ```bash
 clay audiences records search-count --entity-type deals              # how many deals in the workspace
-clay audiences records search-ids   --entity-type deals              # their ids, 50/page + .cursor
+clay audiences records search-ids   --entity-type deals              # their ids, --limit per page + .cursor
 clay audiences records get --entity-type deals --ids 20384191        # field values, max 100 ids
 ```
 
@@ -205,12 +205,18 @@ a `metadata` segment, and it only works with `--entity-type people`:
 
 ```json
 {
-  "type": "BinOp",
-  "key": "opportunity_role",
-  "dataPath": ["opportunity_role", "metadata", "roles"],
-  "operator": "Contain",
-  "value": "Decision Maker",
-  "entityType": "CUSTOM"
+  "type": "GroupOp",
+  "combinationMode": "And",
+  "items": [
+    {
+      "type": "BinOp",
+      "key": "opportunity_role",
+      "dataPath": ["opportunity_role", "metadata", "roles"],
+      "operator": "Contain",
+      "value": "Decision Maker",
+      "entityType": "CUSTOM"
+    }
+  ]
 }
 ```
 
@@ -241,6 +247,14 @@ things it does not give you, worth naming rather than working around:
   _which_ deals matched. Report the people or companies (usually what was wanted),
   and use `records get --entity-type deals` only for deal ids the user supplies or
   you already hold.
+- **Deals cannot be sorted yet.** Neither search command orders its results and
+  neither takes a sort flag — `search-ids` returns ids in ascending id order — so
+  "the biggest wins", "top 10 by amount", and "the most recent closes" have no
+  server-side answer. A true top-N means pulling every candidate's `amount` through
+  `records get` and sorting locally, which is the full walk the audiences skill's
+  budgets warn you off. Narrow until the candidate set is small enough to pull in
+  full — a shorter close-date window first, then one stage or owner — and say the
+  ranking covers that window rather than implying it is the workspace's top N.
 
 And one hard limit:
 
