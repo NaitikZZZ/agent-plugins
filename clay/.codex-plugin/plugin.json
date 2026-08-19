@@ -1,6 +1,6 @@
 {
   "name": "clay",
-  "version": "2.9.0",
+  "version": "2.9.1",
   "description": "Build with Clay in Codex",
   "author": { "name": "Clay" },
   "skills": "./skills/",
