@@ -34,6 +34,31 @@ Before proposing it, confirm the data really is missing: read the existing field
 first (see the `audiences` skill's `answering-data-questions.md`). A workflow that
 re-enriches data the workspace already has spends credits for nothing.
 
+## The ingest shape: search → upsert workflow → routine
+
+This file owns **building** the upsert workflow. The **`routines` skill** owns
+**running** it in bulk over Search results.
+
+Use this when the user wants net-new people or companies from Clay's GTM database
+**kept in Audiences** — not just enriched and discarded:
+
+1. **Use the `search` skill** to find the records and learn real field names
+   (`email`, `linkedin_url`, `domain`, etc.) from Search results — do not invent
+   JSON paths.
+2. **Build a workflow that upserts one record per run.** Routine items are the
+   batch. Trigger is `manual` or `webhook`, **not** `audience_segment` — these
+   records are not in an audience yet.
+3. **Add a tool node** with `upsert-audiences-record` (see below for
+   `actionKey` / `actionPackageId`). Bind lookup keys from the search item;
+   record fields from `clay audiences fields list`.
+4. **Expose it as a routine:**
+   `clay routines create workflow <workflowId> --name "…"`. Then hand off to the
+   **`routines` skill** to run it in bulk over Search results.
+5. **If they then want ongoing automation** on those records, save an audience
+   and switch to the backfill shape above (`audience_segment` trigger).
+
+Do not use list mode or `clay workflows runs test` as the bulk upload path.
+
 ## Triggering a workflow off an audience
 
 An `audience_segment` trigger's `segmentId` is the audience id from
