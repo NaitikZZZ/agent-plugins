@@ -9,9 +9,10 @@ allowed-tools: Bash(clay *), Bash(jq *)
 Search Clay's GTM database with advanced queries and return matching records — people or
 companies. Use filters mode when the user prefers its older structure or has existing filters-mode searches.
 
-This is different from the tables entry-point skill (which queries data already in a Clay table) and from
-the workflows entry-point skill (multi-step automations). Reach for search when the user wants to _find_
-prospects or accounts.
+**Audiences** is the workspace's own people and companies — read and segment what they already have.
+**Search** is Clay's GTM database for net-new lists. This is not the tables entry-point skill (querying
+data already in a table) and not the workflows entry-point skill (automations). Reach for Search when the
+user wants to _find_ prospects or accounts not in the workspace yet.
 
 ## How it works
 
@@ -51,7 +52,7 @@ a routine does:
    attribute the user actually asked about, then filter or act on that routine's output.
 
 Tell the user the field isn't a native search filter and offer this search → routine path
-rather than returning nothing. See the `routines` skill and "Next: enrich or act on the
+rather than returning nothing. See the `routines` skill and "Next: enrich or persist the
 results" below for the handoff.
 
 ## Start a search
@@ -107,7 +108,12 @@ will not help. Read the error message and choose one of:
 `validation_error` (exit 2) means malformed input (bad flags/filters/query), not a quota.
 `rate_limited` (exit 4) is a short HTTP 429 backoff and may be retried after `details.retryAfter`.
 
-## Next: enrich or act on the results
+## Next: enrich or persist the results
+
+Search only _finds_ records. After paging results, offer one of two plugin paths — both via
+`clay routines runs start`. See the `routines` skill for sizing runs and fetching results.
+
+### Enrich without persisting
 
 **Prefer Clay-managed routines for standard enrichment.** Before reaching for the raw
 action catalog or building a workflow, list the full, paginated routines set and check
@@ -117,9 +123,6 @@ Details**, **Company Job Openings**. Match on each routine's input schema
 (`clay routines get <id>`), not its name. Only fall through to the action catalog or a new
 workflow when no managed or custom routine fits.
 
-Search only _finds_ records. After returning results, offer to feed them into a saved
-routine (enrichment, CRM write, outreach). See the `routines` skill.
-
 ```bash
 clay routines list
 ```
@@ -128,25 +131,11 @@ clay routines list
 clay routines get function:tbl_abc123
 ```
 
-Create an advanced search, then read the `searchId` from its output and pull a page straight
-into a run:
+After Search has results, use the **`routines` skill** to start the run: list or get
+the routine schema, then `clay routines runs start`.
 
-```bash
-clay search query-mode create --query 'select from people where experiences.any(is_current = true and job_title is_similar_to ("software engineer") and company.industry = "Software Development")'
-```
+### Persist into Audiences
 
-```bash
-clay search query-mode run srch_abc123 --limit 25 | jq '{items: [.data[] | {id: .id, inputs: {name: .name}}]}' | clay routines runs start function:tbl_abc123 --input -
-```
-
-For filters-mode searches, create the search:
-
-```bash
-clay search filters-mode create --source-type people --filters '{"job_title_keywords":["growth engineer"],"location_cities_include":["San Francisco"]}'
-```
-
-Then read the `searchId` from that output and pull a page straight into a run:
-
-```bash
-clay search filters-mode run srch_abc123 --limit 25 | jq '{items: [.data[] | {id: .id, inputs: {name: .name}}]}' | clay routines runs start function:tbl_abc123 --input -
-```
+When the user wants Search hits **kept in the workspace**, find or create a routine whose
+underlying workflow upserts with `upsert-audiences-record`. If none exists, build the workflow
+using the `workflows-cli` skill's `audiences.md`, then to run in bulk see the `routines` skill.

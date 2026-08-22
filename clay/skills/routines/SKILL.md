@@ -11,9 +11,14 @@ getting its results — not building one.
 
 - To **build or edit** a workflow, use the workflows entry-point skill.
 - To **query data** out of a Clay table, use the tables entry-point skill.
-- To **find the records** to run a routine over (people or companies from Clay's GTM
-  database), use the `search` skill (`skills/search/SKILL.md`) first, then feed the results
-  in here.
+- To **find the records** to run a routine over, use the `search` skill for net-new people
+  or companies, or the `audiences` skill for members of a saved audience, then feed the
+  results in here.
+- To **write people or companies into Audiences**, run a routine whose underlying
+  workflow contains `upsert-audiences-record` (for example, to persist Search results).
+  Items pipe in the same as other runs, using `workflow:<id>` instead of `function:<id>`.
+  If no such workflow exists, build it via the `workflows-cli` skill's
+  `audiences.md`, then `clay routines create workflow`.
 - To run a routine **over HTTP** from a service or app (not a one-off shell task), use
   the `public-api` skill.
 

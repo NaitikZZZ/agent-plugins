@@ -29,7 +29,7 @@ Read this before any audiences work. Four supporting references:
   renewal, expansion, churn, "our customers". Deals are read-only, and a deal
   query is rooted at **people or companies** — you filter people or companies
   by their deals rather than filtering deals directly.
-- The workflows entry-point skill's `audiences.md` — writing values onto records (the
+- The `workflows-cli` skill's `audiences.md` — writing values onto records (the
   `upsert-audiences-record` action) and triggering a workflow off an audience.
 
 **Read with the CLI, write records with the action.** `clay audiences` covers
@@ -37,11 +37,15 @@ every Audiences primitive — segments, fields, and reading records — but it h
 command that writes a field value onto a record. That is the
 `upsert-audiences-record` action's job.
 
-**Audiences is CLI-only.** No MCP tool serves it — `surfaces_read` and
-`surfaces_list` carry no `audience` resource type, and nothing else in the tool
-list reads segments, fields, or records. That absence is not a missing
-capability: use `clay audiences`, and don't report Audiences as unavailable
-because no tool offers it.
+**Net-new people or companies** — not in the workspace yet. When `search` and `routines`
+are available CLI commands, start in the `search` skill, then persist via a routine
+wrapping an upsert workflow (the `workflows-cli` skill's `audiences.md`, then the
+`routines` skill).
+
+**Act on this audience** — pull matching records (`records search-ids` / `get`). When
+`routines` is an available CLI command, run a routine over them (see the `routines`
+skill). Ongoing automation (fire when membership
+changes) is the `workflows-cli` skill's `audiences.md` (`audience_segment` trigger).
 
 ## One entity type, three spellings
 

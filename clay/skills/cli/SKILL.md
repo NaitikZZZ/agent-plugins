@@ -1,6 +1,6 @@
 ---
 name: cli
-description: Clay CLI — the primary scripting surface (JSON output, typed errors). Discover the full command surface (workflows, tables, routines, webhooks, and more) and how to run any command; run `clay --help` for the authoritative list.
+description: Clay CLI — the primary scripting surface (JSON output, typed errors). Use when running or discovering `clay` commands. For what Clay can do and which skill to use, read the `clay` skill when it is available; otherwise run `clay --help`. Use `clay --help` for command names, flags, JSON shape, and error codes.
 ---
 
 # The `clay` CLI
@@ -10,14 +10,17 @@ output and typed error codes. It authenticates via **`clay login`** (browser OAu
 run the `setup` skill once if `clay whoami` fails). The workspace is resolved from
 the stored session — there is no workspace id to pass.
 
-## Discovering what you can do
+## Discovering commands
 
-`clay --help` is the authoritative, up-to-date list of command groups — the help text
-is a machine-readable spec written for you to read. Don't assume the surface is only
-workflows: when a user asks "what can I do?", run `clay --help` and surface everything.
+When a user asks what they can do with Clay, use the `clay` skill when it is available — that is the table of
+contents for product surfaces. This skill is how to invoke the CLI.
+
+`clay --help` is the live list of top-level commands. The help text is a machine-readable
+spec: use it for command names, flags, JSON output shape, and error codes. Do not treat
+it as the answer to "what can I do with Clay?"
 
 ```bash
-clay --help                 # all command groups (workflows, tables, routines, webhooks, …)
+clay --help                 # top-level commands
 clay <group> --help         # a group's subcommands
 clay <group> <cmd> --help   # exact flags, JSON output shape, and error codes
 ```
