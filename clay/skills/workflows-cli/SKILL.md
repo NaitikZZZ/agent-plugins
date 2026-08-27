@@ -45,6 +45,8 @@ Common node types (not just agent/tool — pick the type that fits the step):
 - **Conditional nodes** (`nodeType: "conditional"`) — pick exactly one outgoing branch
   (`rules` / `agentic` / `code` via `conditionalConfig`).
 - **Code nodes** (`nodeType: "code"`) — deterministic Python transforms (no LLM).
+- **Delay nodes** (`nodeType: "delay"`) — pause a run before the next step without producing
+  data. Set integer `delaySeconds` from 1 to 3600 in the create or update `--input`.
 - **Map / reduce** (`nodeType: "map"` / `"reduce"`) — fan-out and aggregate list
   results. Prefer these over forcing list work into a single agent/tool step when the
   graph needs real fan-out/aggregation. Gathering is via Map/Reduce **auto-gather**
@@ -113,8 +115,15 @@ them with `clay workflows triggers …`. Clay table triggers remain UI-only.
   or `--inputs <json|file|->` — starts a partial run of only that node, then terminates.
   Returns immediately (does not poll); inspect with `clay workflows runs get`. Exactly one of
   `--source-run` or `--inputs` is required.
+- Create an account agent on a node: `clay workflows nodes create-account-agent <workflowId>
+<nodeId> [--name <name>]` — creates a new account agent from the platform template and links
+  it to an agent node that has no linked agent yet. Give it a specific `--name`. Then set the
+  prompt and tasks on the linked node (see `account-agents.md`). A node already backed by a
+  regular agent is rejected — upgrade it instead (below). `accountId` wiring, `auth_forbidden`
+  ambiguity, and timeout-retry semantics match the upgrade command; run with `--help` for details.
 - Upgrade to an account agent: `clay workflows nodes upgrade-to-account-agent <workflowId> <nodeId>`
-  — copies the node's linked agent into a new account agent and re-links the node. One-way: the
+  — for a node already linked to a regular agent: copies that agent into a new account agent
+  and re-links the node. One-way: the
   node cannot be converted back from here; restoring a pre-upgrade snapshot is the only rollback.
   Preconditions the server enforces: the node is an agent node linked to a regular agent with
   Repeat off. The node's `accountId` input is auto-wired when a single upstream accounts
@@ -124,7 +133,8 @@ them with `clay workflows triggers …`. Clay table triggers remain UI-only.
   that uses connected accounts is rejected (upgrade it from the node's side panel in the
   workflow editor instead). An `auth_forbidden` is ambiguous — missing edit access fires before
   the account-agent capability check — so branch on the error message: only "Account agents are
-  not enabled" means the workspace lacks account agents. After upgrading, `read` the node to see
+  not enabled" means the workspace lacks account agents. After upgrading, read the node
+  (`clay workflows nodes get`; Sculptor: `read`) to see
   the new binding; prompt and task edits happen in the account agent's own builder. If the
   command times out, read the node back before retrying: a node already linked to the new
   account agent means the upgrade landed. Run the command with `--help` for exit codes and
@@ -133,10 +143,18 @@ them with `clay workflows triggers …`. Clay table triggers remain UI-only.
   workflow whose upstream trigger is an audiences trigger (people or companies), reason
   about whether the task benefits from account context — research, enrichment, scoring,
   qualification, and personalized outreach all do, so most of the time default to making it
-  an account agent: create the regular agent node, run `upgrade-to-account-agent` on it,
-  then verify the `accountId` wiring. Keep a regular Claygent when the node only transforms
+  an account agent: create the agent node bare (name and edges, no agent fields), run
+  `create-account-agent` on it, set the prompt and tasks on the linked node, then verify the
+  `accountId` wiring. Do not create a throwaway regular agent just to upgrade it —
+  `upgrade-to-account-agent` is for nodes already backed by a regular agent (or when the
+  user asks to upgrade one). Keep a regular Claygent when the node only transforms
   data already produced upstream (pure text synthesis, formatting, or summarization of
   other nodes' outputs). Always honor an explicit user request in either direction.
+  An account agent reads the account's audience data itself (fields, contacts,
+  opportunities, conversations, signals) — do not add lookup or enrichment action nodes
+  for data the audience already holds, and prefer **one account agent with multiple output
+  tasks** over a chain of account agents (see "When to use an account agent" in
+  `account-agents.md`).
 - Before any account-agent work (linking, upgrading, swapping, editing prompt/tasks, or
   changing `accountId` wiring), read `account-agents.md` in this skill directory in full.
 

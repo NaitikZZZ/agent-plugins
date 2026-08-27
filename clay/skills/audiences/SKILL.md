@@ -187,6 +187,38 @@ win, then a single stage, owner, or segment — or read one page and label the a
 a sample of that scope. Never start an unbounded paging loop and hope it lands: it
 spends the workspace's budget and the user gets a stalled turn instead of an answer.
 
+## Segment activities
+
+`clay audiences activities` is experimental. Only use this section after
+`clay audiences activities --help` succeeds; if the command is unavailable, do
+not call it and use the non-CLI fallback for activity detail.
+
+When available, use `clay audiences activities` when the user asks what happened
+inside a saved segment, such as recent email or call activity, campaign touches,
+source mix, or activity volume over a period.
+
+```bash
+clay audiences activities get --segment-id audseg_abc --since 2026-08-01 --until 2026-08-20 --activity-types call
+clay audiences activities summary --segment-id audseg_abc --since 2026-08-01 --until 2026-08-20 --activity-types call --sources CLAY_SEQUENCER
+```
+
+- Use `activities get` for the raw activity feed. It returns cursor-paginated
+  events for records in the segment.
+- Use `activities summary` for grouped counts by activity type and source when
+  the user asks for totals, trends, or a quick breakdown instead of individual
+  events.
+- Bound the first request with `--since` and, when possible, `--until`,
+  `--activity-types`, or `--sources`. These queries can take a few seconds on
+  large segments, so prefer one targeted request over repeated exploratory calls.
+- It is okay to page through `activities get` with each returned cursor when the
+  user needs the full bounded result set. Continuation requests pass only
+  `--cursor` and optional `--limit`; do not repeat time, activity-type, or source
+  filters with a cursor. Do not loop for freshness or repeatedly rerun broad
+  activity queries without narrowing the request.
+- Common prompts: "show recent calls for this segment", "summarize email activity
+  since last week", "which sources drove activity for this audience?", "sample the
+  latest campaign activity before I run a workflow".
+
 ## Signals
 
 Signals write activities onto records.
@@ -199,11 +231,9 @@ A **signal** on an audience — a watch for job changes, new hires, funding news
 job postings — stores each captured event as an **activity attached to the
 person or company entity**, not as a row anywhere. Three consequences:
 
-- **The CLI cannot fetch activities yet.** `records get` returns field values
-  only. The record-level traces of signal activity readable today are the
-  derived `signal_summary` field and a filter over `signal_events` (below); the
-  full per-event detail is in the app's record view, or via the
-  `get-audiences-activity` workflow action.
+- **Signal questions should use signal-specific surfaces.** Do not use
+  `clay audiences activities` commands to answer signal-event questions; those
+  commands read activity rows and can miss signal-specific event detail.
 - **Filters can select on them.** "Companies with a job posting in the last 30
   days" is a `signal_events` predicate — see `filters.md`, "Filter by signal
   activity".

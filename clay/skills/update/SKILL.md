@@ -28,6 +28,11 @@ Seeing that message is expected — it's the signal to update the plugin (step 2
 error. Compare `latestVersion` against the `<cliVersion>` from `clay --version`: if
 they differ, an update is available.
 
+When an update is available, `message` ends with the GitHub release URL for that version.
+Fetch it and **show the user what's new** — the release body carries the changelog under a
+`## What's new` heading, and it's the only place they see what they're getting. No URL
+means you're already on the latest version.
+
 ## 2. Update the plugin
 
 The marketplace is named `clay-plugins` and the plugin is `clay`. Pick your harness:
@@ -90,7 +95,9 @@ clay --version
 clay update --check
 ```
 
-The `<cliVersion>` should now match the `latestVersion` from `clay update --check`.
+The `<cliVersion>` should now match the `latestVersion` from `clay update --check`. If you
+haven't shown the user what's new from the release URL in step 1 yet, do it now — the
+update is done and this is what changed for them.
 
 ## Authoritative details
 
