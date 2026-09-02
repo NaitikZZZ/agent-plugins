@@ -29,7 +29,7 @@ Read this before any audiences work. Four supporting references:
   renewal, expansion, churn, "our customers". Deals are read-only, and a deal
   query is rooted at **people or companies** — you filter people or companies
   by their deals rather than filtering deals directly.
-- The `workflows-cli` skill's `audiences.md` — writing values onto records (the
+- The `workflows` skill's `audiences.md` — writing values onto records (the
   `upsert-audiences-record` action) and triggering a workflow off an audience.
 
 **Read with the CLI, write records with the action.** `clay audiences` covers
@@ -39,13 +39,13 @@ command that writes a field value onto a record. That is the
 
 **Net-new people or companies** — not in the workspace yet. When `search` and `routines`
 are available CLI commands, start in the `search` skill, then persist via a routine
-wrapping an upsert workflow (the `workflows-cli` skill's `audiences.md`, then the
+wrapping an upsert workflow (the `workflows` skill's `audiences.md`, then the
 `routines` skill).
 
 **Act on this audience** — pull matching records (`records search-ids` / `get`). When
 `routines` is an available CLI command, run a routine over them (see the `routines`
 skill). Ongoing automation (fire when membership
-changes) is the `workflows-cli` skill's `audiences.md` (`audience_segment` trigger).
+changes) is the `workflows` skill's `audiences.md` (`audience_segment` trigger).
 
 ## One entity type, three spellings
 
@@ -223,23 +223,89 @@ clay audiences activities summary --segment-id audseg_abc --since 2026-08-01 --u
 
 Signals write activities onto records.
 
-Signal CLI commands are currently only available in experimental build of the CLI.
-If you don't see `clay signals` command, don't try to process signals and tell user
-to go to use the Clay app instead.
+Signal CLI commands are currently only available in the experimental build of the CLI.
+Check both `clay signals --help` and `clay audiences signals --help` before using
+them. If either command is unavailable, do not invent an API call or substitute
+`clay audiences activities`. Explain that signal operations are unavailable in
+the current CLI version and direct the user to the Clay web app: use it to view
+or manage signal triggers and to inspect captured signal events on the relevant
+audience records.
 
 A **signal** on an audience — a watch for job changes, new hires, funding news,
 job postings — stores each captured event as an **activity attached to the
-person or company entity**, not as a row anywhere. Three consequences:
+person or company entity**, not as a row anywhere.
+
+### Decide whether "signals" means triggers or captured events
+
+Users often call both the watch and each occurrence it captures a "signal". Do
+not decide from the noun or signal type alone. Use the session context to form a
+likely interpretation, but **do not silently guess**. If the user's wording does
+not explicitly distinguish the two, ascertain their intent with a short,
+plain-language question before calling either surface: "Do you mean how many
+JobPost watches are configured, or how many JobPost events were captured?" You
+may say which reading seems more likely from the conversation, but contextual
+likelihood is not confirmation. An explicit earlier statement about triggers or
+events does count as confirmation.
+
+- Use `clay signals` for **trigger definitions** when the conversation is at the
+  inventory or configuration level: listing, creating, updating, pausing,
+  resuming, scheduling, checking run status, or choosing a destination. In that
+  context, "how many JobPost signals do I have?" means count JobPost trigger
+  definitions.
+- Use `clay audiences signals` for **captured events** when the conversation is
+  about results or history: what happened, detections over a period, affected
+  records, an audience/segment, or a trigger's output. In particular, once the
+  session is focused on one specific trigger, the same question — "how many
+  JobPost signals do I have?" — usually means how many events that trigger has
+  captured, not how many trigger definitions exist. Resolve its underlying
+  `signal.id` with `clay signals get` when needed, then narrow
+  `clay audiences signals summary` with `--signal-ids`.
+- After the user confirms captured events, reuse the record or audience/segment
+  and time scope already established in the session. If any required scope is
+  still missing, ask for it rather than inventing one.
+
+Once the intended meaning is clear:
 
 - **Signal questions should use signal-specific surfaces.** Do not use
   `clay audiences activities` commands to answer signal-event questions; those
   commands read activity rows and can miss signal-specific event detail.
+- **Read captured events by record or segment.** `clay audiences signals get`
+  returns the full event history for one person or company with `--entity-id`,
+  or full payloads across a saved segment with `--segment-id`. The
+  `signals summary` command groups a segment's counts by signal id and type.
 - **Filters can select on them.** "Companies with a job posting in the last 30
   days" is a `signal_events` predicate — see `filters.md`, "Filter by signal
   activity".
 - For which signals exist, what one watches, and why one is not producing
   events, see the `signals` skill — that is where to start for "is this
   audience's signal firing?"
+
+```bash
+clay audiences signals get --entity-id 123 --entity-type people --days-lookback 30
+clay audiences signals get --segment-id audseg_abc --since 2026-08-01 --until 2026-08-20 --signal-types JobPost,News
+clay audiences signals summary --segment-id audseg_abc --since 2026-08-01 --signal-types JobPost --signal-ids sig_abc
+```
+
+- Use `signals get --entity-id` when the user names one record. Pass the numeric
+  id from `clay audiences records search-ids`, its `--entity-type`, and an
+  explicit `--days-lookback`. It returns that record's events newest first;
+  continuation calls repeat all three scope flags and pass the returned
+  `--cursor`.
+- Use `signals get --segment-id` when the event payloads across a saved segment
+  matter. It returns one cursor page with `data`, timestamps, signal id and
+  type, and matched-entity count.
+- Use `signals summary` for totals and first/last activity times. A summary can
+  cover multiple `--signal-types` and optionally narrow to underlying `sig_…`
+  ids with `--signal-ids`.
+- Segment-scoped first-page reads require `--since` and `--signal-types`; bound
+  them with `--until` where possible. Their continuation calls repeat
+  `--segment-id` but pass only `--cursor` and optional `--limit`, without
+  repeating filters.
+- `--since` (inclusive) and `--until` (exclusive) filter on `activityTime` —
+  when the underlying event happened — not `emittedAt`, when the signal event
+  was emitted.
+- `--signal-ids` takes the underlying `signal.id` shown by `clay signals get`,
+  not that command's `td_…` trigger definition id.
 
 ## Error codes
 

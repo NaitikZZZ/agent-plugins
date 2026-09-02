@@ -1,6 +1,6 @@
 ---
 name: clay
-description: Clay — start here. A table of contents for working with Clay and which skill to use for each thing — audiences (the workspace's own people/companies/deals), search (find net-new people/companies), routines (run Clay-managed and custom functions), tables (query/export data), the CLI (ephemeral programmatic access), the Public API (build services on Clay), workflows (build automations), and feedback. Read this first to answer "what can I do with Clay?"
+description: Clay — start here. A table of contents for working with Clay and which skill to use for each thing — audiences (the workspace's own people/companies/deals), campaigns (create, improve, and analyze outbound email sequences), search (find net-new people/companies), routines (run Clay-managed and custom functions), tables (query/export data), the CLI (ephemeral programmatic access), the Public API (build services on Clay), workflows (build automations), and feedback. Read this first to answer "what can I do with Clay?"
 ---
 
 # Working with Clay
@@ -39,6 +39,7 @@ abilities. Get the framing right:
   - "Find decision-makers by title and seniority, then enrich them with verified work emails and phone numbers."
   - "Enrich a list of leads or accounts with firmographics and contact data."
   - "Score a list of records against my ideal-customer profile."
+  - "Create an outbound campaign, draft its sequence, and compare variants or reply performance."
   - "Run a saved Clay function or workflow over a batch of inputs and collect the results."
   - "Query a table and export the rows matching a filter."
   - "Check how many credits are left, or estimate what a routine costs before running it."
@@ -52,6 +53,7 @@ Clay exposes these core primitives (callable from the plugin/CLI/API):
 | Primitive               | What it's for                                                                       |
 | ----------------------- | ----------------------------------------------------------------------------------- |
 | **Audiences**           | The workspace's own people, companies, and deals — read and segment what they have  |
+| **Campaigns**           | Create, improve, compare, and analyze outbound email sequences                      |
 | **Searches**            | Find companies and people using Clay's GTM database                                 |
 | **Routines**            | Run Clay-managed functions, custom functions, and existing Workflows                |
 | **Workflows**           | Build multi-node automations when an existing routine cannot do the job             |
@@ -96,13 +98,13 @@ request. Often a request uses several primitives that need to flow together. The
 some example next hops:
 
 - **Write into Audiences in bulk** — a routine whose workflow uses `upsert-audiences-record`
-  (for example after a Search or CSV import). See `routines`; build the workflow in the `workflows-cli` skill's
+  (for example after a Search or CSV import). See `routines`; build the workflow in the `workflows` skill's
   `audiences.md` if none exists.
 - **Act on a saved audience now** — pull its current members with `clay audiences`, then
   run a routine over them (same as Search pages). One-shot; it does not keep firing. See
   `audiences` and `routines`.
 - **Trigger a workflow off an audience** — when membership changes, not a one-shot routine
-  run. See the audience trigger section in the `workflows-cli` skill's `audiences.md`.
+  run. See the audience trigger section in the `workflows` skill's `audiences.md`.
 
 ## Cost & budget
 
@@ -123,12 +125,13 @@ Before running a credit-consuming routine, check its per-item `estimatedCreditCo
 | Skill                 | Use it for                                                                                                                |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | `audiences`           | Any question about the workspace's own people/companies/deals — counts, fill rates, lookups, and segments.                |
+| `campaigns`           | Creating and improving outbound email campaigns, sequence copy, variants, and analytics.                                  |
 | `search`              | Finding net-new people or companies in Clay's GTM database — prospects and accounts that aren't already in the workspace. |
 | `routines`            | Creating a routine from an existing function/workflow, running a saved routine, and fetching its results.                 |
 | `tables-cli`          | Reading, querying, and exporting data from an existing Clay table via the CLI (creating tables is not supported).         |
 | `cli`                 | Ephemeral, programmatic access to Clay capabilities from a shell — run a routine, query a table, search, etc.             |
 | `public-api`          | Building services and applications on top of Clay over HTTP.                                                              |
-| `workflows-cli`       | Building and editing Clay workflows via the CLI.                                                                          |
+| `workflows`           | Building and editing Clay workflows via the CLI.                                                                          |
 | `workflows-vs-tables` | Explaining the difference between Workflows and Tables, or recommending which to use.                                     |
 | `clay-feedback`       | Sending a bug report or product feedback to the Clay team.                                                                |
 

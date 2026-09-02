@@ -11,6 +11,7 @@ clay workflows runs test <workflowId>                  # no inputs
 
 # Audience-segment backfill (up to --limit members) — not a draft test after publish
 clay workflows runs test <workflowId> --audience-segment <segmentId> --limit 5
+clay workflows runs test <workflowId> --audience-segment <segmentId> --record-ids 8814,8815
 clay workflows runs list <workflowId> --audience-segment <segmentId>
 
 # Partial single-node test (exactly one of --source-run or --inputs)
@@ -28,6 +29,9 @@ clay workflows nodes test <workflowId> <nodeId> --inputs '{"param":"value"}'
   have not published yet. Do not conclude “the draft works” from a successful
   `--audience-segment` run on a published workflow; publish first if you need the live
   path to pick up draft changes, or use a manual test to validate the draft.
+
+`--record-ids` runs exactly those Audiences records instead of the segment's first
+`--limit` members; pass one or the other, not both.
 
 `--inputs` and `--audience-segment` cannot be combined. See `publishing.md`.
 

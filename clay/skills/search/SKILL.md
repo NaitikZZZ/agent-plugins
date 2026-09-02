@@ -138,4 +138,4 @@ the routine schema, then `clay routines runs start`.
 
 When the user wants Search hits **kept in the workspace**, find or create a routine whose
 underlying workflow upserts with `upsert-audiences-record`. If none exists, build the workflow
-using the `workflows-cli` skill's `audiences.md`, then to run in bulk see the `routines` skill.
+using the `workflows` skill's `audiences.md`, then to run in bulk see the `routines` skill.

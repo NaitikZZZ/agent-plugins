@@ -1,5 +1,5 @@
 ---
-name: workflows-optimize-credits-cli
+name: workflows-optimize-credits
 description: Clay workflows — reduce a workflow's credit and LLM cost via the CLI (`clay workflows` commands). Identifies expensive patterns and suggests cheaper alternatives.
 ---
 
@@ -15,7 +15,7 @@ Analyze the current workflow and suggest changes to reduce credit consumption an
 4. **Apply authorized changes** — edit the workflow only when the user's request authorizes modifications, via `clay workflows nodes update`/`create`/`delete`. Once authorized, apply clearly safe optimizations as you go and ask before changes with a material quality or behavior trade-off
 5. **Show the result** — after applying, run `clay workflows graph format <workflowId>` and render the **updated graph** so the change is visible
 
-Narrate throughout and prefer the diagram over raw node JSON — see the `workflows-cli` skill's `presenting.md`.
+Narrate throughout and prefer the diagram over raw node JSON — see the `workflows` skill's `presenting.md`.
 
 ## Cost Drivers in Clay Workflows
 
@@ -28,7 +28,7 @@ Every regular (LLM) node makes at least one LLM call per execution. More capable
 - **Replace with code nodes:** If a node does deterministic work (data transformation, filtering, formatting), replace it with a code node — zero LLM cost
 - **Use cheaper models:** Simple tasks (parameter extraction, basic classification) can use smaller/faster models. Reserve powerful models for complex reasoning
 - **Merge nodes:** Two sequential LLM nodes doing related work can often be one node with a combined prompt — cuts LLM calls in half
-- **Pre-map action parameters:** When a node calls a Clay action, configure `static` or `reference` input mappings (`inputMappingConfig`, see the `workflows-cli` skill's `data-passing.md`) for parameters that don't need LLM inference. If ALL parameters are pre-mapped, the LLM parameter mapping call is skipped entirely
+- **Pre-map action parameters:** When a node calls a Clay action, configure `static` or `reference` input mappings (`inputMappingConfig`, see the `workflows` skill's `data-passing.md`) for parameters that don't need LLM inference. If ALL parameters are pre-mapped, the LLM parameter mapping call is skipped entirely
 
 ### Clay Action Credits
 
@@ -38,7 +38,7 @@ Each Clay action execution consumes credits based on the action's pricing tier.
 
 - **Avoid redundant enrichments:** If the same data was already fetched in an earlier node, reference it via a pinned input (`sourceNodeId`/`sourcePath`) instead of calling the action again
 - **Use conditional routing:** Skip expensive enrichments for items that don't need them (e.g., skip company research for companies you already have data on)
-- **Choose cheaper alternatives:** Some actions have cheaper equivalents. Use `clay workflows actions list` (or `/workflows-discover-actions`) to compare options and their priority tier
+- **Choose cheaper alternatives:** Some actions have cheaper equivalents. Use `clay workflows actions list` (see `/workflows-discover-actions`) to compare options and their priority tier
 
 ### Model Selection
 

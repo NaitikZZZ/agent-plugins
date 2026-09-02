@@ -17,7 +17,7 @@ getting its results — not building one.
 - To **write people or companies into Audiences**, run a routine whose underlying
   workflow contains `upsert-audiences-record` (for example, to persist Search results).
   Items pipe in the same as other runs, using `workflow:<id>` instead of `function:<id>`.
-  If no such workflow exists, build it via the `workflows-cli` skill's
+  If no such workflow exists, build it via the `workflows` skill's
   `audiences.md`, then `clay routines create workflow`.
 - To run a routine **over HTTP** from a service or app (not a one-off shell task), use
   the `public-api` skill.

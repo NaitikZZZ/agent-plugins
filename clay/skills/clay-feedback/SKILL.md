@@ -12,9 +12,9 @@ The transcript is the **current conversation**, so confirm with the user before 
 
 ## Steps
 
-1. **Determine type.** Choose `bug` for defects, repro steps, errors, or broken behavior. Choose `feedback` for product ideas, feature requests, or UX suggestions. If unclear, use AskUserQuestion to ask whether this is a bug report or product feedback.
+1. **Determine type.** Default to `feedback`. Choose `bug` **only** when something that previously worked (or is established existing behavior) has **regressed** — it used to work and now doesn't. Choose `feedback` for everything else: missing behavior, feature requests, UX suggestions, confusing flows, "I expected X but Clay doesn't do that," errors that look like product gaps rather than regressions, and general product ideas. Missing behavior is feedback (closer to a feature request), not a bug. If unclear whether this is a regression, prefer `feedback`; only use AskUserQuestion when the user clearly means either a regression or a request for new/missing behavior and you still can't tell which.
 
-2. **Get feedback text.** Use the argument if provided (e.g. `/clay-feedback the enrichment table returns no results`). Otherwise ask the user what feedback or bug report they'd like to send.
+2. **Get feedback text.** Use the argument if provided (e.g. `/clay-feedback would love CSV export from the enrichment table`). Otherwise ask the user what feedback or bug report they'd like to send.
 
 3. **Find this session's transcript — you attach it, the CLI won't.** You are responsible for locating the current conversation's transcript file and passing its path to `--transcript-file` in step 5. Use whatever your runtime exposes:
    - **Claude Code:** the newest `.jsonl` under the project dir whose name is the working directory with `/` and `.` replaced by `-` (checking the normal home and the Cowork mount):

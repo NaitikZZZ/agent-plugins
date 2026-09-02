@@ -123,12 +123,8 @@ clay onboard select <option-id>
 ```
 
 This records the pick and returns `instructions` — follow them as if the user
-had asked for that task directly. If those instructions name the `workflows`
-skill or MCP tools (`read` / `edit_node` / `validate_workflow`), use the
-`workflows-cli` skill and `clay workflows …` instead — the plugin withholds
-`workflows` and never gets those MCP tools, so do not wait for a restart that
-would surface them. If a CLI command isn't on PATH this
-session (setup step 3 deferred a restart so the forwarder is visible), walk
+had asked for that task directly. If a CLI command isn't on PATH this session
+(setup step 3 deferred a restart so the forwarder is visible), walk
 them through that restart and tell them to ask for the task again by name once
 they're back (e.g. "set up the webhook starter") — a fresh session won't
 remember this conversation, so the task name is what carries it over.

@@ -1,5 +1,5 @@
 ---
-name: workflows-simplify-cli
+name: workflows-simplify
 description: 'Clay workflows — simplify a workflow via the CLI (`clay workflows` commands): merge redundant nodes, cut unnecessary complexity, and replace LLM nodes with deterministic alternatives where possible.'
 ---
 
@@ -15,7 +15,7 @@ Analyze the current workflow and suggest concrete simplifications to reduce comp
 4. **Apply authorized changes** — edit the workflow only when the user's request authorizes modifications, via `clay workflows nodes update`/`create`/`delete`. Once authorized, apply clearly behavior-preserving improvements as you go and ask before changes with a material behavior or quality trade-off
 5. **Show the result** — after applying, run `clay workflows graph format <workflowId>` and render the **updated graph** so the simplification is visible, not just described
 
-Narrate throughout and prefer the diagram over raw node JSON — see the `workflows-cli` skill's `presenting.md`.
+Narrate throughout and prefer the diagram over raw node JSON — see the `workflows` skill's `presenting.md`.
 
 ## Simplification Checklist
 
@@ -50,7 +50,7 @@ Two adjacent nodes can often be combined into one if:
 When a downstream node needs specific typed data from an upstream node:
 
 - Add `outputSchema` to the upstream node
-- On the downstream agent node, pin each input via `sourceNodeId`/`sourcePath` inline on the `inputSchema` property (see the `workflows-cli` skill's `data-passing.md`)
+- On the downstream agent node, pin each input via `sourceNodeId`/`sourcePath` inline on the `inputSchema` property (see the `workflows` skill's `data-passing.md`)
 - This preserves exact values across nodes
 
 ### Simplify tool usage

@@ -57,6 +57,11 @@ equivalent to the full form above. Either works; the shorthand is terser.
 **Accessing pinned inputs:** in an agent prompt, `{{company_name}}` resolves to
 the pinned value.
 
+**Accessing the current list item:** in a **repeating (list mode) agent** node,
+`{{__item}}` is the whole item and `{{__item.field}}` one field. Pinned inputs on a
+list-mode agent node resolve against the _whole_ upstream output, not the entry, so use
+`{{__item...}}` for anything per-item.
+
 **`sourcePath` syntax** is JSONPath: `$.field`, `$.nested.field`,
 `$.array[0].name`, `$.results[0].properties.hs_email_domain`.
 
@@ -211,3 +216,4 @@ clay workflows actions dynamic-fields pkg_abc123 hubspot-create-object fields --
 | Data from 2+ hops back into an **agent** node        | Pinned inputs                                                                                                                                           |
 | Any input into a **tool** node                       | `inputMappingConfig` (`static` / `reference`)                                                                                                           |
 | An input into a **repeating (list mode) tool** node  | Enable `listMode: true` + `listEntriesRef` on the node first (parent skill), then `inputMappingConfig` `item` (`{ "type": "item", "path": "$.field" }`) |
+| An input into a **repeating (list mode) agent** node | `{{__item}}` / `{{__item.field}}` in the prompt                                                                                                         |

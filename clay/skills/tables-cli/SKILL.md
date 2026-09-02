@@ -230,5 +230,5 @@ is a focused skill:
 ## Rebuilding a Table as a Workflow
 
 If a user wants to convert their table logic into a Clay workflow (reusable, branching,
-or scheduled), use the `workflows-cli` skill to rebuild the enrichment pipeline as
+or scheduled), use the `workflows` skill to rebuild the enrichment pipeline as
 connected nodes.
