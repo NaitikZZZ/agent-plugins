@@ -429,7 +429,7 @@ their own CLI commands elsewhere rather than a `clay workflows` subcommand:
   `clay tables list`, `clay functions list`, and
   `clay audiences list --entity-type people|companies` for audience segments.
 
-The raw CPJ Search DSL has no CLI command; `clay search query-mode` and `clay search filters-mode`
-cover Clay search itself (see the `search` skill). When a capability isn't listed here and has no
+The raw CPJ Search DSL has no CLI command; `clay search query-mode`
+covers Clay search itself (see the `search` skill). When a capability isn't listed here and has no
 `clay` command, it's genuinely unavailable rather than hidden — tell the user that instead of
 hunting for a command that will not appear.

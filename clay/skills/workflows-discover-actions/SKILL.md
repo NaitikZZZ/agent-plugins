@@ -32,7 +32,13 @@ Each catalog entry has:
     or updating a node does **not** share that instance: unless the node already uses it, the
     edit creates a new tool with the same action and credentials
   - `appAccountId` / `appAccountName` — bound credentials
-- `availableAppAccounts` — app accounts the user has connected (for actions requiring API keys)
+  - `appAccountAbilities` — your abilities on those credentials (`null` when the tool binds none).
+    `appAccountAbilities.canAccess: false` means the workspace has withheld this connection from you: binding
+    it will be rejected, so pick another tool or another account rather than retrying
+- `availableAppAccounts` — app accounts connected in this workspace for the action's provider,
+  each with `id`, `name`, and `abilities` (`canAccess` / `canUpdate` / `canDelete`). This is every
+  account the workspace has, not only yours: `abilities.canAccess: false` entries exist and cannot
+  be bound. Present only when the action needs an API key and no usable configured tool exists
 - `priorityTier` — lower is better (0 = functions, 1 = Clay first-party, 2 = has app account, 3 = Clay credits, 4 = requires key)
 - `packageDisplayName` — human-readable provider name (e.g. "Salesforce"); **absent on workspace-function entries** (`priorityTier: 0`), so guard for it in jq (`.packageDisplayName // ""`)
 - `actionLabels.type` — the action's capability type (e.g. `"Send Data"`); can be a single string **or an array of strings**, so match with both shapes in mind
@@ -57,9 +63,10 @@ enforce this: they only keep a tool the node already has, and otherwise create a
      "actionPackageId": "..."
    }
    ```
-2. **Bind specific credentials** — pass `appAccountId` from `availableAppAccounts`. Otherwise the new
-   tool binds a private workspace account for that provider when one exists, and falls back to Clay's
-   own credentials (which cost credits) when it doesn't:
+2. **Bind specific credentials** — pass `appAccountId` from `availableAppAccounts`, choosing one whose
+   `abilities.canAccess` is `true`. Otherwise the new tool binds a private workspace account for that
+   provider when one exists, and falls back to Clay's own credentials (which cost credits) when it
+   doesn't:
    ```json
    {
      "toolType": "clay_action",
@@ -88,7 +95,9 @@ jq -r '.data[] | select(.name | test("email";"i")) | "\(.priorityTier) \(.packag
 ```
 
 Prefer actions with lower `priorityTier` values and existing `configuredTools` — an action that
-already has a configured tool usually has working credentials, which the new tool inherits.
+already has a configured tool usually has working credentials, which the new tool inherits. Skip
+configured tools whose `appAccountAbilities.canAccess` is `false`: `priorityTier` does not account
+for your access, so a tier-2 entry can still be one you are not allowed to bind.
 
 ### Never tell the user a capability is missing without searching for it first
 
@@ -141,7 +150,8 @@ some other write-back mechanism.
 The catalog almost always has multiple actions that do roughly the same job (several email finders, several company-enrichment providers, waterfalls vs. single providers, etc.). Use the request, `priorityTier`, configured credentials, coverage, and credit cost to recommend and wire the best-supported default when the choice is reversible and low-risk. Ask the user before wiring only when the candidates have a consequential trade-off in cost, coverage, credentials, destination, or semantics that the request does not resolve.
 
 - Refer to each option by its **human-readable `displayName`** (e.g. "Find Work Email (Clay)"), never the internal `actionKey`.
-- For each option, surface the details that drive the decision: `whyUseful` / `dataStrengths`, `creditCost`, whether a `configuredTool` or `availableAppAccount` already exists, and `priorityTier`.
+- For each option, surface the details that drive the decision: `whyUseful` / `dataStrengths`, `creditCost`, whether a `configuredTool` or `availableAppAccount` already exists **and is usable by you**, and `priorityTier`.
+- When every account for a provider has `abilities.canAccess: false`, say so plainly and tell the user to ask a workspace admin to grant them access to the connection — don't report the provider as unconnected, and don't try to bind it anyway.
 - Name the default you chose (usually the lowest `priorityTier` with an existing configured tool) and let the user override it as the build evolves.
 
 ## Getting action input and output schemas

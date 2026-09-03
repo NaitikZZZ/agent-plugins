@@ -63,11 +63,16 @@ On Claude Code, when this skill was invoked through the Skill tool **and**
 automatically at that invocation (it needs `jq` to do so) — never print it
 yourself; the step-3 pitch still opens your reply. In every other case — no
 `jq`, any other host, or following this file directly as a runbook (no Skill
-tool call, so no hook fired) — read `banner.txt` from this skill's directory
-and print its contents **verbatim** inside a fenced code block, before any
-other tool call (`AskUserQuestion` included). Do not redraw, trim, or restyle
-it. Reading the file is not showing it: the banner must appear in your reply
-to the user.
+tool call, so no hook fired) — print a banner file from this skill's directory
+**verbatim** inside a fenced code block, before any other tool call
+(`AskUserQuestion` included). Pick the file by terminal width: run
+`printf '%s\n' "${COLUMNS:-0}"` and use `banner.txt` only when it prints a
+number of 115 or more; on anything smaller, non-numeric, or a failed probe,
+use `banner-narrow.txt` — it fits every host. Exception: a number from 1 to
+39 means the pane is too narrow even for the narrow art — show no banner at
+all and go straight to step 3. Do not redraw, trim, or restyle
+the art. Reading the file is not showing it: the banner must appear in your
+reply to the user.
 
 ## 3. Say what Clay is
 

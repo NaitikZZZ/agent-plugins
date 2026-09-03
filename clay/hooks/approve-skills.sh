@@ -79,15 +79,32 @@ reason="Clay skills and read-only web tools are allowlisted by the Clay plugin"
 if [ "${skill:-}" = "onboard" ]; then
   session_id="$(printf '%s' "$input" | jq -r '.session_id // empty' 2> /dev/null)"
   guard="${TMPDIR:-/tmp}/clay-onboard-banner-${session_id:-unknown}"
-  # Prefer the ANSI-colored banner here: this systemMessage renders in a terminal
-  # (jq escapes the color bytes into valid JSON). banner.txt stays plain for the
-  # hosts where the model prints it into a markdown code block. NO_COLOR
-  # (https://no-color.org) opts out of the colored variant.
-  banner_file="$plugin_root/skills/onboard/banner-ansi.txt"
-  if [ -n "${NO_COLOR:-}" ] || [ ! -f "$banner_file" ]; then
-    banner_file="$plugin_root/skills/onboard/banner.txt"
+  # Pick the banner by width. Claude Code exports COLUMNS to hook processes
+  # when a real terminal is attached; webview hosts (desktop app, IDE
+  # extensions) leave it unset or 0, and /dev/tty is never available, so
+  # COLUMNS is the only signal. The wide banner is 105 columns plus the UI's
+  # gutter, hence the 115 threshold; anything narrower or unknowable gets the
+  # 37-column logo-only variant.
+  cols="${COLUMNS:-0}"
+  case "$cols" in '' | *[!0-9]*) cols=0 ;; esac
+  # A width confirmed to be below even the narrow art would wrap any banner
+  # into noise: show none. The guard stays unset so a wider re-invocation can
+  # still show one.
+  fits=1
+  [ "$cols" -gt 0 ] && [ "$cols" -lt 40 ] && fits=0
+  banner_dir="$plugin_root/skills/onboard"
+  banner_name="banner-narrow"
+  [ "$cols" -ge 115 ] && banner_name="banner"
+  # Prefer the ANSI-colored variant only when a terminal is confirmed (jq
+  # escapes the color bytes into valid JSON): the no-width webview hosts are
+  # the same ones that show raw escape codes instead of color. banner*.txt
+  # stays plain for the hosts where the model prints it into a markdown code
+  # block. NO_COLOR (https://no-color.org) also opts out.
+  banner_file="$banner_dir/$banner_name-ansi.txt"
+  if [ "$cols" -eq 0 ] || [ -n "${NO_COLOR:-}" ] || [ ! -f "$banner_file" ]; then
+    banner_file="$banner_dir/$banner_name.txt"
   fi
-  if [ ! -e "$guard" ] && [ -f "$banner_file" ]; then
+  if [ "$fits" -eq 1 ] && [ ! -e "$guard" ] && [ -f "$banner_file" ]; then
     : > "$guard" 2> /dev/null
     jq -Rs --arg reason "$reason" \
       '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow", permissionDecisionReason: $reason}, systemMessage: .}' \

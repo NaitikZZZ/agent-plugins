@@ -1,13 +1,13 @@
 ---
 name: search
-description: Clay search — find people or companies in Clay's GTM database with advanced queries and page through the matches. Use filters mode when the user prefers its older structure or has existing filters-mode searches. Use when the user wants to search Clay for prospects/accounts, not query an existing table.
+description: Clay search — find people or companies in Clay's GTM database with advanced queries and page through the matches. Use when the user wants to search Clay for prospects/accounts, not query an existing table.
 allowed-tools: Bash(clay *), Bash(jq *)
 ---
 
 # Clay search
 
 Search Clay's GTM database with advanced queries and return matching records — people or
-companies. Use filters mode when the user prefers its older structure or has existing filters-mode searches.
+companies.
 
 **Audiences** is the workspace's own people and companies — read and segment what they already have.
 **Search** is Clay's GTM database for net-new lists. This is not the tables entry-point skill (querying
@@ -16,9 +16,9 @@ user wants to _find_ prospects or accounts not in the workspace yet.
 
 ## How it works
 
-A search in either mode is a three-step, forward-only iterator:
+A search is a three-step, forward-only iterator:
 
-1. **Discover** the available query syntax and fields for the mode you choose.
+1. **Discover** the query grammar and queryable fields.
 2. **Create** the search and receive a `searchId`.
 3. **Run** it to pull the next page of records. Repeat while `hasMore`
    is `true`.
@@ -26,28 +26,23 @@ A search in either mode is a three-step, forward-only iterator:
 There is no cursor: the iterator's position lives server-side and can't be replayed, so
 each `run` call returns the records after the previous one.
 
-## Choose a search mode
-
-Use advanced search by default. It is a superset of filters mode: it supports criteria in the
-source type's fields catalog, cross-entity filters, and nested Boolean logic.
-
-Before authoring an advanced query, run `clay search query-mode reference` and use the returned
-reference. Use `filters-mode` when the user prefers its older structure or has existing filters-mode
-searches.
+Before authoring a query, run `clay search query-mode reference` and use the returned
+reference. It supports criteria in the source type's fields catalog, cross-entity filters,
+and nested Boolean logic.
 
 Run `clay search --help` (and `clay search <cmd> --help`) for flags and output shapes.
 If `clay` isn't on PATH or `clay whoami` fails on auth, run the `setup` skill.
 
 ## When a criterion isn't supported
 
-Check the reference for the search mode you choose before deciding whether it can express the
-criteria. Do not invent a field or operator that is not in the reference.
+Check the reference before deciding whether it can express the criteria. Do not invent a
+field or operator that is not in the reference.
 
-If neither mode can express a criterion, split the request into what search _can_ do and what
+If the query can't express a criterion, split the request into what search _can_ do and what
 a routine does:
 
-1. Search on the closest available built-in filters to get a candidate set (e.g. industry,
-   size, or title filters that approximate the intent).
+1. Search on the closest available built-in criteria to get a candidate set (e.g. industry,
+   size, or title criteria that approximate the intent).
 2. Feed those results into a saved routine that enriches or scores each record for the
    attribute the user actually asked about, then filter or act on that routine's output.
 
@@ -57,8 +52,6 @@ results" below for the handoff.
 
 ## Start a search
 
-### Advanced search (default)
-
 ```bash
 clay search query-mode reference
 clay search query-mode create --query '<query>'
@@ -66,18 +59,7 @@ clay search query-mode create --query '<query>'
 
 `create` returns `{ "searchId": "srch_..." }`.
 
-### Filters mode
-
-Use when the user prefers its older structure or has an existing filters-mode search:
-
-```bash
-clay search filters-mode fields --source-type people | jq '.fields[].name'
-clay search filters-mode create --source-type people --filters '{"job_title_keywords":["growth engineer"],"location_cities_include":["San Francisco"]}'
-```
-
-`create` returns `{ "searchId": "srch_..." }`.
-
-### Paging (both modes)
+### Paging
 
 `run` returns `{ "data": [ ... ], "hasMore": <boolean> }`. `--limit` is the page size;
 omit it for the server default. Reuse the same `searchId`; each call returns the next
@@ -85,7 +67,6 @@ page. Repeat while `hasMore` is `true`; stop when it is `false`.
 
 ```bash
 clay search query-mode run <searchId> [--limit <n>]
-clay search filters-mode run srch_abc123 --limit 50 | jq -c '.data[]'
 ```
 
 ## Quotas (do not retry)

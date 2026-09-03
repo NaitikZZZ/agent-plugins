@@ -189,13 +189,9 @@ spends the workspace's budget and the user gets a stalled turn instead of an ans
 
 ## Segment activities
 
-`clay audiences activities` is experimental. Only use this section after
-`clay audiences activities --help` succeeds; if the command is unavailable, do
-not call it and use the non-CLI fallback for activity detail.
-
-When available, use `clay audiences activities` when the user asks what happened
-inside a saved segment, such as recent email or call activity, campaign touches,
-source mix, or activity volume over a period.
+Use `clay audiences activities` when the user asks what happened inside a saved
+segment, such as recent email or call activity, campaign touches, source mix, or
+activity volume over a period.
 
 ```bash
 clay audiences activities get --segment-id audseg_abc --since 2026-08-01 --until 2026-08-20 --activity-types call
@@ -222,14 +218,6 @@ clay audiences activities summary --segment-id audseg_abc --since 2026-08-01 --u
 ## Signals
 
 Signals write activities onto records.
-
-Signal CLI commands are currently only available in the experimental build of the CLI.
-Check both `clay signals --help` and `clay audiences signals --help` before using
-them. If either command is unavailable, do not invent an API call or substitute
-`clay audiences activities`. Explain that signal operations are unavailable in
-the current CLI version and direct the user to the Clay web app: use it to view
-or manage signal triggers and to inspect captured signal events on the relevant
-audience records.
 
 A **signal** on an audience — a watch for job changes, new hires, funding news,
 job postings — stores each captured event as an **activity attached to the

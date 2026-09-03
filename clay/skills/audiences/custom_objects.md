@@ -106,8 +106,28 @@ date", "Deal last updated", and "Deal source":
 | `updated_at`       | When it last changed             |
 | `origin_source_id` | Which sync brought it in         |
 
-So "deals created since April" is a `created_at` `After` predicate on the
-`opportunity` root, same shape as any other deal filter.
+So "deals created since April" is a `created_at` predicate on the `opportunity`
+root, same shape as any other deal filter.
+
+### Date-window boundaries
+
+Treat every date the user names as **inclusive by default**. "Since August 24"
+includes August 24, and "from August 24 until August 31" includes both dates.
+Only exclude a named date when the user explicitly asks to exclude it. Implement
+an inclusive calendar range as a half-open machine interval by moving the upper
+bound to the following date: August 24 through August 31 becomes
+`August 24 <= date < September 1`. Use non-overlapping bounds for comparison
+periods after translating the user's inclusive dates this way.
+
+- An open-ended "since X" runs from the inclusive start through now. For a DATE
+  field, cap it with `Before` midnight on the following calendar date so anomalous
+  future-dated records cannot enter the result.
+- `After` and `Before` are strict operators. For an inclusive start on a DATE
+  field, set the `After` cutoff to the final instant before the start date; use
+  `Before` at midnight on the exclusive end date.
+- `WithinLast` is a rolling duration from the current instant, not a calendar-day
+  interval. Use explicit bounds when the user names a calendar week or when
+  DATE-valued records at midnight must include the whole first day.
 
 `records get` returns the rest of the Clay-managed set as well
 (`origin_source_type`, `sources`, `is_draft`, `external_source_sync_status*`).
