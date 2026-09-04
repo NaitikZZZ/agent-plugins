@@ -15,10 +15,11 @@ Only **`action`** columns can be in `error`. `basic` and `source` columns don't 
 Before sweeping, learn what _can_ error.
 
 1. Resolve the table as in the tables entry-point skill ("Finding a table").
-2. **`clay tables columns get <tableId>`** (shape in the command's `--help`). Build the picture:
+2. Run **`clay tables get <tableId>`** and note its `type` and `rowCount`.
+3. **`clay tables columns get <tableId>`** (shape in the command's `--help`). Build the picture:
    - Which columns are `type: "action"` — these are the ones that fail. Keep a `f_id → name` map for readable reporting.
    - For each action column, note `authAccountId` (auth-related failures), `conditionalRunFormulaText` (a gate — a skipped action usually shows as `empty`, not a failure), and `inputsBinding` (what feeds it — needed if a failure turns out to be a bad/missing input).
-3. **If the table has no action columns**, errors are unlikely — say so, and confirm with a one-page scan (step 3) before concluding.
+4. **If the table has no action columns**, errors are unlikely — say so, and confirm with a one-page scan (step 3) before concluding.
 
 ## 2. Settle the scope: one column or general
 
@@ -28,9 +29,17 @@ Before sweeping, learn what _can_ error.
 
 ## 3. Find the errored rows
 
-Cell status isn't filterable server-side on either path, so a sweep pages through the rows and picks out the errored cells client-side. Choose the scan by whether the table is query-enabled:
+Cell status isn't filterable server-side on either path, so a sweep pages through the rows and picks out the errored cells client-side. Choose the scan by table type, then whether a normal table is query-enabled:
 
-**Query-enabled → scan with `tables query`.** Each cell comes back with its `status` and, on an error, its `error` message — so one pass finds the failures _and_ their messages (skip step 4). Paginate via the top-level `cursor`:
+**Bulk enrichment table → inspect one retained-row sample.** Do not use the query-enabled path or attempt a full sweep. These tables return `truncated: true` with one unfiltered, cursorless sample of at most 20 currently retained rows, and completed rows may already have been deleted:
+
+```bash
+clay tables rows list <tableId> --limit 20 | jq '{truncated, errored: [ .data[] | { id, cols: (.cells | to_entries | map(select(.value.status == "error")) | map(.key)) } | select(.cols | length != 0) ]}'
+```
+
+Continue to step 4 for those row ids. Report the number of retained rows inspected and call the result sample-only; never claim a full-table error count. If the sample is empty, say that no retained rows were available to inspect, not that the table has no errors.
+
+**Query-enabled normal table → scan with `tables query`.** Each cell comes back with its `status` and, on an error, its `error` message — so one pass finds the failures _and_ their messages (skip step 4). Paginate via the top-level `cursor`:
 
 ```bash
 echo '{"tables":[{"id":"tbl_abc123"}]}' | clay tables query --query - --limit 100 | jq '{next: .cursor, errored: [ .data[] | [ to_entries[] | select(.value.status == "error") | { col: .key, msg: .value.error } ] | select(length != 0) ]}'
@@ -94,7 +103,7 @@ retriable and not a data problem. A secondary cluster traces back to Find Email
 producing no email upstream.
 ```
 
-If the sweep found no errored cells, report that nothing is currently erroring — and if the underlying complaint was "rows aren't appearing," redirect to `/tables-capacity` (a full table looks like a failure but produces no errored cells).
+If a normal-table sweep found no errored cells, report that nothing is currently erroring — and if the underlying complaint was "rows aren't appearing," redirect to `/tables-capacity` (a full table looks like a failure but produces no errored cells). For a bulk enrichment sample, report only that no errors appeared in the retained rows inspected; an empty sample proves neither that the table has no errors nor that it has a capacity problem.
 
 ## Hand-offs
 

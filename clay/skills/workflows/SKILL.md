@@ -6,7 +6,12 @@ description: Clay workflows — build and edit automations with `clay workflows 
 # Building Clay workflows with the CLI
 
 Supporting files in this directory: `publishing.md`, `testing.md`, `data-passing.md`,
-`presenting.md`, `audiences.md`, `account-agents.md`.
+`presenting.md`, `audiences.md`, `account-agents.md`, `run-analysis.md`.
+
+When working in an existing workflow, read it with `clay workflows get <workflowId>` before
+planning edits. If its `type` is exactly `audience_enrichment`, read the complete
+`/workflows-audience-enrichment` skill and follow it together with this skill. Do not apply that
+specialized skill to a workflow whose type is null, absent, or any other value.
 
 ## Domain and working style
 
@@ -222,6 +227,9 @@ them with `clay workflows triggers …`. Clay table triggers remain UI-only.
 
 **Draft vs live** and how test runs relate to publish: see `publishing.md` and `testing.md`.
 
+**Investigating run data** (failures, traffic, durations, credits, searching run content):
+`clay workflows analysis …` — see `run-analysis.md`.
+
 ## Command reference
 
 Every command's `--input`/`--inputs` accepts inline JSON, a file path, or `-` for stdin — pick
@@ -417,6 +425,14 @@ their own CLI commands elsewhere rather than a `clay workflows` subcommand:
   It takes ClayQL directly — write the query yourself off the columns above; there is no
   natural-language query option. Don't reach for `clay tables query` instead — that reads a
   different store (synced ClickHouse, gated on Enterprise sync).
+- **Bulk enrichment migration** — for a known bulk enrichment table, use
+  `clay tables columns get <tableId>` to determine the
+  source origin and column DAG. When a source includes `audience`, use its configuration
+  (global when `isGlobal`; otherwise `segments[].id`). Do not assume every bulk enrichment is
+  Audiences-backed.
+  `clay tables rows list <tableId> --limit <n>` is only an optional,
+  unfiltered, unordered sample (`n` at most 20): it returns `truncated: true`, accepts and returns no
+  cursor, and completed passthrough rows may already be deleted. Never treat it as a complete source dataset.
 - **One audience segment** — `clay audiences get <audienceId>`, which includes the filter AST that
   selects its records.
 - **Audience record fields** — `clay audiences fields list` with `--entity-type people` or

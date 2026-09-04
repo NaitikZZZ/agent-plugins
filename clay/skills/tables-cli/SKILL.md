@@ -12,8 +12,8 @@ run the `setup` skill.
 
 Resolve it to a `tbl_...` id. Use `clay tables list --filter workbook.id=<wb_...>`
 when the workbook is known (`clay workbooks list`), otherwise `clay tables list` and
-pick by `.name` with `jq`. Do not use `--filter queryEnabled=true` unless you only
-want query-synced tables — it hides the rest. If the user named no table or workbook,
+pick by `.name` with `jq`. Do not use `--filter queryEnabled=true` unless you only want
+query-synced tables — it hides the rest. If the user named no table or workbook,
 ask rather than sweeping the workspace.
 
 ID prefixes: `tbl_` table, `f_` column, `rec_` row, `wb_` workbook.
@@ -63,6 +63,8 @@ for multi-table joins and cursor paging (and for a complete large pull when sync
 available — `query-live` is capped at 100 rows per call; page with `LIMIT n OFFSET m`
 in `--query`). Otherwise a direct `rows list` is faster and needs no setup.
 
+**Bulk enrichment exception:** if `rows list` returns `truncated: true`, treat the result as one unfiltered, unordered sample of at most 20 currently retained passthrough rows. It accepts no cursor or filters, and completed rows may already have been deleted, so an empty sample is valid and the result is never a complete source listing. For migration, use `clay tables columns get` as the source of truth and inspect its sources to determine the origin. An Audiences-backed source includes `audience.entityType`, `segments[].id`, `isGlobal`, and `entityIdOnly`; a global Audience has `isGlobal: true` and no segment objects.
+
 ### Row ordering
 
 Both `rows list` and `tables query` return rows in a stable, consistent order that
@@ -79,11 +81,11 @@ via ClayQL `ORDER BY` (also subject to the 100-row cap / `LIMIT`/`OFFSET` paging
 
 ### List tables
 
-Discover tables and their ids. Each row carries a `queryEnabled` flag for whether the
-table is enabled for querying.
+Discover navigation-visible tables and their ids. Each row carries a `queryEnabled` flag
+for whether the table is enabled for querying.
 
 ```bash
-clay tables list                                              # all tables
+clay tables list                                              # navigation-visible tables
 clay tables list --filter queryEnabled=true                   # query-sync-enabled only
 clay tables list --filter workbook.id=wb_123                 # tables in one workbook
 clay tables list --filter owner.id=1417322 --limit 50         # by owner

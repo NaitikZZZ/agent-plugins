@@ -12,7 +12,7 @@ The transcript is the **current conversation**, so confirm with the user before 
 
 ## Steps
 
-1. **Determine type.** Default to `feedback`. Choose `bug` **only** when something that previously worked (or is established existing behavior) has **regressed** — it used to work and now doesn't. Choose `feedback` for everything else: missing behavior, feature requests, UX suggestions, confusing flows, "I expected X but Clay doesn't do that," errors that look like product gaps rather than regressions, and general product ideas. Missing behavior is feedback (closer to a feature request), not a bug. If unclear whether this is a regression, prefer `feedback`; only use AskUserQuestion when the user clearly means either a regression or a request for new/missing behavior and you still can't tell which.
+1. **Determine type.** Default to `feedback`. Choose `bug` **only** when something that previously worked (or is established existing behavior) has **regressed** — it used to work and now doesn't. Choose `feedback` for everything else: missing behavior, feature requests, UX suggestions, confusing flows, "I expected X but Clay doesn't do that," errors that look like product gaps rather than regressions, and general product ideas. Missing behavior is feedback (closer to a feature request), not a bug. If unclear whether this is a regression, prefer `feedback`; only ask the user when they clearly mean either a regression or a request for new/missing behavior and you still can't tell which.
 
 2. **Get feedback text.** Use the argument if provided (e.g. `/clay-feedback would love CSV export from the enrichment table`). Otherwise ask the user what feedback or bug report they'd like to send.
 
@@ -28,7 +28,7 @@ The transcript is the **current conversation**, so confirm with the user before 
 
    If you can't determine a transcript path, proceed without one — the report still sends.
 
-4. **Confirm.** Use AskUserQuestion. List what the report will include:
+4. **Confirm.** Use your ask-user tool (`AskUserQuestion`; `askUser` inside the Clay app). List what the report will include:
 
    > This report will include:
    >
@@ -61,7 +61,7 @@ The transcript is the **current conversation**, so confirm with the user before 
    `transcriptError` appears only when you passed `--transcript-file` but it couldn't be attached (missing, unreadable, or too large).
    - If `includedTranscript` is `false` and `transcriptError` is set, the report was **still sent** — only the transcript was skipped. Tell the user; double-check the path from step 3 before retrying.
    - `validation_error` (exit 2) — the stdin message was empty or nothing was piped. Make sure the temp file has the feedback text and is redirected in (`< /tmp/clay-feedback.txt`).
-   - `auth_required` (exit 3) — Clay isn't authenticated. Run the `setup` skill or `clay login`, then retry.
+   - `auth_required` (exit 3) — Clay isn't authenticated. If the `setup` skill is available, run it (or `clay login`) and retry; inside the Clay app the session is managed for you, so report the expiry to the user instead.
    - `rate_limited` (exit 4) — too many reports recently; surface `details.retryAfter` and try again later.
 
 7. Tell the user it was sent, noting whether the transcript was included. If cancelled, do nothing.

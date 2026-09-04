@@ -23,6 +23,69 @@ The parts that cost the most time:
   `{"type":"GroupOp","combinationMode":"And","items":[]}`.
 - **Node `id`s are UI bookkeeping** — they are stripped, so never author them.
 
+## Filter dates without guessing
+
+Choose the field before the operator. For any request with a time constraint,
+list the fields once with system fields included, then inspect only date
+candidates:
+
+```bash
+clay audiences fields list --entity-type people --include-system > /tmp/people-fields.json
+jq '.data[] | select(.dataType == "date") | {id, name, isSystemField}' /tmp/people-fields.json
+```
+
+Use the date field whose meaning matches the request. Workspace fields carry
+business dates such as a form submission time or contract renewal date. The
+Clay-managed `created_at` and `updated_at` fields mean record creation and
+record update time; they are useful only when that is what the user asked for.
+Do not substitute either system field merely because the intended field has
+the wrong type.
+
+**Date operators work only on a field whose `dataType` is `date`.** An ISO date
+stored in a `text` field is still text. Do not try `WithinLast`, `After`,
+`GreaterThan`, `StartsWith`, or other operator variants against it. That cannot
+produce a reliable date query. Use another date-typed field with the right
+meaning, or tell the user that this field must be converted/remapped to `date`
+before it can be time-filtered accurately.
+
+| User's time constraint                 | Operator             | Value                                                      |
+| -------------------------------------- | -------------------- | ---------------------------------------------------------- |
+| rolling past window ("last 7 days")    | `WithinLast`         | numeric `value` plus `timeUnit`: `day`, `week`, or `month` |
+| rolling future window ("next 2 weeks") | `WithinNext`         | numeric `value` plus `timeUnit`: `day`, `week`, or `month` |
+| before or after a specific instant     | `Before` / `After`   | ISO-8601 timestamp, e.g. `2026-09-01T00:00:00Z`            |
+| field is populated or missing          | `NotEmpty` / `Empty` | no `value`                                                 |
+
+`WithinLast` is a rolling duration from the current instant, not a calendar-day
+interval. `Before` and `After` are strict. When the user names inclusive
+calendar dates, set the `After` cutoff to the final representable instant before
+the requested start, and set the `Before` cutoff to midnight after the requested
+end. For example, August 24 through August 31 UTC uses `After`
+`2026-08-23T23:59:59.999Z` and `Before` `2026-09-01T00:00:00Z`.
+
+People created in the last 7 days:
+
+```json
+{
+  "type": "GroupOp",
+  "combinationMode": "And",
+  "items": [
+    {
+      "type": "BinOp",
+      "key": "created_at",
+      "dataPath": ["contact_entity_field_values", "field", "created_at"],
+      "operator": "WithinLast",
+      "value": 7,
+      "timeUnit": "day",
+      "entityType": "CONTACT"
+    }
+  ]
+}
+```
+
+Before trying another operator on a zero count, run a `NotEmpty` count on the
+same field. A zero fill-rate means there is no data to filter; a nonzero
+fill-rate plus a zero date count means the window may legitimately be empty.
+
 ## Node types
 
 - `GroupOp` — combines child `items` with `combinationMode` (`And` / `Or`).
@@ -30,6 +93,13 @@ The parts that cost the most time:
 - `BinOp` — compares one field to a `value`: `{ key, dataPath, operator, value, entityType }`.
 - `ColOp` — a collection/subquery: `{ key, dataPath, operator, condition, entityType }`,
   where `condition` is a `GroupOp` and `operator` is `AllItems` / `AnyItems` / `NoItems`.
+  Only valid with `dataPath` rooted at `signal_events` or `activities`. Never wrap
+  related-object predicates (e.g. `opportunity`) in a `ColOp` — those are plain `BinOp`s
+  in the enclosing group (see `custom_objects.md`); the server rejects such a `ColOp`
+  with a validation error. One exception exists in the wild: UI-built source-sync-status
+  filters are `ColOp`s rooted at `*_entity_field_values` with an
+  `external_source_sync_status_v3` path — valid to read in an existing segment's filter,
+  but never author that shape yourself.
 - `AggOp` — an aggregate over a group: `{ aggregation: { groupByPath, operator, value }, expression, entityType }`.
 
 ## Copy-paste starting point

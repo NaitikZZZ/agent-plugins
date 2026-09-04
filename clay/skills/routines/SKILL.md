@@ -87,12 +87,12 @@ and JSON shape.
 ## 2. Check the cost and your balance before running
 
 Before starting a run, check what the routine costs and whether the workspace can afford
-it. `clay routines get <id>` includes the per-item cost estimate; `clay credits` returns
+it. `clay routines get <id>` includes the per-item cost estimate; `clay credits balance` returns
 the remaining balance.
 
 ```bash
 clay routines get function:tbl_abc123 | jq '.estimatedCreditCost'
-clay credits | jq '{ balance, actionExecutionBalance }'
+clay credits balance | jq '{ balance, actionExecutionBalance }'
 ```
 
 There are **two independent budgets**, and a run needs enough of each:
@@ -105,7 +105,7 @@ There are **two independent budgets**, and a run needs enough of each:
 For how to read the balance and how the cost fields work, see the help text:
 
 ```bash
-clay credits --help
+clay credits balance --help
 ```
 
 Multiply each per-item cost by the number of items. If the estimated total for **either**

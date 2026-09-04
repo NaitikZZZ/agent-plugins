@@ -28,13 +28,18 @@ agent="${1:-claude}"
 # `echo`/`printf` never open a file or socket, so they are exempt from the
 # path/file-flag guards below -- but unquoted glob/tilde chars are still
 # refused for every helper (including echo/printf), on both `|` and `;`, so
-# shell expansion can't turn `echo .*` into a cwd listing under auto-approve.
+# pathname/extglob/brace/tilde/=path expansion can't turn `echo .*` into a cwd
+# listing under auto-approve.
 # Semicolon-chained clauses may only use `clay`, `echo`, or `printf` (not the
 # rest of this list).
 allowed_helpers="jq cat head tail wc grep sort uniq column tr echo printf"
 
 # Credential/egress `clay` subcommands that never auto-approve
 gated_subcommands="feedback login logout api-keys webhooks"
+
+# Multi-word `clay` prefixes that never auto-approve. Entries are comma-separated;
+# words within an entry are space-separated (e.g. "credits top-up,routines start").
+gated_prefixes="credits top-up"
 
 # Harden: no globbing, and unset variables are errors so a typo can't silently
 # widen approval.
@@ -105,8 +110,12 @@ esac
 #     wherever it sits;
 #   - the `clay` segment's first non-flag word is refused if it is a
 #     credential/egress subcommand (feedback, login, logout, api-keys,
-#     webhooks) so those never auto-approve; ordinary read/write subcommands
-#     (whoami, tables, routines, workflows, ...) still do;
+#     webhooks) or if its leading non-flag words match any gated prefix
+#     (e.g. credits top-up) so billing checkout never auto-approves;
+#     non-flag words are dequoted before option classification and gate compare,
+#     and each gate-compared prefix word must match ^[A-Za-z0-9][A-Za-z0-9_-]*$
+#     so shell-expansion tokens cannot slip past a literal prefix match;
+#     `clay credits balance` still auto-approves;
 #   - within a `|` pipeline that contains `clay`, every other segment's command
 #     must be in the helper allowlist (membership is an exact key lookup, so a
 #     token like `*` can't wildcard its way in);
@@ -114,9 +123,14 @@ esac
 #     file-reading helpers -- so `cat .env; clay whoami` cannot auto-approve
 #     and print a cwd file straight into the agent context;
 #   - every helper segment (including echo/printf, on both `|` and `;`) must
-#     not contain an unquoted glob or tilde metacharacter (`*`, `?`, `[`, `~`),
-#     so the shell can't expand `echo .*` / `cat *.env` into a cwd listing
-#     under auto-approve; quoted forms like `echo "*"` are fine;
+#     not contain an unquoted shell metacharacter (`*`, `?`, `[`, `]`, `~`,
+#     `{`, `}`, `(`, `)`, or word-leading `=`) -- not an exhaustive shell
+#     parser, but enough to block pathname/extglob/brace/tilde/=path expansion
+#     so `echo .*` / `cat *.env` can't become a cwd listing under
+#     auto-approve; mid-word `=` (e.g. `--filter key=value`), `@` in values
+#     (e.g. `test@example.com`), and bare `+`/`!`/`^` (which only reach
+#     extglob via the already-refused `(`) are allowed; quoted forms like
+#     `echo "*"` are fine;
 #   - every non-echo/printf helper segment must not reference a path (`/`, `~`)
 #     or a read/write file flag (long `--output`/`--file` or short clusters
 #     containing `o`/`f`, attached value or not) -- helpers must transform
@@ -126,7 +140,7 @@ esac
 #     text is scanned too, so cat "/etc/passwd" can't either. `echo` and
 #     `printf` are exempt from the path/flag guards (a `/` in their args is
 #     data -- JSON, a URL -- not a file read) but not from the unquoted
-#     glob/tilde guard. The `$`-reject guard above is what keeps remaining
+#     shell-metachar guard. The `$`-reject guard above is what keeps remaining
 #     args literal -- otherwise `printf "$SECRET"` would expand an env var
 #     into clay's stdin under the echo/printf exemption.
 # Residual, knowingly accepted for `|` only: bare cwd-relative names (e.g.
@@ -134,36 +148,96 @@ esac
 # network or redirect, such a read stays in the agent's context and still can't
 # be exfiltrated without a separate, non-approved (prompted) command. Semicolon
 # chaining no longer widens that residual to standalone helper stdout.
-verdict="$(printf '%s' "$cmd_stripped" | awk -v helpers="$allowed_helpers" -v gated="$gated_subcommands" '
+verdict="$(printf '%s' "$cmd_stripped" | awk -v helpers="$allowed_helpers" -v gated="$gated_subcommands" -v gatedpfx="$gated_prefixes" '
   BEGIN {
     n = split(helpers, a, " ")
     for (i = 1; i <= n; i++) H[a[i]] = 1
     nd = split(gated, d, " ")
     for (i = 1; i <= nd; i++) D[d[i]] = 1
+    # gatedpfx: comma-separated entries; each entry is space-separated words.
+    # Pwords[e,k] = kth word of entry e; Plen[e] = word count; nPfx = entries.
+    nPfx = 0
+    max_pfx_len = 0
+    ne = split(gatedpfx, entries, ",")
+    for (e = 1; e <= ne; e++) {
+      entry = entries[e]
+      gsub(/^[ \t]+|[ \t]+$/, "", entry)
+      if (entry == "") continue
+      nPfx++
+      nw = split(entry, words, /[ \t]+/)
+      Plen[nPfx] = 0
+      for (k = 1; k <= nw; k++) {
+        if (words[k] == "") continue
+        Plen[nPfx]++
+        Pwords[nPfx, Plen[nPfx]] = words[k]
+      }
+      if (Plen[nPfx] > max_pfx_len) max_pfx_len = Plen[nPfx]
+    }
     sq = sprintf("%c", 39)
   }
-  # True if t has an unquoted *, ?, [, or ~ (shell glob / tilde expansion).
-  function has_unquoted_glob_or_tilde(t,    i, c, inq) {
+  # Strip matching surrounding quotes, then remove any remaining quote chars.
+  function dequote_word(w,    q, last) {
+    if (length(w) >= 2) {
+      q = substr(w, 1, 1)
+      last = substr(w, length(w), 1)
+      if ((q == "\"" || q == sq) && last == q) {
+        w = substr(w, 2, length(w) - 2)
+      }
+    }
+    gsub(/"/, "", w)
+    gsub(sq, "", w)
+    return w
+  }
+  # True if t has an unquoted shell metachar that can trigger pathname/extglob/
+  # brace/tilde/=path expansion (* ? [ ] ~ { } ( ), or word-leading =).
+  # Mid-word = and bare @ are allowed. Not an exhaustive shell parser.
+  # Extglob needs its `(`, so rejecting ( ) already covers +( and !( -- a bare
+  # + ! or ^ carries no expansion meaning and must not deny a value like
+  # `--filter email=test+tag@example.com`.
+  function has_unquoted_shell_metachar(t,    i, c, inq, prev) {
     inq = ""
     for (i = 1; i <= length(t); i++) {
       c = substr(t, i, 1)
       if (inq != "") { if (c == inq) inq = ""; continue }
       if (c == sq || c == "\"") { inq = c; continue }
-      if (c == "*" || c == "?" || c == "[" || c == "~") return 1
+      if (c == "=") {
+        prev = (i == 1) ? "" : substr(t, i - 1, 1)
+        if (prev == "" || prev ~ /[ \t]/) return 1
+        continue
+      }
+      if (c == "*" || c == "?" || c == "[" || c == "]" || c == "~" || c == "{" || c == "}" || c == "(" || c == ")") return 1
     }
     return 0
   }
-  function check_clay(t,    rest, m, w, j, sc) {
+  # Dequote each token before option classification and prefix/subcommand gates.
+  function check_clay(t,    rest, m, w, j, sc, words, nw, e, pfx_match) {
+    # Same policy as helpers: unquoted shell metachars (* ? [ ] ~ { } ( ), or
+    # word-leading =) must not auto-approve; mid-word = and bare @ are
+    # allowed. Gate-compared prefix words must match
+    # ^[A-Za-z0-9][A-Za-z0-9_-]*$ (flag tokens skipped before this check).
+    if (has_unquoted_shell_metachar(t)) return 0
     rest = t
     sub(/^clay([ \t]+|$)/, "", rest)
     m = split(rest, w, /[ \t]+/)
     sc = ""
+    nw = 0
     for (j = 1; j <= m; j++) {
       if (w[j] == "") continue
+      w[j] = dequote_word(w[j])
       if (substr(w[j], 1, 1) == "-") continue
-      sc = w[j]; break
+      if (w[j] !~ /^[A-Za-z0-9][A-Za-z0-9_-]*$/) return 0
+      if (nw == 0) sc = w[j]
+      words[++nw] = w[j]
+      if (max_pfx_len > 0 && nw >= max_pfx_len) break
     }
-    gsub(/"/, "", sc); gsub(sq, "", sc)
+    for (e = 1; e <= nPfx; e++) {
+      if (nw < Plen[e]) continue
+      pfx_match = 1
+      for (j = 1; j <= Plen[e]; j++) {
+        if (words[j] != Pwords[e, j]) { pfx_match = 0; break }
+      }
+      if (pfx_match) return 0
+    }
     if (sc ~ /[][*?]/) return 0
     if (sc in D) return 0
     return 1
@@ -176,9 +250,11 @@ verdict="$(printf '%s' "$cmd_stripped" | awk -v helpers="$allowed_helpers" -v ga
       if (tok != "echo" && tok != "printf") return 0
       allow = 1
     }
-    # Shared across | and ; : refuse unquoted glob/tilde so echo/printf
-    # (and other helpers) cannot expand into a cwd listing under auto-approve.
-    if (allow && has_unquoted_glob_or_tilde(t)) return 0
+    # Shared across | and ; : refuse unquoted shell metachars (* ? [ ] ~ { } (
+    # ), or word-leading =) so echo/printf (and other helpers) cannot expand
+    # into a cwd listing under auto-approve; mid-word = and bare @ are
+    # allowed.
+    if (allow && has_unquoted_shell_metachar(t)) return 0
     if (allow && tok != "echo" && tok != "printf") {
       if (index(t, "/") > 0) return 0
       if (index(t, "~") > 0) return 0

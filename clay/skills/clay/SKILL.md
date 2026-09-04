@@ -20,6 +20,10 @@ Whatever you're doing in Clay, work transparently so the user can follow along:
   `clay whoami` and tell the user which workspace (id) and user you're authenticated
   as. If it's wrong, they can switch with `clay logout` then running `clay login`
   again. If whoami fails on auth, run the `setup` skill.
+- **Managed sessions can't manage the install.** Inside the Clay app your Clay session
+  and CLI version are provisioned for you: `clay login`, `clay logout`, `clay update`
+  and the `setup` / `update` skills are unavailable. If auth fails or the CLI is out of
+  date there, tell the user rather than trying to fix it.
 
 ## Answering "what can I do with Clay?"
 
@@ -117,7 +121,7 @@ Actions that consume credits (or count against plan/search limits) and require a
 first include running a routine, testing or resuming a workflow, and some types of search.
 
 Before running a credit-consuming routine, check its per-item `estimatedCreditCost`
-(`clay routines get <id>`) against the remaining workspace balance (`clay credits`). See the
+(`clay routines get <id>`) against the remaining workspace balance (`clay credits balance`). See the
 `routines` skill for how to size a run against the balance.
 
 ## Skills

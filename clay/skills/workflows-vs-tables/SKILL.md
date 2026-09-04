@@ -78,7 +78,10 @@ covered by the escalation order in `clay/SKILL.md`, not here.
   while building a workflow.
 - There's no automatic migration path from a table to a workflow. If a customer wants their table
   logic rebuilt as a workflow, that's a rebuild of the logic, not a data migration — their
-  existing table data stays where it is, and a workflow can read from it as-is.
+  existing regular-table data stays where it is. For a bulk enrichment table, rebuild from the
+  available source configuration and column DAG; use Audience configuration only when the source
+  includes it. A `rows list` response with `truncated: true` is only a bounded retained-row sample;
+  completed passthrough rows may already be deleted, so it is not a complete input dataset.
 
 ## Related skills
 

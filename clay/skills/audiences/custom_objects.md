@@ -251,6 +251,14 @@ also have a big deal" is two searches whose ids you intersect yourself, not one
 filter. State which reading you used when you report the answer; the difference is
 easy to get wrong and changes the number.
 
+### Never wrap deal predicates in a `ColOp`
+
+The plain `And` group above is already "some deal matches all of these" — there is
+no `AnyItems` / `AllItems` / `NoItems` layer to add. A `ColOp` with `dataPath:
+["opportunity"]` is not a valid shape (`ColOp` is only for `signal_events` and
+`activities`, see `filters.md`) and the server rejects it with a validation error.
+Keep `opportunity` `BinOp`s directly in the `GroupOp`.
+
 ## What to say when the answer must be per-deal
 
 The people/company root answers "who", and that covers most deal questions. Two
