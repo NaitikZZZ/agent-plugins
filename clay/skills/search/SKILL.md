@@ -50,6 +50,16 @@ Tell the user the field isn't a native search filter and offer this search → r
 rather than returning nothing. See the `routines` skill and "Next: enrich or persist the
 results" below for the handoff.
 
+## Warn before large generic searches
+
+Before `create`, if the ask is generic and large — few criteria beyond something like
+industry + location (e.g. "all tech companies in NYC") — stop and suggest refining first.
+Offer 2–3 concrete narrowing options search can express (company size, title/seniority,
+open roles, tech stack, products and services, named companies/domains, or a small result
+`limit`). Do not create until they confirm or narrow; continue with the broad query only if
+they insist. Skip when the ask is already clearly bounded. After they insist, still apply
+**Warn before near-exhaustion** below when relevant.
+
 ## Start a search
 
 ```bash
@@ -61,13 +71,30 @@ clay search query-mode create --query '<query>'
 
 ### Paging
 
-`run` returns `{ "data": [ ... ], "hasMore": <boolean> }`. `--limit` is the page size;
-omit it for the server default. Reuse the same `searchId`; each call returns the next
-page. Repeat while `hasMore` is `true`; stop when it is `false`.
+`run` returns `{ "data": [ ... ], "hasMore": <boolean>, "periodQuota"?: { "limit", "used",
+"remaining", "resetsAt" } }`. `--limit` is the page size. `periodQuota` appears on
+successful `run` responses only — not on `create`; do not invent values.
+Reuse the same `searchId`; each call returns the next page. Continue while `hasMore` is
+`true`, but after every `run` that returns `periodQuota`, apply **Warn before
+near-exhaustion** below before the next page. Stop when `hasMore` is `false`, or when the
+quota is near exhaustion — unless the user explicitly asks to continue.
 
 ```bash
 clay search query-mode run <searchId> [--limit <n>]
 ```
+
+## Warn before near-exhaustion
+
+When `periodQuota` is present, before a create or run that will consume `N` results (the
+volume you plan to pull, not the full match set), check `remaining − N`. If that would
+leave under 15% of `limit`, stop and ask first:
+
+> This search will return {{N}} results and leave {{remaining − N}} of your period quota.
+
+Continue only if they confirm. Otherwise offer a smaller pull that keeps at least 15%
+remaining, or stop. Skip when `periodQuota` is absent.
+
+Example: `limit` 10,000, `remaining` 2,000, `N` 1,500 → 500 left (5% of cap) → warn.
 
 ## Quotas (do not retry)
 
@@ -84,7 +111,16 @@ will not help. Read the error message and choose one of:
    with `--limit 10`.
 3. **Fully exhausted / credits** — already requested `N` equals the cap `M`, period reset
    date is the only path forward, or the message is about credits/usage. **Stop paging.**
-   Tell the user to upgrade or wait for the named period reset. Do not retry.
+   Tell the user to upgrade or wait for the named period reset. For upgrade, get the
+   workspace id, then share the plan selector:
+
+```bash
+clay whoami | jq -r '.workspace.id'
+```
+
+`https://app.clay.com/workspaces/<workspaceId>/billing/plan-selector`
+
+Do not retry.
 
 `validation_error` (exit 2) means malformed input (bad flags/filters/query), not a quota.
 `rate_limited` (exit 4) is a short HTTP 429 backoff and may be retried after `details.retryAfter`.

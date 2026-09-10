@@ -117,8 +117,9 @@ If a routines `estimatedCreditCost` is undefined, an estimate could not be gener
 
 ### Running low? Share a top-up link
 
-When the balance is low or short of the estimated cost, point the user at their billing
-page to add credits. Get the workspace id, then give them the link:
+When the balance is low or short of the estimated cost, if the `credits` skill is available,
+read it and follow that. Otherwise, point the user at their billing page to add credits. Get
+the workspace id, then give them the link:
 
 ```bash
 clay whoami | jq -r '.workspace.id'

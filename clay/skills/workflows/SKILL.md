@@ -303,9 +303,11 @@ don't guess at flags.
 ### Testing actions and code
 
 - `clay workflows actions test <packageId> <actionKey> [--inputs <json|file|->]` — consumes
-  credits. Returns `{ "result": <object>, "metadata"?: <object> }` — action fields live under
+  credits. Returns `{ "result": <json|null>, "metadata"?: <object> }` — action fields live under
   `.result` (use those for `$.result.<field>` wiring); `metadata` is credit/refund accounting when
-  the runner reports it. Discover `packageId`/`actionKey` with `clay workflows actions list`
+  the runner reports it. A `result` of `null` with `metadata.status` `SUCCESS_NO_DATA` means the
+  action ran fine and found nothing — that is a valid result, not an error.
+  Discover `packageId`/`actionKey` with `clay workflows actions list`
   (see `/workflows-discover-actions`), and the input shape with `clay workflows actions schema`.
 - `clay workflows code test --file <path|-> [--inputs <json|file|->] [--tools <json|file|->] [--packages <csv>]`
   — runs Python in a sandbox to test code before adding it to a node. The file must define
@@ -315,11 +317,17 @@ don't guess at flags.
   `--packages` installs extra pip packages. Exits 0 even on handler failure — inspect
   `isError` in the JSON, not the exit code.
 
-Both are single-shot previews with their own per-user daily caps — defaults ~25 action tests and
-~10 code tests, and a workspace can override either. Use them to confirm an input/output shape,
+Both are single-shot previews. External CLI users have per-user daily caps (defaults ~25 action
+tests and ~10 code tests, overridable per workspace). Clay's built-in GTM Agent and Workflows
+Sculptor are exempt.
+Use them to confirm an input/output shape,
 never to enrich or process a batch of records: for that use a managed routine
 (`clay routines runs start`), a table column, or a workflow node, none of which are subject to
 those caps.
+
+`rate_limited` (HTTP 429, exit 4) includes daily caps and temporary throttling. If the message
+says the daily allowance is exhausted, stop testing; do not sleep or retry in this session.
+`details.retryAfter` gives the delay in seconds.
 
 ### Triggers
 
