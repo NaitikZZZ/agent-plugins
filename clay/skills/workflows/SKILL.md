@@ -341,6 +341,14 @@ says the daily allowance is exhausted, stop testing; do not sleep or retry in th
   id, not the workflow's. Only the fields in `--input` change.
 - Delete: `clay workflows triggers delete <triggerId>` — trigger id again.
 
+**Webhook payloads:** the trigger URL (`webhookUrl` on `triggers get`) accepts a JSON body. An
+object body becomes the run inputs as-is, so `inputSchema` describes the object and downstream
+nodes read `$.email`. A top-level array body is stored whole under `payload`, never spread into
+index keys, so declare `"payload": { "type": "array", "items": { … } }` in `inputSchema` and read
+`$.payload[0].email` (or iterate it in a list-mode node with `listEntriesRef` `$.payload`). Senders
+like HubSpot post arrays of events, so check the sender's shape before writing the schema. When you
+control the sender, post an object.
+
 **Audience multi-segment sharing:** multiple `audience_segment` triggers (different `segmentId`s)
 may share one trigger node when they have the **same trigger type** and the **same outgoing edge**.
 Multiple `audience_scheduled` triggers may share a node when they also have the **same schedule**.

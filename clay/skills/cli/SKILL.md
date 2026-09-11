@@ -10,6 +10,27 @@ output and typed error codes. It authenticates via **`clay login`** (browser OAu
 run the `setup` skill once if `clay whoami` fails). The workspace is resolved from
 the stored session — there is no workspace id to pass.
 
+## Name the workspace you acted on
+
+Once the CLI knows which workspace a credential is for, every successful command's JSON
+carries a `workspace: { id, name }` key naming the workspace it authenticated as. More than
+one workspace can be signed in at once and the user cannot see which one the CLI is pointed
+at, so tell them: name it the first time you run a `clay` command in a conversation, and
+again whenever it changes. Don't repeat it on every result, and don't ask for it — the key is
+absent when a command never had to resolve the workspace, and when its result is a top-level
+JSON array with nowhere to put it.
+
+Each sign-in covers one workspace. To work across several, run `clay login` once per
+workspace (signing into a second keeps the first) and switch with
+`clay workspaces switch <id>`; `clay workspaces list` shows the ids. Signing in makes the
+workspace just added the active one, so switch explicitly to go back to another. When a
+payload carries no workspace key and you need to know, `clay workspaces current` answers
+directly. Inside a managed Clay session none of this applies: the session runs in the one
+workspace it was created in, and `clay login` / `clay logout` / `clay workspaces` are
+unavailable there. Never ask the user to sign in — but if they ask to work in a different
+workspace, tell them to switch workspaces in Clay and start a new chat there, since this
+session cannot move.
+
 ## Discovering commands
 
 When a user asks what they can do with Clay, use the `clay` skill when it is available — that is the table of

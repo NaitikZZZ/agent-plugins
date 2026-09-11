@@ -18,11 +18,12 @@ Whatever you're doing in Clay, work transparently so the user can follow along:
   short takeaway, table, or count. Reserve raw output for when the user asks.
 - **Confirm the workspace once.** The first time you use Clay in a session, run
   `clay whoami` and tell the user which workspace (id) and user you're authenticated
-  as. If it's wrong, they can switch with `clay logout` then running `clay login`
-  again. If whoami fails on auth, run the `setup` skill.
+  as. If it's wrong, `clay workspaces list` shows what is signed in and
+  `clay workspaces switch <id>` moves to another; `clay login` adds a workspace that
+  is not signed in yet and makes it active. If whoami fails on auth, run the `setup` skill.
 - **Managed sessions can't manage the install.** Inside the Clay app your Clay session
-  and CLI version are provisioned for you: `clay login`, `clay logout`, `clay update`
-  and the `setup` / `update` skills are unavailable. If auth fails or the CLI is out of
+  and CLI version are provisioned for you, for one workspace: `clay login`, `clay logout`,
+  `clay update`, `clay workspaces` and the `setup` / `update` skills are unavailable. If auth fails or the CLI is out of
   date there, tell the user rather than trying to fix it.
 
 ## Answering "what can I do with Clay?"

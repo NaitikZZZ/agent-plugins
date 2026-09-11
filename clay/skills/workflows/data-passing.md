@@ -89,13 +89,52 @@ Tool nodes (`nodeType: "tool"`) do **not** wire action inputs through
 
 Each value is one of:
 
-| `type`             | shape                                                                   | meaning                                                                                                                |
-| ------------------ | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `static`           | `{ "type": "static", "value": … }`                                      | fixed value baked into the node                                                                                        |
-| `reference`        | `{ "type": "reference", "expression": "{{var}}" }`                      | pull from an available variable (upstream output / trigger input)                                                      |
-| `item`             | `{ "type": "item", "path": "$.field" }`                                 | the current list item, in list mode (`$` = whole item, `$.field` = one field)                                          |
-| `reference` (item) | `{ "type": "reference", "expression": "https://{{__item.field}}/api" }` | mix the current list item into surrounding text (list mode); `{{__item}}` = whole item, `{{__item.field}}` = one field |
-| `skip`             | `{ "type": "skip" }`                                                    | leave the parameter unset                                                                                              |
+| `type`             | shape                                                                                         | meaning                                                                                                                |
+| ------------------ | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `static`           | `{ "type": "static", "value": … }`                                                            | fixed value baked into the node                                                                                        |
+| `reference`        | `{ "type": "reference", "expression": "{{var}}" }`                                            | pull from an available variable (upstream output / trigger input)                                                      |
+| `coalesce`         | `{ "type": "coalesce", "candidates": [{ "type": "reference", "expression": "{{var}}" }, …] }` | use the first non-empty candidate, in order                                                                            |
+| `item`             | `{ "type": "item", "path": "$.field" }`                                                       | the current list item, in list mode (`$` = whole item, `$.field` = one field)                                          |
+| `reference` (item) | `{ "type": "reference", "expression": "https://{{__item.field}}/api" }`                       | mix the current list item into surrounding text (list mode); `{{__item}}` = whole item, `{{__item.field}}` = one field |
+| `skip`             | `{ "type": "skip" }`                                                                          | leave the parameter unset                                                                                              |
+
+### Merge mappings after conditional branches
+
+Use a `coalesce` mapping when conditional branches converge on a Clay action and
+one action parameter should take the value produced by whichever branch ran. Add
+one `reference` candidate per branch, in the intended priority order:
+
+```json
+{
+  "inputMappingConfig": {
+    "email": {
+      "type": "coalesce",
+      "candidates": [
+        { "type": "reference", "expression": "{{email_from_work_enrichment}}" },
+        { "type": "reference", "expression": "{{email_from_crm}}" },
+        { "type": "static", "value": "unknown@example.com" }
+      ]
+    }
+  }
+}
+```
+
+Candidates are ordered fallbacks. Resolution moves to the next candidate only
+when the previous value is `null`, `undefined`, or an empty string; `false`,
+`0`, empty arrays, and empty objects are values and do not fall through. A
+candidate can be only `reference` or `static`; do not nest `coalesce`, `map`,
+`item`, `skip`, or LLM mappings inside it.
+
+Every referenced variable must already be available to the converged node
+through its `inputSchema`/`inputRefs` or the upstream transition mapper. The
+node must be reachable from every referenced branch. After saving, run
+`clay workflows graph validate <workflowId>` and fix any "required input is not
+available on every execution path" issue before testing.
+
+Use merge mappings only for a small number of direct values or simple
+`{{variable}}` string templates consumed by one node. For transformations more
+complex than that, or when multiple downstream nodes need the merged value, use
+a code node to produce a named output and reference that output downstream.
 
 **Pipe keys (`parent|sub`):** grouped/nested action parameters are addressed
 with a pipe. A `fields` group with `domain` and `fieldsToFilterBy` sub-fields is

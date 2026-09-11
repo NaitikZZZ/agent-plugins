@@ -96,31 +96,28 @@ remaining, or stop. Skip when `periodQuota` is absent.
 
 Example: `limit` 10,000, `remaining` 2,000, `N` 1,500 → 500 left (5% of cap) → warn.
 
-## Quotas (do not retry)
+## Quotas
 
 If a create or run fails with `quota_exceeded` (exit 1, HTTP 402), the workspace has hit a
 plan result cap (per-request, per-search, or period) or a credit/usage limit. Short backoff
 will not help. Read the error message and choose one of:
 
-1. **Per-request size** — message names a "per request" limit. Retry once with
-   `--limit` ≤ that cap (e.g. free plans often allow 50 per request).
-2. **Partial per-search or period remaining** — message says you have already requested
-   `N` of a single-search or period cap of `M`, and `N < M`. The page was larger than the
-   remaining allowance. Retry once with `--limit` ≤ `M − N` to collect the last allowed
-   results, then stop. Example: cap 50, already requested 40, `--limit 20` failed → retry
-   with `--limit 10`.
-3. **Fully exhausted / credits** — already requested `N` equals the cap `M`, period reset
-   date is the only path forward, or the message is about credits/usage. **Stop paging.**
-   Tell the user to upgrade or wait for the named period reset. For upgrade, get the
-   workspace id, then share the plan selector:
-
-```bash
-clay whoami | jq -r '.workspace.id'
-```
-
-`https://app.clay.com/workspaces/<workspaceId>/billing/plan-selector`
-
-Do not retry.
+1. **Per-request size** — message names a "per request" limit. This is the only exception:
+   reissue once with `--limit` ≤ that cap (e.g. free plans often allow 50 per request).
+2. **Per-search, period, or credits** — anything else. Stop spending allowance: no further
+   `run` at any `--limit` (including 1), and no new `create` to work around a per-search
+   cap. The report is the finished deliverable. Give the short cap account from the error
+   (upgrade, named period reset, or contact support). Always include the plan selector —
+   resolve `<workspaceId>` with `clay whoami | jq -r '.workspace.id'` when the error has no
+   URL: `https://app.clay.com/workspaces/<workspaceId>/billing/plan-selector` (bare URL;
+   prefer a plan-selector URL from the error when present). If the error includes an upgrade
+   URL or upgrade copy, make that selector extremely prominent: near the top of the reply
+   and again as the last line (`Upgrade your plan now at: <url>`). If the error says to
+   contact support, lead with that path and still add one plan-selector line so they can
+   self-serve if they prefer. Also share the public search docs for follow-up questions:
+   `https://developers.clay.com/searches#result-limits`. If the user asks to upgrade their
+   plan, open the plan selector link for them. Pull a remainder only if they ask for it in a
+   later message after that report; the original request for N results is not that ask.
 
 `validation_error` (exit 2) means malformed input (bad flags/filters/query), not a quota.
 `rate_limited` (exit 4) is a short HTTP 429 backoff and may be retried after `details.retryAfter`.
