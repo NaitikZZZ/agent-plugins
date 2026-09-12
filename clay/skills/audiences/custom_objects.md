@@ -3,14 +3,11 @@
 Read this whenever the request touches **deals** or **opportunities** — including
 any of the GTM phrasings in "Recognizing deal language" below.
 
-**Deals are filterable — but a deal query is rooted at people or companies.** Any
-deal criterion you can name (won, open, stage, amount, close date, deal source,
-CRM role) is expressible; you write it as a predicate inside a **people** or
-**companies** search rather than as a filter over deals. That is Clay's data model,
-not a CLI limitation, and it is exactly what the product UI does: open the Filters
-panel on People and there is a **Deals** section — Is won, Stage, Amount, Close
-date, Deal creation date, Role — sitting alongside People attributes. Read
-"Filtering deals" below before you conclude anything is unsupported.
+**Query deals directly with the DSL `opportunities` root.** Use `count from
+opportunities where ...` for a deal count and `select from opportunities where ...`
+for deal IDs. See `queries.md` for DSL syntax. If the user wants the associated
+people or companies instead, root the query there and filter by related deals.
+The AST examples below describe that people/company filtering path.
 
 ## What a deal is in Audiences
 
@@ -42,8 +39,8 @@ workaround.
 | Command                                 | `deals`?                                            |
 | --------------------------------------- | --------------------------------------------------- |
 | `audiences records get`                 | **Yes**                                             |
-| `audiences records search-count`        | **Yes — whole population only** (see below)         |
-| `audiences records search-ids`          | **Yes — whole population only** (see below)         |
+| `audiences records search-count`        | **Yes — filtered via DSL** (see below)              |
+| `audiences records search-ids`          | **Yes — filtered via DSL** (see below)              |
 | `audiences fields list`                 | **Yes**                                             |
 | `audiences fields create/update/delete` | No — deals are read-only                            |
 | `audiences fields segments`             | No — no audience can reference a deal field         |
@@ -66,8 +63,8 @@ companies.
 
 The two search commands take `deals`, but with **no scope**: `--audience-id`, or a
 `--filter` with any clauses in it, exits 2 with `validation_error` asking for an
-unfiltered scope. The filter compiler resolves a query against a people or company
-base entity, so `--entity-type deals` has nothing to hang a predicate on.
+unfiltered scope. This restriction applies to the AST path. To filter deals directly, omit
+`--entity-type` and use `--query` with the `opportunities` root.
 
 ```bash
 clay audiences records search-count --entity-type deals                          # ✅ every deal — the denominator
@@ -77,8 +74,12 @@ clay audiences records search-count --entity-type deals --audience-id audseg_a  
 ```
 
 Use `--entity-type deals` for the two questions it answers well — the total deal
-count (a denominator for any rate) and a full enumeration. Every **selective** deal
-question goes through the next section instead.
+count (a denominator for any rate) and a full enumeration. For selective queries:
+
+```bash
+clay audiences records search-count --query 'count from opportunities where is_closed = false'
+clay audiences records search-ids --query 'select from opportunities where is_closed = false' --limit 10
+```
 
 ## Deal field ids
 
@@ -148,8 +149,8 @@ its own set). `is_won` / `is_closed` are normalized, so build on those and treat
 ## Recognizing deal language
 
 These phrasings all mean deal records. When you see one you are in this file, and
-the query is a **people or companies** search carrying the predicate in the right
-column — see "Filtering deals" below.
+choose the root based on the requested result: `opportunities` for deals,
+or people/companies for their associated contacts/accounts.
 
 | The user says                                                                                                             | Predicate                              |
 | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
@@ -169,9 +170,9 @@ Quota, attainment, and net revenue retention are **derived** numbers — Clay
 stores the deals, not the target. Compute them from `amount` and say what you
 divided by.
 
-## Filtering deals: root the query at people or companies
+## Filtering people or companies by their deals with AST
 
-**This is the main path for every selective deal question.** A people or companies
+**Use this path for people/company results or saved audiences.** A people or companies
 filter reaches into their deals with a cross-entity `BinOp` — `entityType:
 "CUSTOM"` plus an `opportunity` `dataPath` root. Any deal field works as the
 predicate, so "who has a closed-won deal", "accounts with a deal over $50k", and
@@ -211,11 +212,8 @@ they differ in what comes back:
 | `companies` | the accounts the deals belong to   | "which customers…", "accounts with open pipeline", anything account-level |
 | `people`    | the contacts attached to the deals | "who should I email", "champions on won deals", anything person-level     |
 
-**The person or company _is_ usually the answer.** A deal-shaped question is almost
-always really a who-question — who to email, which accounts to prioritize, whose
-renewal is coming. Rooting at people or companies hands that back directly, which is
-why this shape is the right one rather than a detour. Lead with those records, and
-reach for deal detail only when the user actually wants per-deal figures.
+For per-deal figures or matching deal IDs, use the DSL `opportunities` root.
+Choose people/company results only when the user asks about associated contacts/accounts.
 
 ### `Role` is the one deal field with a different path
 
@@ -261,20 +259,13 @@ Keep `opportunity` `BinOp`s directly in the `GroupOp`.
 
 ## What to say when the answer must be per-deal
 
-The people/company root answers "who", and that covers most deal questions. Two
-things it does not give you, worth naming rather than working around:
+Use `count from opportunities where ...` for the matching deal count, then
+`select from opportunities where ...` for matching deal IDs. Read those IDs with
+`records get --entity-type deals --ids ...`.
 
-- **Counts are of records, not deals.** `search-count --entity-type companies
---filter ./won.json` is "how many **accounts** have a won deal", not how many won
-  deals exist — an account with three won deals counts once. So "how many deals are
-  in negotiation" has no single-call answer: report the account count with that
-  wording, and use `search-count --entity-type deals` if a total-deal denominator
-  helps. Never present an account count as a deal count.
-- **No record → deal-id walk in the CLI.** `records get` returns a person's or
-  account's own fields, not their related deal ids, so after a match you cannot list
-  _which_ deals matched. Report the people or companies (usually what was wanted),
-  and use `records get --entity-type deals` only for deal ids the user supplies or
-  you already hold.
+A people/company root counts contacts/accounts, not deals: an account with three
+matching deals counts once. Never present that account count as a deal count.
+
 - **Deals cannot be sorted yet.** Neither search command orders its results and
   neither takes a sort flag — `search-ids` returns ids in ascending id order — so
   "the biggest wins", "top 10 by amount", and "the most recent closes" have no

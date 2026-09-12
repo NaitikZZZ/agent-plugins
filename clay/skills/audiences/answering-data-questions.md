@@ -25,30 +25,40 @@ they are the right answer only when the user names a table.
 
 **If the answer could already be a field in Audiences, read it. Only reach for an
 enrichment when the data genuinely isn't there.** Enrichments cost credits and
-tens of seconds per record; a `search-count` is free and instant. Getting this
-order backwards spends the user's money to rediscover data they already have.
+tens of seconds per record; `search-count` computes the count server-side without
+enrichment. Getting this order backwards spends the user's money to rediscover
+data they already have.
 
 The sequence:
 
-1. **List the fields once.** Save the output — do not re-run `fields list` to
-   slice it a different way, and never parse the skill markdown to find ids.
+1. **Resolve the fields.** Use the default IDs documented in `SKILL.md` for
+   standard fields. For custom or ambiguous fields, list fields once and save
+   the output — do not re-run it to slice the response a different way.
 
    ```bash
-   clay audiences fields list --entity-type people > /tmp/people-fields.json
+   clay audiences fields list --entity-type people --include-system > /tmp/people-fields.json
    jq -r '.data[] | "\(.id)  \(.dataType)  \(.name)"' /tmp/people-fields.json
    ```
 
-2. **Check the fill rate** before you build anything on a field. Two server-side
-   counts, both cheap:
+2. **Check coverage when it affects the answer.** Before relying on an unfamiliar
+   field, or diagnosing zero matches, check whether it is populated. Read
+   `queries.md` before writing DSL. For example:
 
    ```bash
-   clay audiences records search-count --entity-type people                       # total
-   clay audiences records search-count --entity-type people --filter ./has.json   # populated
+   clay audiences records search-count --query 'count from people where title is_not_null'
    ```
 
-   where `has.json` is a `NotEmpty` `BinOp` on the field (see `filters.md`).
+   Fetch a total count too if the user needs a fill-rate percentage. A simple
+   request with known fields need not start with a separate coverage audit.
 
-3. **Then** answer the question, or — if the field is sparse or missing —
+3. **Resolve ambiguous values with a bounded sample.** For categories such as
+   department, role, industry, or seniority, get a small page of records with
+   the field populated, then read those values with `records get`. A sample
+   helps choose a predicate; it is not an exhaustive vocabulary or proof that
+   a value is absent. Do not issue a count for every guessed synonym. If the
+   sample leaves a material ambiguity, state the interpretation or ask.
+
+4. **Then** answer the question, or — if the field is sparse or missing —
    recommend an enrichment (below).
 
 A fill rate is also the fastest way to tell an empty field from a wrong filter.
@@ -106,7 +116,7 @@ Each of these showed up in a real session and cost 10-45 seconds for nothing:
   differently. Write it to a file once.
 - **`python3 -c` against the skill markdown** to extract field ids. The docs are
   for you to read; the ids come from `fields list`.
-- **Reading the skill file only after the failures.** `filters.md` and
+- **Reading the skill file only after the failures.** `queries.md`, `filters.md`, and
   `custom_objects.md` are cheaper than one failed filter.
 - **Retrying a `validation_error` unchanged.** Exit 2 means the request was
   malformed — re-read the shape, don't re-send it. `--entity-type deals` on a

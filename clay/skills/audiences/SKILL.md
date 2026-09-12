@@ -16,19 +16,21 @@ without naming a surface, they mean these records — start here, not in the tab
 entry-point skill (a separate surface, right only when the user names a table) and not in
 `search` (net-new prospects that are not in the workspace yet).
 
-Read this before any audiences work. Four supporting references:
+Read this before any audiences work. Supporting references:
 
 - `answering-data-questions.md` — **read this first for any "how many / who has /
   look up X" question.** Covers reading existing fields before paying for an
   enrichment, checking fill rates, and what to do when the data is mostly missing.
+- `queries.md` — **read before writing a `--query`.** Audiences DSL grammar,
+  relationship semantics, and count/ID examples.
 - `filters.md` — writing the filter AST that defines an audience. Read it before
   you author or edit a filter.
 - `custom_objects.md` — **deals / opportunities.** Read it before anything that
   touches them, including GTM phrasings that mean deals: closed-won, closed-lost,
   open pipeline, deal stage, deal size / ACV / ARR, close date, forecast, win rate,
-  renewal, expansion, churn, "our customers". Deals are read-only, and a deal
-  query is rooted at **people or companies** — you filter people or companies
-  by their deals rather than filtering deals directly.
+  renewal, expansion, churn, "our customers". Deals are read-only. Use the DSL
+  `opportunities` root for deal counts and IDs; use people/company roots when
+  the requested results are contacts/accounts associated with those deals.
 - The `workflows` skill's `audiences.md` — writing values onto records (the
   `upsert-audiences-record` action) and triggering a workflow off an audience.
 
@@ -60,9 +62,8 @@ mapping right up front — it is the most common source of wasted round trips.
 
 Everything under `clay audiences records`, plus `fields list`, accepts `deals`;
 the audience commands and the other `fields` subcommands take `people` or
-`companies` only. CLI output can also carry `entityType: "deals"`. Note that a
-_selective_ deal query is written as a `people` or `companies` search whose filter
-reaches into deals — for anything deal-shaped, read `custom_objects.md` first.
+`companies` only. CLI output can also carry `entityType: "deals"`. For selective
+deal queries, use the DSL `opportunities` root; read `custom_objects.md` first.
 
 Workflow **triggers** use the middle spelling: an `audience_segment` trigger's
 `segmentId` is the audience id from `clay audiences list`, and its `entityType`
@@ -142,28 +143,29 @@ clay audiences records search-ids   --entity-type people --audience-id <id>   # 
 clay audiences records get --entity-type people --ids 1,2,3                   # field values, max 100 ids
 ```
 
-Scope for both search commands (`--audience-id` and `--filter` are mutually
-exclusive):
+Scope for both search commands (`--query`, `--audience-id`, and `--filter` are
+mutually exclusive):
 
-- neither flag → every record of the entity type
+- no scope flag → every record of the entity type
+- `--query <dsl>` → preferred for ad-hoc searches; omit `--entity-type`
+  (combining them is an error). Use `count from ...` for `search-count` and
+  `select from ...` for `search-ids`. Read `queries.md` before constructing the query
 - `--audience-id <id>` → a saved audience's records
-- `--filter <json|file|->` → an ad-hoc filter, matching exactly what an audience
+- `--filter <json|file|->` → AST fallback for unsupported DSL constructs, matching exactly what an audience
   built from that filter would hold
 
 Add `--archived` to either to search archived records instead of live ones.
 
-**`search-count` is the workhorse.** It answers "how many" server-side for free
-and instantly, and a `NotEmpty` filter on a field turns it into a fill-rate check
-— run that before building anything on a field, and before proposing an
-enrichment. See `answering-data-questions.md`.
+**Use `search-count` for "how many".** It counts server-side without fetching
+every ID. A field's `is_not_null` query (or `NotEmpty` AST filter) checks coverage
+when relying on unfamiliar data or proposing an enrichment. See
+`answering-data-questions.md`.
 
-All three commands take `--entity-type deals`, but a deal search accepts **no
-scope** — `--audience-id` or a non-empty `--filter` with `deals` is a
-`validation_error`. So `--entity-type deals` covers the whole population (total
-count, full id enumeration), while a **selective** deal question is a `people` or
-`companies` search whose filter reaches into their deals. That root is also what
-the user usually wants back — which contacts or accounts the deals belong to. See
-`custom_objects.md`.
+For filtered deal counts and IDs, use `--query` with the `opportunities` root.
+`--entity-type deals` without a query still covers the whole population; combining
+it with `--audience-id` or a non-empty `--filter` is a validation error.
+The `activities` root supports counts; activity IDs are strings and cannot use
+`search-ids`' numeric pagination. See `queries.md` and `custom_objects.md`.
 
 `search-ids` returns ids only — feed them to `records get --ids` in batches of
 100 for field values, keyed by field id (unset fields may be omitted). Records
