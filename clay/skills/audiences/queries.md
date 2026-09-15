@@ -16,10 +16,12 @@ clay audiences records search-ids --query 'select from companies where domain = 
 Use `count from <root> where ...` with `search-count` to count the entire match set.
 Use `select from people|companies|opportunities where ...` with `search-ids` to return `.data` and an optional `.cursor`.
 To count and fetch IDs for the same scope, keep the `from ... where ...` clause and
-change only `count` to `select`; the commands do not rewrite the query for you.
-When paging IDs, repeat the same `select` query and
+change `count` to `select`; add `order by` only to the `select` query when ranking.
+The commands do not rewrite the query for you.
+When paging unsorted IDs, repeat the same `select` query and
 pass the cursor verbatim to `--cursor`; stop when it is absent. Use `--limit` for
-ID page size, not a DSL limit clause. Counts cover the whole scope even when
+ID page size, not a DSL limit clause. Sorted queries instead return bounded top-N
+IDs without a cursor (see below). Counts cover the whole scope even when
 the count query includes a limit. `--archived` searches archived records.
 The query's `from` root determines what is counted or returned; omit
 `--entity-type`. The flag is required for AST, saved-audience, and unfiltered
@@ -48,13 +50,91 @@ The root determines what is returned: the first query returns deals, the second 
 Activity predicates can use typed fields, for example
 `count from activities where task.subject contains "demo"`.
 
+## Sorting and top-N results
+
+**Server-side sorting is the best way to answer "Top N" questions supported by
+the DSL** — for example, the biggest deals, companies with the most employees,
+or alphabetically first contacts. Use `order by` with `--limit N`, then
+fetch details for those IDs only. Do not paginate through the full record set
+and sort it locally, and do not sort an arbitrary first page and call it the
+workspace's top N. Ranking applies across the full matching scope before the limit.
+
+Use `order by <field> [asc|desc]` in a `search-ids --query` to rank people,
+companies, or opportunities by one field on the returned entity. Discover the
+field first with `clay audiences fields list --entity-type people|companies|deals`;
+use its ID or an unambiguous normalized display name. Supported sort fields are
+text, email, URL, number, currency, and date fields with search mappings. Native
+`id` and `created_at` columns are also sortable. Ascending is the default.
+Missing values come last in both directions, with ascending record ID breaking
+ties.
+
+**Check the field type before sorting.** Inspect `dataType` from `fields list`
+for the selected entity; do not infer it from the field name or a screenshot of
+returned values. For example:
+
+```bash
+clay audiences fields list --entity-type deals --include-system --filter 'id=amount' | jq '.data[] | {id, name, dataType}'
+```
+
+Number and currency fields sort by numeric value; text, email, and URL fields sort
+lexicographically, even when their contents look like numbers. Ascending numbers
+`2, 10, 100` and text `"10", "100", "2"` have different orderings. Amount,
+revenue, score, and other numeric rankings require `dataType: "number"` or
+`dataType: "currency"`; date rankings require a date field. Do not interpret numeric-looking text as a numeric
+Top N result.
+
+If a field representing numeric values is typed as text, explain the mismatch
+and recommend correcting the **Audiences field type** to number before ranking.
+Do not silently sort it as text, invent a DSL cast, or fetch every record to
+convert and sort locally. A ranking request alone does not authorize a schema
+change. If the field is managed and its type cannot be edited, recommend a
+correctly typed replacement or a correction to its source mapping.
+
+After a type correction, wait for conversion to finish and recheck the ranking;
+a metadata change alone does not prove the searchable values have converted.
+When validating an unfamiliar or recently converted field, inspect a small set
+of returned values in the original ID ranking. Different digit lengths, negative
+values, or decimals help distinguish numeric from text order; equal-width
+positive numbers can look correct under either. If metadata and observed order
+disagree, report the uncertainty instead of claiming a verified numeric ranking.
+
+```bash
+# After verifying amount is a number or currency field:
+# top 10 won deals and the total count.
+clay audiences records search-ids --query 'select from opportunities where is_won = true order by amount desc' --limit 10
+clay audiences records search-count --query 'count from opportunities where is_won = true'
+
+# Alphabetically first companies with a domain.
+clay audiences records search-ids --query 'select from companies where domain is_not_null order by domain asc' --limit 10
+```
+
+- `--limit` sets the maximum returned IDs (default 50, max 10,000). An optional
+  DSL `limit` after `order by` further caps it: the smaller limit wins. Specify
+  `--limit 100` explicitly when requesting the top 100.
+- Sorted results preserve ranking in `.data` and **never return a cursor**,
+  even when more records match. Do not interpret this as the full match set.
+  `--cursor` with `order by` is rejected; sorted pagination is not supported.
+- Count the same `from ... where ...` scope with `search-count`, removing
+  `order by` and `limit`. Count queries reject ordering and count all matches,
+  not just the selected top N.
+- Fetch only the returned IDs with `records get` when field values are needed;
+  retain the original ID ranking when presenting hydrated records. Do not fetch
+  every candidate and sort locally. A small N bounds the returned result, but
+  ranking can still scan a large workspace; narrow filters when appropriate.
+- Only one same-entity field is sortable. Related-field ordering, aggregate
+  expressions such as summing closed-deal amounts per account, and multiple sort
+  keys are unsupported. Relationship predicates can still filter the candidates.
+  There is no separate sort flag. This syntax is for Audiences, not CPJ search.
+
 ## Supported DSL grammar
 
 This is the syntax supported by **Audiences**. In the sketch below, `[ ... ]`
 means optional and `|` means alternatives; neither is literal query text.
 
 ```text
-query       := (select | count) from (people | companies | opportunities | activities) [where predicate] [limit integer]
+query       := select from root [where predicate] [order by field [asc | desc]] [limit integer]
+             | count from root [where predicate] [limit integer]
+root        := people | companies | opportunities | activities
 predicate   := term [or term ...]
 term        := factor [and factor ...]
 factor      := not factor | (predicate) | comparison | relationship_test
@@ -72,8 +152,9 @@ unit        := day | week | month | year
 ```
 
 - **Query shape:** omit `where` to match every record. Use `select from`, not
-  `select * from`, and `count from`, not `select count(*)`. `search-ids` rejects
-  a DSL `limit`; use `--limit` and `--cursor`. Native count queries accept a limit
+  `select * from`, and `count from`, not `select count(*)`. Unsorted `search-ids`
+  rejects a DSL `limit`; use `--limit` and `--cursor`. Sorted ID queries accept a
+  DSL limit but do not support cursors. Native count queries accept a limit
   but count the whole scope.
 - **Fields:** use an existing field ID such as `email`, or the intrinsic fields
   `id` and `created_at`. Use `people.email` from companies and `company.domain`
@@ -100,10 +181,10 @@ unit        := day | week | month | year
 - **Empty values:** use `email is_null` or `email is_not_null`, without a value
   argument. These use Audiences empty/not-empty semantics, so an empty text value
   is not populated. Do not write `email = null` or `email is not null`.
-- **Unavailable here:** selected-column lists, SQL joins/subqueries, `order by`,
+- **Unavailable here:** selected-column lists, SQL joins/subqueries,
   `group by`, `limit ... by`, `is_similar_to`, `clay.*` functions, jobs, and nested
-  relationship calls. Activities, signals, deals, and other CPJ relationships
-  require an equivalent supported AST filter when available. The executor's
+  relationship calls. For unsupported relationship predicates, use an equivalent
+  supported AST filter when available. The executor's
   `$name` variables require API bindings; these CLI commands have no binding flag,
   so provide literal values.
 

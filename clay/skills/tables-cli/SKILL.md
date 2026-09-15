@@ -10,13 +10,13 @@ run the `setup` skill.
 
 ## Finding a table
 
-Resolve it to a `tbl_...` id. Use `clay tables list --filter workbook.id=<wb_...>`
+Resolve it to a `t_...` id. Use `clay tables list --filter workbook.id=<wb_...>`
 when the workbook is known (`clay workbooks list`), otherwise `clay tables list` and
 pick by `.name` with `jq`. Do not use `--filter queryEnabled=true` unless you only want
 query-synced tables — it hides the rest. If the user named no table or workbook,
 ask rather than sweeping the workspace.
 
-ID prefixes: `tbl_` table, `f_` column, `rec_` row, `wb_` workbook.
+ID prefixes: `t_` table, `f_` column, `r_` row, `wb_` workbook.
 
 ## Not supported
 
@@ -29,8 +29,9 @@ ID prefixes: `tbl_` table, `f_` column, `rec_` row, `wb_` workbook.
 
 ## CLI: `clay tables`
 
-Prefer `columns` / `get` / `rows` / `query-live` for everyday work; use
-`clay tables query` when you need synced Enterprise joins/pagination.
+Prefer `columns list|get` / `get` / `rows list|get` / `query-live` for everyday work; use
+`clay tables query` when you need synced Enterprise joins/pagination. (`columns` and
+`rows` are command groups — `clay tables columns <tableId>` is not a command.)
 
 **Availability:** `clay tables query` requires **API table sync** (Enterprise).
 Without sync, `clay tables query` and `clay tables update --query-enabled true`
@@ -49,6 +50,10 @@ Pick by how much querying power you need:
 - **Read rows directly** — `clay tables get`, `columns`, `rows list/get`. Works on
   any table with no setup. Filtering is exact-match only (`rows list --filter col=value`,
   ANDed together). Best for quick lookups and pulling cell values as-is.
+  `rows list` returns `data[].cells` keyed by column id — each cell is an object
+  (`{ "cells": { "<f_id>": { "status": ..., "value": ... } } }`), not a flat
+  `{ "<f_id>": <value> }` map (synced `query` cells are `{status, value}` objects too —
+  see below). Pages with `--limit` (1-100, default 20) and `--cursor`.
 - **Query live (ClayQL)** — `clay tables query-live`. Structured ClayQL against the
   table's live Postgres data — no Enterprise sync required. Use `columns get` / `get`
   to learn the schema before writing the query.
@@ -99,8 +104,8 @@ Enterprise sync required. Learn column names with `columns get` / `get` first; o
 any `FROM` clause (the table comes from `<tableId>`):
 
 ```bash
-clay tables columns get tbl_abc123
-clay tables query-live tbl_abc123 --query 'SELECT {{Name}}, {{ARR}} ORDER BY {{ARR}} DESC LIMIT 10'
+clay tables columns get t_abc123
+clay tables query-live t_abc123 --query 'SELECT {{Name}}, {{ARR}} ORDER BY {{ARR}} DESC LIMIT 10'
 ```
 
 See `clay tables query-live --help` for output shape and errors. Output is
@@ -116,8 +121,8 @@ export when sync _is_ available, prefer synced `query` + cursor paging instead.
 it with `update`:
 
 ```bash
-clay tables update tbl_abc123 --query-enabled true    # { id, queryEnabled: true }
-clay tables update tbl_abc123 --query-enabled false
+clay tables update t_abc123 --query-enabled true    # { id, queryEnabled: true }
+clay tables update t_abc123 --query-enabled false
 ```
 
 - **Not instant.** Enabling prepares the table in the background. A `query` run too soon
@@ -134,12 +139,12 @@ or reading past 100 rows. The query is read from a file or stdin via `--query`.
 
 ```bash
 clay tables query --query ./query.json | jq '.data | length'
-echo '{"tables":[{"id":"tbl_abc123"}]}' | clay tables query --query - --limit 100
+echo '{"tables":[{"id":"t_abc123"}]}' | clay tables query --query - --limit 100
 clay tables query --query ./query.json --limit 100 --cursor cursor_abc123
 ```
 
 - The `--query` payload is the query itself (what to fetch); pagination is separate.
-  Minimal shape: `{ "tables": [{ "id": "tbl_..." }] }`. Beyond `tables`, it may include
+  Minimal shape: `{ "tables": [{ "id": "t_..." }] }`. Beyond `tables`, it may include
   `filter`, `select`, `join`, `order_by`, `group_by`, and `field_mode`. Field references
   can use ids or names. See `clay tables query --help` for the most up to date information.
 - Pagination is via flags: `--limit <n>` (1–100, default 50) and `--cursor <token>`.
@@ -175,15 +180,15 @@ page with `LIMIT`/`OFFSET` and append each page so the CSV isn't truncated at 10
 
 ```bash
 clay tables list --filter queryEnabled=true | jq -r '.data[] | [.id, .name] | @tsv'
-# tbl_accounts123   Accounts
-# tbl_contacts456   Contacts
+# t_accounts123   Accounts
+# t_contacts456   Contacts
 ```
 
 **2. Get each table's schema** so you know field ids, types, and the join key.
 
 ```bash
-clay tables columns get tbl_accounts123
-clay tables columns get tbl_contacts456
+clay tables columns get t_accounts123
+clay tables columns get t_contacts456
 ```
 
 Say `Accounts` has `f_industry` (text) and `f_account_id`, and `Contacts` has
@@ -193,19 +198,19 @@ Say `Accounts` has `f_industry` (text) and `f_account_id`, and `Contacts` has
 query. Use the field ids from step 2.
 
 ```bash
-clay tables update tbl_accounts123 --query-enabled true
-clay tables update tbl_contacts456 --query-enabled true
+clay tables update t_accounts123 --query-enabled true
+clay tables update t_contacts456 --query-enabled true
 ```
 
 ```bash
-echo '{"tables": [{ "id": "tbl_contacts456" }, { "id": "tbl_accounts123" }], "join": [{ "table": "tbl_accounts123", "on": { "left": "f_company", "right": "f_account_id" } }], "filter": { "field": "f_industry", "op": "contains", "value": "software" }}' | clay tables query --query - --limit 100 | jq '.data | length'
+echo '{"tables": [{ "id": "t_contacts456" }, { "id": "t_accounts123" }], "join": [{ "table": "t_accounts123", "on": { "left": "f_company", "right": "f_account_id" } }], "filter": { "field": "f_industry", "op": "contains", "value": "software" }}' | clay tables query --query - --limit 100 | jq '.data | length'
 ```
 
 **4. Page past 100 rows** by passing the previous response's `cursor` back via
 `--cursor` until the response no longer returns one:
 
 ```bash
-echo '{"tables": [{ "id": "tbl_contacts456" }, { "id": "tbl_accounts123" }], "join": [{ "table": "tbl_accounts123", "on": { "left": "f_company", "right": "f_account_id" } }], "filter": { "field": "f_industry", "op": "contains", "value": "software" }}' | clay tables query --query - --limit 100 --cursor CURSOR_FROM_PREVIOUS_RESPONSE | jq -c '.data[]'
+echo '{"tables": [{ "id": "t_contacts456" }, { "id": "t_accounts123" }], "join": [{ "table": "t_accounts123", "on": { "left": "f_company", "right": "f_account_id" } }], "filter": { "field": "f_industry", "op": "contains", "value": "software" }}' | clay tables query --query - --limit 100 --cursor CURSOR_FROM_PREVIOUS_RESPONSE | jq -c '.data[]'
 ```
 
 `clay tables query --help` lists the top-level query keys and pagination flags. Inner

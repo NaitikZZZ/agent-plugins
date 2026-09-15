@@ -19,7 +19,7 @@ Structure gives the edges; the row gives the values along them. You need both.
 
 ## 1. Anchor to the row and the target cell
 
-You need this row and the target column. If you don't have the row yet, locate it first (`/tables-trace`, or a single value search — `tables query` when the table is query-enabled, else `rows list --filter`). Identify the **target column** — the one whose value, error, or non-run you're explaining — and its `f_id`. The explanation needs the row's full cell data — every cell's `status`, `value`, `fields`, and `error`; a `tables query` result already carries all of that, and `rows get` provides it when you hold a `rec_...` id (step 3).
+You need this row and the target column. If you don't have the row yet, locate it first (`/tables-trace`, or a single value search — `tables query` when the table is query-enabled, else `rows list --filter`). Identify the **target column** — the one whose value, error, or non-run you're explaining — and its `f_id`. The explanation needs the row's full cell data — every cell's `status`, `value`, `fields`, and `error`; a `tables query` result already carries all of that, and `rows get` provides it when you hold a `r_...` id (step 3).
 
 ## 2. Get the structure — `clay tables columns get`
 
@@ -27,7 +27,7 @@ On the table the row lives in. Build the dependency catalog with the token-extra
 
 ## 3. Get this row's data
 
-You need every cell's `status`, `value`, `fields`, and `error` on this row. If you located the row via `tables query`, its result already carries all of that — use it directly. Otherwise (the `rows list` path, or you already hold a `rec_...` id), fetch it with `clay tables rows get`:
+You need every cell's `status`, `value`, `fields`, and `error` on this row. If you located the row via `tables query`, its result already carries all of that — use it directly. Otherwise (the `rows list` path, or you already hold a `r_...` id), fetch it with `clay tables rows get`:
 
 ```bash
 clay tables rows get <tableId> <rowId> | jq .

@@ -13,7 +13,7 @@ in a shell (use the `cli` skill for those).
 
 - **Search** — find people or companies in Clay's GTM database with **advanced queries**:
   criteria from the fields catalog, cross-entity filters, and nested Boolean logic.
-  See the `search` skill for search behavior and the CLI equivalent. Prefer the CLI for one-off searches.
+  See the `searches` skill for search behavior and the CLI equivalent. Prefer the CLI for one-off searches.
 - **Tables** — structured queries against Clay tables.
 - **Routines / batches** — async routine and batch runs.
 

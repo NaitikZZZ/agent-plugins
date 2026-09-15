@@ -59,7 +59,7 @@ If `rows list` returns `truncated: true`, it is deliberately limited to one unfi
 Lead with the source(s), show the staged DAG with each column's integration and gate, then a one-paragraph plain-English summary. Append the sampled health read.
 
 ```
-People — 1,543 rows · source: CSV Import (1,543) · archives to tbl_xyz789 (on Email)
+People — 1,543 rows · source: CSV Import (1,543) · archives to t_xyz789 (on Email)
 
 Stage 1  Domain        (basic, formula)      ← Company
 Stage 2  Find Email    (action: Prospeo)     ← Domain

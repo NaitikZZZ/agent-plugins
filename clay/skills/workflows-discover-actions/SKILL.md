@@ -24,7 +24,10 @@ Each catalog entry has:
 - `displayName` / `name` — human-readable names
 - `description` — what the action does
 - `outputParameters` — what data the action returns
-- `creditCost` — credits per execution (based on workspace billing plan)
+- `creditCost` — catalog base data-credit price for the workspace's billing plan,
+  not a quote for the selected inputs and credentials. `usesPrivateKeyCost` is a
+  separate private-key base price. Missing prices do not mean free. These fields
+  alone cannot establish a configured action's cost or a workflow total.
 - `dataStrengths` — what this action is best at (editorial metadata)
 - `whyUseful` — when to use this action
 - `configuredTools` — existing tool instances in this workspace, each with:
@@ -147,10 +150,10 @@ some other write-back mechanism.
 
 ### When several actions fit, recommend a default
 
-The catalog almost always has multiple actions that do roughly the same job (several email finders, several company-enrichment providers, waterfalls vs. single providers, etc.). Use the request, `priorityTier`, configured credentials, coverage, and credit cost to recommend and wire the best-supported default when the choice is reversible and low-risk. Ask the user before wiring only when the candidates have a consequential trade-off in cost, coverage, credentials, destination, or semantics that the request does not resolve.
+The catalog almost always has multiple actions that do roughly the same job (several email finders, several company-enrichment providers, waterfalls vs. single providers, etc.). Use the request, `priorityTier`, configured credentials, coverage, and supported pricing internally to recommend and wire the best-supported default when the choice is reversible and low-risk. Follow the shared cost policy in `workflows-discover-actions/cost-and-budget.md` for cost disclosure and spending confirmation. Ask about consequential coverage, credentials, destination, or semantics trade-offs that the request does not resolve.
 
 - Refer to each option by its **human-readable `displayName`** (e.g. "Find Work Email (Clay)"), never the internal `actionKey`.
-- For each option, surface the details that drive the decision: `whyUseful` / `dataStrengths`, `creditCost`, whether a `configuredTool` or `availableAppAccount` already exists **and is usable by you**, and `priorityTier`.
+- For each option, explain its relevant strengths and whether a usable connection exists. Discuss pricing only under the shared cost policy in `workflows-discover-actions/cost-and-budget.md`; keep catalog ranking and routine price comparisons internal.
 - When every account for a provider has `abilities.canAccess: false`, say so plainly and tell the user to ask a workspace admin to grant them access to the connection — don't report the provider as unconnected, and don't try to bind it anyway.
 - Name the default you chose (usually the lowest `priorityTier` with an existing configured tool) and let the user override it as the build evolves.
 

@@ -1,6 +1,6 @@
 ---
 name: audiences
-description: Clay Audiences — the workspace's own people, companies, and deals (contacts, leads, accounts, customers). Use for any request about their records when no surface is named, including counts, fill rates, lookups ("how many people have a phone?"), saved segments, and field definitions. Also deal and pipeline questions like closed-won, open pipeline, deal stage, and ACV.
+description: Clay Audiences — the workspace's own people, companies, and deals (contacts, leads, accounts, customers). Use for any request about their records when no surface is named, including counts, fill rates, lookups ("how many people have a phone?"), saved segments, and field definitions. Also deal and pipeline questions like largest opportunities, biggest pipeline items, recent wins, closed-won, deal stage, and ACV.
 ---
 
 # Clay Audiences
@@ -11,10 +11,11 @@ one entity type. Nothing is copied into it: it selects records live, so its
 membership changes as records change.
 
 **Audiences is the default home for the workspace's own people and companies.**
-When a user mentions people, companies, contacts, leads, accounts, or customers
-without naming a surface, they mean these records — start here, not in the tables
-entry-point skill (a separate surface, right only when the user names a table) and not in
-`search` (net-new prospects that are not in the workspace yet).
+When a user mentions people, companies, contacts, leads, accounts, customers,
+deals, or opportunities without naming a surface, they mean these records —
+start here, not in the tables entry-point skill (a separate surface, right only
+when the user names a table) and not in `search` (net-new prospects that are not
+in the workspace yet).
 
 Read this before any audiences work. Supporting references:
 
@@ -22,12 +23,15 @@ Read this before any audiences work. Supporting references:
   look up X" question.** Covers reading existing fields before paying for an
   enrichment, checking fill rates, and what to do when the data is mostly missing.
 - `queries.md` — **read before writing a `--query`.** Audiences DSL grammar,
-  relationship semantics, and count/ID examples.
+  relationship semantics, data or date filters, and server-side sorting for
+  top-N questions.
 - `filters.md` — writing the filter AST that defines an audience. Read it before
   you author or edit a filter.
 - `custom_objects.md` — **deals / opportunities.** Read it before anything that
-  touches them, including GTM phrasings that mean deals: closed-won, closed-lost,
-  open pipeline, deal stage, deal size / ACV / ARR, close date, forecast, win rate,
+  touches them, including vague rankings such as "largest opportunities",
+  "biggest things in our pipeline", or "recent wins", and GTM phrasings:
+  closed-won, closed-lost, open pipeline, deal stage, deal size / ACV / ARR,
+  close date, forecast, win rate,
   renewal, expansion, churn, "our customers". Deals are read-only. Use the DSL
   `opportunities` root for deal counts and IDs; use people/company roots when
   the requested results are contacts/accounts associated with those deals.
@@ -40,7 +44,7 @@ command that writes a field value onto a record. That is the
 `upsert-audiences-record` action's job.
 
 **Net-new people or companies** — not in the workspace yet. When `search` and `routines`
-are available CLI commands, start in the `search` skill, then persist via a routine
+are available CLI commands, start in the `searches` skill, then persist via a routine
 wrapping an upsert workflow (the `workflows` skill's `audiences.md`, then the
 `routines` skill).
 
@@ -60,10 +64,20 @@ mapping right up front — it is the most common source of wasted round trips.
 | `companies`         | `ACCOUNT`                        | `account_entity_field_values` |
 | `deals`             | `CUSTOM` (Opportunity)           | `opportunity`                 |
 
-Everything under `clay audiences records`, plus `fields list`, accepts `deals`;
-the audience commands and the other `fields` subcommands take `people` or
-`companies` only. CLI output can also carry `entityType: "deals"`. For selective
-deal queries, use the DSL `opportunities` root; read `custom_objects.md` first.
+Supported `--entity-type` values by command (all under `clay audiences`):
+
+| Commands                                                                   | Accepted values                | Deals support                                              |
+| -------------------------------------------------------------------------- | ------------------------------ | ---------------------------------------------------------- |
+| `records get`, `records search-ids`, `records search-count`, `fields list` | `people`, `companies`, `deals` | Supported; deal searches with this flag must be unfiltered |
+| `list`, `create`                                                           | `people`, `companies`          | Not supported; saved audiences target people or companies  |
+| `fields create`, `fields update`, `fields delete`, `fields segments`       | `people`, `companies`          | Not supported                                              |
+| `signals get --entity-id`                                                  | `people`, `companies`          | Not supported                                              |
+
+Use these exact plural values: `person`, `company`, and `deal` are invalid.
+Commands not listed above do not take `--entity-type`; segment-scoped commands
+use the saved audience's type. CLI output can also carry `entityType: "deals"`.
+For filtered deal searches, omit `--entity-type` and use `--query` with the DSL
+`opportunities` root; read `custom_objects.md` first.
 
 Workflow **triggers** use the middle spelling: an `audience_segment` trigger's
 `segmentId` is the audience id from `clay audiences list`, and its `entityType`
@@ -161,6 +175,19 @@ every ID. A field's `is_not_null` query (or `NotEmpty` AST filter) checks covera
 when relying on unfamiliar data or proposing an enrichment. See
 `answering-data-questions.md`.
 
+**Use `search-ids --query 'select from ... order by <field> desc' --limit N`
+for top-N people, companies, or deals.** This is the preferred way to answer
+"Top N" questions: rank server-side and fetch only the N returned IDs for details,
+without paginating through the full record set or sorting it locally.
+Before ranking, check the field's `dataType` with `fields list`: numeric questions
+require a number or currency field, not numeric-looking text. If the type is
+wrong, recommend fixing the Audiences field type before ranking; do not change
+it without approval. Sorting supports one same-entity text, number (including
+currency), or date field. Missing values come last. Sorted results have no cursor,
+even if more records match; they are not a full export. To count the same scope,
+use `count from ... where ...` without `order by` or `limit`. Read `queries.md`
+for grammar, field discovery, limits, and examples.
+
 For filtered deal counts and IDs, use `--query` with the `opportunities` root.
 `--entity-type deals` without a query still covers the whole population; combining
 it with `--audience-id` or a non-empty `--filter` is a validation error.
@@ -177,7 +204,7 @@ not a paging loop over `search-ids`.
 `search-count` first, then decide whether a full walk fits. Both stages spend the
 same per-command budgets, and the second one dominates:
 
-- **ids** — `search-ids` pages at `--limit` ids per call (default 50, max 10,000).
+- **ids** — unsorted `search-ids` pages at `--limit` ids per call (default 50, max 10,000).
   Size it from the count: aim for about 10 calls.
 - **field values** — `records get` takes 100 ids per call and is charged per id
   against its hourly budget, so the detail pass costs `count/100` calls that no

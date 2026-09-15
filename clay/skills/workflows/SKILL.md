@@ -1,12 +1,12 @@
 ---
 name: workflows
-description: Clay workflows — build and edit automations with `clay workflows nodes/graph/actions/code/triggers` (CLI). Use when building or editing Clay workflows.
+description: Clay workflows — build and edit automations with `clay workflows nodes/graph/groups/actions/code/triggers` (CLI). Use when building or editing Clay workflows.
 ---
 
 # Building Clay workflows with the CLI
 
 Supporting files in this directory: `publishing.md`, `testing.md`, `data-passing.md`,
-`presenting.md`, `audiences.md`, `account-agents.md`, `run-analysis.md`.
+`presenting.md`, `audiences.md`, `account-agents.md`, `run-analysis.md`, `node-groups.md`.
 
 When working in an existing workflow, read it with `clay workflows get <workflowId>` before
 planning edits. If its `type` is exactly `audience_enrichment`, read the complete
@@ -25,8 +25,7 @@ You are helping users build and edit Clay workflows.
   asking follow-up questions or editing the graph. When creating a workflow, choose the name before
   running `clay workflows create`. Do not rename an existing non-blank workflow unless the user asks
   you to.
-- **Plan first, get approval before building.** Present a short user-facing plan (how it starts,
-  main steps, outcome), then wait. Do not jump straight into `clay workflows nodes create`.
+- Follow the host agent's planning, user-input, and approval policies when building or editing workflows.
 - **Ground provider names in the workspace catalog.** Until you search the current workspace's
   action catalog, describe capabilities generically (for example, "intent data enrichment"). Do
   not introduce provider or action names from general knowledge. You may name one when the user
@@ -148,8 +147,11 @@ Supported operators:
 ```
 
 Wire each rules destination by the matching rule id, in that destination node's `incomingEdges`.
-`ruleId`, `routeId`, `transitionId`, and `isDefaultRoute` are edge fields — they are only read
-inside an `incomingEdges` entry, never at the top level of the node:
+On `nodes update`, `incomingEdges` **replaces** the node's full incoming-edge set — an entry you
+omit (including the trigger connection) is silently removed, so read the node first and resend
+existing edges plus the new one. `ruleId`, `routeId`, `transitionId`, and `isDefaultRoute` are
+edge fields — they are only read inside an `incomingEdges` entry, never at the top level of the
+node:
 
 ```json
 {
@@ -336,7 +338,13 @@ says the daily allowance is exhausted, stop testing; do not sleep or retry in th
 - Create: `clay workflows triggers create <workflowId> --input <json|file|->` — the one trigger
   command that takes a workflow id. Its output is a confirmation, not the trigger — see the wiring
   note below. The writable shape is dynamic per trigger type — read an existing trigger first, same
-  pattern as nodes.
+  pattern as nodes. When no trigger of the target type exists to read, the core writable fields per
+  type: `audience_segment` = `triggerType, segmentId, entityType ("CONTACT"|"ACCOUNT")`;
+  `audience_scheduled` = those plus `scheduleConfig`; `scheduled` = `triggerType, scheduleConfig`;
+  `webhook` / `manual` = `triggerType, inputSchema`. `clay_table` triggers cannot be created
+  from here — they are wired from inside a Clay table ("Invoke Workflow" action).
+  For the `scheduleConfig` shape and the remaining trigger types, read
+  `clay workflows triggers create --help` — it is the single source for the field detail.
 - Update: `clay workflows triggers update <triggerId> --input <json|file|->` — takes the trigger
   id, not the workflow's. Only the fields in `--input` change.
 - Delete: `clay workflows triggers delete <triggerId>` — trigger id again.
@@ -461,7 +469,7 @@ their own CLI commands elsewhere rather than a `clay workflows` subcommand:
   `clay tables list`, `clay functions list`, and
   `clay audiences list --entity-type people|companies` for audience segments.
 
-The raw CPJ Search DSL has no CLI command; `clay search query-mode`
-covers Clay search itself (see the `search` skill). When a capability isn't listed here and has no
+The raw CPJ Search DSL has no CLI command; `clay searches query-mode`
+covers Clay search itself (see the `searches` skill). When a capability isn't listed here and has no
 `clay` command, it's genuinely unavailable rather than hidden — tell the user that instead of
 hunting for a command that will not appear.

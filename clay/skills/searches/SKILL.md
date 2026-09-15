@@ -1,7 +1,7 @@
 ---
-name: search
+name: searches
 description: Clay search — find people or companies in Clay's GTM database with advanced queries and page through the matches. Use when the user wants to search Clay for prospects/accounts, not query an existing table.
-allowed-tools: Bash(clay *), Bash(jq *)
+allowed-tools: Bash(clay *), Bash(jq *), Bash(grep *), Read, Grep
 ---
 
 # Clay search
@@ -26,12 +26,59 @@ A search is a three-step, forward-only iterator:
 There is no cursor: the iterator's position lives server-side and can't be replayed, so
 each `run` call returns the records after the previous one.
 
-Before authoring a query, run `clay search query-mode reference` and use the returned
-reference. It supports criteria in the source type's fields catalog, cross-entity filters,
-and nested Boolean logic.
+Before authoring a query, save the reference to a file in your working directory and read it
+from there — it is about 2,000 lines, far larger than one tool result can hold, so never
+print it to stdout or read it end to end:
 
-Run `clay search --help` (and `clay search <cmd> --help`) for flags and output shapes.
+```bash
+clay searches query-mode reference | jq -r '.reference' > ./clay-search-reference.md
+grep -n '^##' ./clay-search-reference.md
+```
+
+The grep lists every section with its line number. Read these sections by line offset, once
+per conversation:
+
+1. **Grammar**, **Operators**, **Where Semantics**, and **Query mode policy**.
+2. **Common query guardrails** plus the **People** or **Companies query guardrails** for the
+   entity you are searching.
+3. Your entity's field catalog in full — **People fields** and **Experience fields** for people
+   searches, **Companies fields** for companies searches. Every field name and every allowed
+   enum value is there; a value that is not listed fails validation.
+
+Read a topic section (Location filtering, Dates/tenure/recency, Company identification,
+Products and services, Company size and revenue) only when the request needs it, and grep
+**Examples** for a field or phrase to see a worked query. Do not re-read sections already in
+your context. Queries return people or companies only; job-posting criteria are nested
+filters on those (`jobs.exists(...)`, `company.jobs.any(...)`). Workspace audience
+references are covered in the Audiences section below.
+
+Run `clay searches --help` (and `clay searches <cmd> --help`) for flags and output shapes.
 If `clay` isn't on PATH or `clay whoami` fails on auth, run the `setup` skill.
+
+## Audiences
+
+The query language supports `@audience_segment("segmentId")` references; they resolve
+against the workspace when the search runs. `clay searches query-mode reference` also
+serves the Clay UI, so wherever it says to route an audience to a picker ("Resource
+selection required … in the Clay Search panel"), that applies only to the UI surface.
+When authoring a query here, resolve the audience yourself:
+
+- To exclude everything the workspace already has — "exclude my existing contacts",
+  "net-new accounts only", "not already in Clay", "exclude all my audiences" — use the
+  built-in sentinel `@audience_segment("ALL")`, the whole Audiences dataset for the
+  query's entity: `clay.exclude_people_identifiers(@audience_segment("ALL"))` or
+  `clay.exclude_company_identifiers(@audience_segment("ALL"))`. No lookup, no segment to
+  create. Only resolve a specific segment when the user names a particular audience.
+- `clay audiences list --entity-type people|companies` returns segment ids. Contact
+  segments match people queries; Account segments match companies queries. Follow each
+  response's `cursor` with `--cursor` until it is absent before matching a name or
+  checking for duplicates. Write the id into `@audience_segment("<segmentId>")`. The
+  reference's "Workspace resource references" section has the function signatures — e.g.
+  `clay.exclude_people_identifiers(@audience_segment("SEGMENT_ID"))` to exclude a Contact
+  audience, or `clay.filter_to_companies(@audience_segment("SEGMENT_ID"))` to target
+  current employers from an Account audience.
+- Never invent a segment id. If the user names an audience you cannot resolve, ask
+  rather than guessing. Confirm with the user if multiple segments match the name.
 
 ## When a criterion isn't supported
 
@@ -63,11 +110,11 @@ they insist. Skip when the ask is already clearly bounded. After they insist, st
 ## Start a search
 
 ```bash
-clay search query-mode reference
-clay search query-mode create --query '<query>'
+clay searches query-mode reference | jq -r '.reference' > ./clay-search-reference.md
+clay searches query-mode create --query '<query>'
 ```
 
-`create` returns `{ "searchId": "srch_..." }`.
+`create` returns `{ "searchId": "search_..." }`.
 
 ### Paging
 
@@ -80,10 +127,14 @@ near-exhaustion** below before the next page. Stop when `hasMore` is `false`, or
 quota is near exhaustion — unless the user explicitly asks to continue.
 
 ```bash
-clay search query-mode run <searchId> [--limit <n>]
+clay searches query-mode run <searchId> [--limit <n>]
 ```
 
 ## Warn before near-exhaustion
+
+Keep routine quota checks internal under the shared cost policy in `workflows-discover-actions/cost-and-budget.md`. Do not
+announce a quota or seek approval merely because a search consumes results. The verified
+near-exhaustion condition below is an exception.
 
 When `periodQuota` is present, before a create or run that will consume `N` results (the
 volume you plan to pull, not the full match set), check `remaining − N`. If that would
@@ -120,6 +171,10 @@ will not help. Read the error message and choose one of:
    later message after that report; the original request for N results is not that ask.
 
 `validation_error` (exit 2) means malformed input (bad flags/filters/query), not a quota.
+`server_error` (exit 1) on query-mode create/run can be a transient upstream fault (on `run`,
+e.g. the semantic-query embedding service timed out). On `create`, retry once after a short
+wait. On `run`, retry once only when no data came back — a retry re-serves the current page
+and can charge and count it again if the failure happened after billing.
 `rate_limited` (exit 4) is a short HTTP 429 backoff and may be retried after `details.retryAfter`.
 
 ## Next: enrich or persist the results
@@ -142,7 +197,7 @@ clay routines list
 ```
 
 ```bash
-clay routines get function:tbl_abc123
+clay routines get function:t_abc123
 ```
 
 After Search has results, use the **`routines` skill** to start the run: list or get

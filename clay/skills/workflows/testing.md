@@ -8,6 +8,7 @@ If `clay` isn't on PATH or `clay whoami` fails on auth, run the `setup` skill.
 # Start a test run (input JSON on stdin via --inputs -; defaults to {})
 echo '{"key":"value"}' | clay workflows runs test <workflowId> --inputs -
 clay workflows runs test <workflowId>                  # no inputs
+clay workflows runs test <workflowId> --live           # run the published (live) version
 
 # Audience-segment backfill (up to --limit members) — not a draft test after publish
 clay workflows runs test <workflowId> --audience-segment <segmentId> --limit 5
@@ -29,6 +30,9 @@ clay workflows nodes test <workflowId> <nodeId> --inputs '{"param":"value"}'
   have not published yet. Do not conclude “the draft works” from a successful
   `--audience-segment` run on a published workflow; publish first if you need the live
   path to pick up draft changes, or use a manual test to validate the draft.
+- **`--live`** (works with or without `--audience-segment`) pins the runs to the
+  workflow's published (live) version instead of the draft. It fails with
+  `validation_error` if the workflow has never been published.
 
 `--record-ids` runs exactly those Audiences records instead of the segment's first
 `--limit` members; pass one or the other, not both.

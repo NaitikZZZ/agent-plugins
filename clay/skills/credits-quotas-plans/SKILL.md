@@ -1,13 +1,14 @@
 ---
 name: credits-quotas-plans
-description: Use when the workspace is running low on credits, quotas, or plan limits — or a planned run would exceed what remains. Covers data-credit balance, action-execution balance, search result caps, period quotas, and upgrade paths before starting work that would only partially complete.
+description: Use when the user asks about credits, quotas, or plan limits, or verified usage requires a significant-spend warning or reveals a limit. Covers data-credit balance, action-execution balance, search result caps, period quotas, and upgrade paths before starting work that would only partially complete.
 ---
 
 # Credits, quotas, and plans
 
-Before any paid or quota-consuming work, check whether the workspace has enough
-headroom to finish. Starting a run that will stall halfway wastes time and leaves
-partial results — stop and tell the user instead.
+Follow the shared cost policy in `workflows-discover-actions/cost-and-budget.md`. Check headroom internally before paid work;
+do not announce balances or suggest purchases just because a tool returned billing data.
+Stop and explain a verified shortfall rather than knowingly starting a partial run.
+An unknown cost does not establish a shortfall or require a cost-only approval.
 
 ## Triage
 
@@ -40,8 +41,9 @@ only on action-execution pricing plans; omit or ignore it when the field is null
 or absent (legacy billing). Plenty of one does not cover the other.
 
 For routine runs, `clay routines get <id>` includes per-item cost estimates.
-Multiply each cost by the number of items and compare against the matching
-balance — see the `routines` skill for the stop-before-partial-run rule.
+When the estimate applies to the configured execution and its counts are known, multiply
+each cost by the number of items and compare against the matching balance. See the
+`routines` skill for estimate limitations and the stop-before-partial-run rule.
 
 Read `clay credits balance --help` for field semantics.
 
@@ -117,7 +119,7 @@ result limits.
 not a transient failure (do not retry with backoff). Prefer the plan selector over top-up unless the
 message is clearly a data-credit shortfall that top-up can fix. When the error
 is about results already requested vs a cap, or a named period reset, stop
-paging; for shrink/retry rules follow the `search` skill's Quotas section — do
+paging; for shrink/retry rules follow the `searches` skill's Quotas section — do
 not invent a top-up path for result caps.
 
 Plan selector:

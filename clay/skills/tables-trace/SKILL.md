@@ -12,9 +12,9 @@ Treat each in-scope table independently. Tables may not share identifiers or hav
 
 ## 1. Settle scope
 
-Resolve which table(s) to look in as in the tables entry-point skill ("Finding a table"), or pass a `tbl_...` id directly. `{id}` is whatever the user gave (email, HubSpot ID, row id, etc.).
+Resolve which table(s) to look in as in the tables entry-point skill ("Finding a table"), or pass a `t_...` id directly. `{id}` is whatever the user gave (email, HubSpot ID, row id, etc.).
 
-If `{id}` is already a `rec_...` row id and the table is known, skip discovery and go straight to **get the row** (step 4).
+If `{id}` is already a `r_...` row id and the table is known, skip discovery and go straight to **get the row** (step 4).
 
 ## 2. Per table: find the identifier's column and archive linkage
 
@@ -28,7 +28,7 @@ For each in-scope table:
 **If the active table is `queryEnabled`, locate the record with `tables query`** — its server-side filter is more forgiving (`contains`, case-insensitive matching) and scales, so it's the primary tool when query is on. The result carries each matching row's full cell content — value, `fields`, `status`, and any `error` message — so it doubles as the state snapshot; no follow-up call needed:
 
 ```bash
-echo '{"tables":[{"id":"tbl_abc123"}],"filter":{"field":"f_abc123","op":"contains","value":"jane@acme.com"}}' | clay tables query --query - | jq .
+echo '{"tables":[{"id":"t_abc123"}],"filter":{"field":"f_abc123","op":"contains","value":"jane@acme.com"}}' | clay tables query --query - | jq .
 ```
 
 **Otherwise, use `clay tables rows list`** with a value filter on the identifier column (shape in the command's `--help`):
@@ -68,7 +68,7 @@ Map `col` ids to names from step 2. (`err` is the message string, present only o
 
 Lead with where it is and its overall state; list action/derived columns with status (and value or error where useful). Label each table **active** vs **archive**. Group statuses so the snapshot reads at a glance.
 
-The `rec_` row id is an internal handle, not a report field — you found the record by its business identifier, so lead with that; only show a `rec_` id when you already have one (the `rows list` / `rows get` path). `updatedAt` isn't in `tables query` output either, so fetch it with a single `rows list --filter` on the identifier **only when freshness matters** — the active-vs-archive comparison below, or the user asking how recent the data is. Otherwise omit it.
+The `r_` row id is an internal handle, not a report field — you found the record by its business identifier, so lead with that; only show a `r_` id when you already have one (the `rows list` / `rows get` path). `updatedAt` isn't in `tables query` output either, so fetch it with a single `rows list --filter` on the identifier **only when freshness matters** — the active-vs-archive comparison below, or the user asking how recent the data is. Otherwise omit it.
 
 ```
 Lead Enrichment — archive (updated 2026-04-10):

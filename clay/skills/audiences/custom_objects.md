@@ -9,6 +9,29 @@ for deal IDs. See `queries.md` for DSL syntax. If the user wants the associated
 people or companies instead, root the query there and filter by related deals.
 The AST examples below describe that people/company filtering path.
 
+## Ranking vague sales requests
+
+"Largest opportunities" and "biggest deals" mean rank by `amount` descending.
+Use a small top-N (for example, five) when no count is given and state the scope.
+"Still in our pipeline" adds `is_closed = false`; "biggest wins" adds
+`is_won = true`. Do not infer an owner filter from "my" alone: resolve a
+workspace-specific owner field only when personal ownership is explicit.
+
+Check `amount` once with `fields list --entity-type deals`: both `number` and
+`currency` are numeric types. Then issue one sorted `search-ids` query and hydrate
+only its IDs. A total count is optional for a highlights request.
+
+For "lately", state a reasonable time window and filter on `close_date` before
+ranking. For example, interpreting it as the last 30 days:
+
+```bash
+clay audiences records search-ids --query 'select from opportunities where is_won = true and close_date >= today() - interval 30 days and close_date < today() + interval 1 day order by amount desc' --limit 5
+```
+
+Missing close dates cannot establish a recent win. If this scope is empty, say
+so; do not substitute all-time wins or record update dates for recent closes.
+See `queries.md` for the DSL date grammar before constructing a query.
+
 ## What a deal is in Audiences
 
 A deal is a **custom object** — a third record type alongside people and
@@ -43,12 +66,14 @@ workaround.
 | `audiences records search-ids`          | **Yes — filtered via DSL** (see below)              |
 | `audiences fields list`                 | **Yes**                                             |
 | `audiences fields create/update/delete` | No — deals are read-only                            |
-| `audiences fields segments`             | No — no audience can reference a deal field         |
+| `audiences fields segments`             | No — accepts only people/company field types        |
 | `audiences list` / `create`             | No — audiences exist over people and companies only |
+| `audiences signals get --entity-id`     | No — accepts only people/company records            |
 
 Passing `--entity-type deals` to any of the "No" rows exits 2 with
 `validation_error` and `must be one of: people, companies.` That is the expected
 answer, not a bug to retry or work around.
+Use the exact plural `deals`; singular `deal` is invalid on every command.
 
 ```bash
 clay audiences records search-count --entity-type deals              # how many deals in the workspace
@@ -266,14 +291,16 @@ Use `count from opportunities where ...` for the matching deal count, then
 A people/company root counts contacts/accounts, not deals: an account with three
 matching deals counts once. Never present that account count as a deal count.
 
-- **Deals cannot be sorted yet.** Neither search command orders its results and
-  neither takes a sort flag — `search-ids` returns ids in ascending id order — so
-  "the biggest wins", "top 10 by amount", and "the most recent closes" have no
-  server-side answer. A true top-N means pulling every candidate's `amount` through
-  `records get` and sorting locally, which is the full walk the audiences skill's
-  budgets warn you off. Narrow until the candidate set is small enough to pull in
-  full — a shorter close-date window first, then one stage or owner — and say the
-  ranking covers that window rather than implying it is the workspace's top N.
+- **Rank deals server-side with DSL.** For example,
+  `clay audiences records search-ids --query 'select from opportunities where is_won = true order by amount desc' --limit 10`.
+  Discover the amount or close-date field with `fields list --entity-type deals`
+  first and check its `dataType`: amount must be a number or currency field for numeric ranking.
+  If numeric values are stored as text, recommend fixing the Audiences field type
+  before ranking; see `queries.md` for type checks and conversion caveats.
+  Sorting supports one deal field, not sums of related deals per account.
+  Results are bounded top-N IDs with no cursor, even if more deals match. Fetch
+  only those IDs for details instead of walking all candidates and sorting locally.
+  See `queries.md` for sorting limits and paired count queries.
 
 And one hard limit:
 

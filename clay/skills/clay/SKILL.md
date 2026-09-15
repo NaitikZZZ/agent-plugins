@@ -68,13 +68,14 @@ Follow this escalation order — reach for the earliest option that fits. Often 
 uses more than one primitive, and they need to flow together — see Combining primitives.
 
 1. **Audiences** — is the question about _their_ people, companies, contacts, leads, accounts,
-   customers, or deals? Start here. Counts, fill rates, lookups, and saved segments all live in
-   Audiences, and reading what the workspace already has is free and instant. Only move on once
-   you know the data isn't already there — searching or enriching first spends the user's money
-   to rediscover data they have. Don't route a question about their own records to the
+   customers, deals/opportunities, or sales pipeline? Start here. Counts, fill rates,
+   lookups, and saved segments all live in Audiences, and reading what the workspace
+   already has is free and instant. Only move on once you know the data isn't already
+   there — searching or enriching first spends the user's money to rediscover data
+   they have. Don't route a question about their own records to the
    tables entry-point skill; that's a separate surface, and only when the user names a table.
 2. **Search** — need a list of people or companies **new to the workspace**? Open the
-   `search` skill. Finding prospects or accounts is Search: not a table query, not a
+   `searches` skill. Finding prospects or accounts is Search: not a table query, not a
    routine, and not a workflow. Public search supports **people and companies only** —
    not jobs. A request framed around job posts (e.g. "companies hiring for X") can't be
    a public search: approximate it with the closest company or people filters, then use
@@ -113,32 +114,25 @@ some example next hops:
 
 ## Cost & budget
 
-**Credit-consuming actions spend the user's money — always check in with the user and get
-their explicit go-ahead before running one.** Never kick one off on your own initiative or
-"to be helpful." First show the user the estimated cost and the remaining balance, then wait
-for them to confirm.
-
-Actions that consume credits (or count against plan/search limits) and require a check-in
-first include running a routine, testing or resuming a workflow, and some types of search.
-
-Before running a credit-consuming routine, check its per-item `estimatedCreditCost`
-(`clay routines get <id>`) against the remaining workspace balance (`clay credits balance`). See the
-`routines` skill for how to size a run against the balance.
+Before paid work or answering a pricing question, read `cost-and-budget.md` in the
+`workflows-discover-actions` skill. It is the shared cost-communication policy: keep
+checks internal, discuss supported costs only when asked or significant, and explain
+real limits without inventing prices. It also defines when spending needs confirmation.
 
 ## Skills
 
-| Skill                 | Use it for                                                                                                                |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `audiences`           | Any question about the workspace's own people/companies/deals — counts, fill rates, lookups, and segments.                |
-| `campaigns`           | Creating and improving outbound email campaigns, sequence copy, variants, and analytics.                                  |
-| `search`              | Finding net-new people or companies in Clay's GTM database — prospects and accounts that aren't already in the workspace. |
-| `routines`            | Creating a routine from an existing function/workflow, running a saved routine, and fetching its results.                 |
-| `tables-cli`          | Reading, querying, and exporting data from an existing Clay table via the CLI (creating tables is not supported).         |
-| `cli`                 | Ephemeral, programmatic access to Clay capabilities from a shell — run a routine, query a table, search, etc.             |
-| `public-api`          | Building services and applications on top of Clay over HTTP.                                                              |
-| `workflows`           | Building and editing Clay workflows via the CLI.                                                                          |
-| `workflows-vs-tables` | Explaining the difference between Workflows and Tables, or recommending which to use.                                     |
-| `clay-feedback`       | Sending a bug report or product feedback to the Clay team.                                                                |
+| Skill                 | Use it for                                                                                                                                                                                                                                                                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `audiences`           | Any question about the workspace's own people/companies/deals — counts, fill rates, lookups, and segments. `--entity-type deals` works on `records` and `fields list` only; other commands accepting that flag support only `people`/`companies`. Singular `deal` is invalid. See the audiences skill's command support table. |
+| `campaigns`           | Creating and improving outbound email campaigns, sequence copy, variants, and analytics.                                                                                                                                                                                                                                       |
+| `searches`            | Finding net-new people or companies in Clay's GTM database — prospects and accounts that aren't already in the workspace.                                                                                                                                                                                                      |
+| `routines`            | Creating a routine from an existing function/workflow, running a saved routine, and fetching its results.                                                                                                                                                                                                                      |
+| `tables-cli`          | Reading, querying, and exporting data from an existing Clay table via the CLI (creating tables is not supported).                                                                                                                                                                                                              |
+| `cli`                 | Ephemeral, programmatic access to Clay capabilities from a shell — run a routine, query a table, search, etc.                                                                                                                                                                                                                  |
+| `public-api`          | Building services and applications on top of Clay over HTTP.                                                                                                                                                                                                                                                                   |
+| `workflows`           | Building and editing Clay workflows via the CLI.                                                                                                                                                                                                                                                                               |
+| `workflows-vs-tables` | Explaining the difference between Workflows and Tables, or recommending which to use.                                                                                                                                                                                                                                          |
+| `clay-feedback`       | Sending a bug report or product feedback to the Clay team.                                                                                                                                                                                                                                                                     |
 
 ## If another Clay MCP is connected
 

@@ -9,17 +9,18 @@ returns — wire data this way, then `nodes get` / `graph get --mode full` to co
 Use this when the data must be exact (a number, a boolean, a specific structured
 field), or comes from another node.
 
-The **upstream node** declares an `outputSchema` describing its structured output:
+The **upstream node** declares an `outputSchema` describing its structured output.
+It is a **flat map** of field name → `{ "type", "description" }` — allowed types are
+`string`, `number`, `boolean`, `email`, `url`, `select`. Every property **requires a
+`description`** — the write is rejected without one (`inputSchema` properties don't
+need descriptions):
 
 ```json
 {
   "outputSchema": {
-    "type": "object",
-    "properties": {
-      "company_name": { "type": "string" },
-      "industry": { "type": "string" },
-      "score": { "type": "number" }
-    }
+    "company_name": { "type": "string", "description": "Company display name" },
+    "industry": { "type": "string", "description": "Primary industry" },
+    "score": { "type": "number", "description": "Fit score, 0-100" }
   }
 }
 ```
@@ -50,9 +51,10 @@ The **downstream agent node** pins each input by adding `sourceNodeId` +
 The reference lives **inline on the property** (`sourceNodeId` + `sourcePath`).
 Use `sourcePath`, not `path`.
 
-`inputSchema`/`outputSchema` also accept a **shorthand** that drops the
-`type: "object"` + `properties` wrapper — `{ "score": { "type": "number" } }` is
-equivalent to the full form above. Either works; the shorthand is terser.
+`inputSchema` also accepts the flat shorthand shown for `outputSchema` (dropping
+the `type: "object"` + `properties` wrapper). The reverse is not true: `outputSchema`
+takes **only** the flat form — wrapping it in `type: "object"` + `properties` is
+rejected as a validation error.
 
 **Accessing pinned inputs:** in an agent prompt, `{{company_name}}` resolves to
 the pinned value.
@@ -97,6 +99,14 @@ Each value is one of:
 | `item`             | `{ "type": "item", "path": "$.field" }`                                                       | the current list item, in list mode (`$` = whole item, `$.field` = one field)                                          |
 | `reference` (item) | `{ "type": "reference", "expression": "https://{{__item.field}}/api" }`                       | mix the current list item into surrounding text (list mode); `{{__item}}` = whole item, `{{__item.field}}` = one field |
 | `skip`             | `{ "type": "skip" }`                                                                          | leave the parameter unset                                                                                              |
+| `map`              | `{ "type": "map", "entries": { "<key>": { "type": "static", "value": … } } }`                 | object-valued parameter (e.g. HTTP headers, a key→value map); each entry is its own `static` or `reference` mapping    |
+
+**Object literals need `map`.** A `static` value only accepts a string, number,
+boolean, or array of strings — passing an object literal (or a stringified one) is
+rejected or mis-parsed. To build an object value key by key, use the `map` type
+with one entry per key. To pass an object an upstream node already produced, keep a
+single-expression `reference` (`{ "type": "reference", "expression": "{{headers}}" }`) —
+it is type-preserving and passes the whole object, including dynamic keys.
 
 ### Merge mappings after conditional branches
 

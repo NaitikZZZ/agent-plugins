@@ -11,7 +11,7 @@ getting its results — not building one.
 
 - To **build or edit** a workflow, use the workflows entry-point skill.
 - To **query data** out of a Clay table, use the tables entry-point skill.
-- To **find the records** to run a routine over, use the `search` skill for net-new people
+- To **find the records** to run a routine over, use the `searches` skill for net-new people
   or companies, or the `audiences` skill for members of a saved audience, then feed the
   results in here.
 - To **write people or companies into Audiences**, run a routine whose underlying
@@ -35,7 +35,9 @@ clay routines get <id>        # full config and input schema
 
 `clay routines list` is **paginated** — a workspace can have far more routines than one
 page. Page through with `--cursor` until the response has no `cursor` before concluding a
-routine doesn't exist. Filter by `source`: `managed` routines are Clay's built-in enrichers
+routine doesn't exist. Each routine carries a `source` field in the response — `list` has no
+filter flag, so filter client-side (e.g. `| jq '.data | map(select(.source == "managed"))'`).
+`managed` routines are Clay's built-in enrichers
 (emails, domains, firmographics) and should be your first choice for standard enrichment;
 `custom` are workspace-built. Decide by **input schema**, not name — e.g. the managed
 **Work Email** routine needs Full Name + Company Name + Company Domain, so resolve the
@@ -78,7 +80,7 @@ clay routines create workflow <workflowId> --name "My workflow routine"
 - `--name` is **required** for both types.
 - `--entity-type` (`contact` or `company`) is **required** for function routines and rejected
   for workflow routines.
-- The routine id is built from the type and object id, e.g. `function:tbl_abc`.
+- The routine id is built from the type and object id, e.g. `function:t_abc`.
 
 Use `clay routines update <id>` to change a routine's name, description, or entity-type
 later. See `clay routines create --help` / `clay routines update --help` for the full flags
@@ -86,12 +88,13 @@ and JSON shape.
 
 ## 2. Check the cost and your balance before running
 
-Before starting a run, check what the routine costs and whether the workspace can afford
-it. `clay routines get <id>` includes the per-item cost estimate; `clay credits balance` returns
-the remaining balance.
+Before starting a run, inspect its estimate and the workspace balance internally. Follow
+the shared cost policy in `workflows-discover-actions/cost-and-budget.md` for disclosure and confirmation; ordinary authorized
+runs do not need a cost-only check-in. `clay routines get <id>` includes a per-item estimate;
+`clay credits balance` returns the remaining balance.
 
 ```bash
-clay routines get function:tbl_abc123 | jq '.estimatedCreditCost'
+clay routines get function:t_abc123 | jq '.estimatedCreditCost'
 clay credits balance | jq '{ balance, actionExecutionBalance }'
 ```
 
@@ -108,16 +111,22 @@ For how to read the balance and how the cost fields work, see the help text:
 clay credits balance --help
 ```
 
-Multiply each per-item cost by the number of items. If the estimated total for **either**
+Only multiply per-item costs when they apply to the configured execution and all relevant
+execution counts are known. Workflow estimates count nodes once and can omit branching
+and fan-out; `containsVariablePricing: false` does not establish completeness. Do not turn
+an incomplete base estimate into a total, even by labeling it approximate.
+
+If a supported estimated total for **either**
 budget exceeds its matching balance — `perRun × items > balance`, or
 `actionExecution × items > actionExecutionBalance` — stop and tell the user instead of
 starting a run that will only partially complete.
 
-If a routines `estimatedCreditCost` is undefined, an estimate could not be generated for this routine. That does not mean running the routine is free.
+Undefined, null, incomplete, or inapplicable costs are unknown, not free. If asked, explain
+that the total cannot be reliably estimated; otherwise continue within the authorized scope.
 
 ### Running low? Share a top-up link
 
-When the balance is low or short of the estimated cost, read the
+When supported pricing shows insufficient balance, or a real billing failure occurs, read the
 `credits-quotas-plans` skill and follow it for CLI top-up, auto top-up, and
 billing UI options.
 

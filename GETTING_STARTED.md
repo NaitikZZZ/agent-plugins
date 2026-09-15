@@ -62,4 +62,4 @@ after install, and auth failures.
 
 ## What's next
 
-Once you're set up, run the bundled **`clay` skill** — it's the entry point for what Clay can do: choosing the right primitive (Search vs. Routines vs. Tables), and links out to every other skill (`routines`, `workflows`, `tables`, `search`, `public-api`, `cli`).
+Once you're set up, run the bundled **`clay` skill** — it's the entry point for what Clay can do: choosing the right primitive (Search vs. Routines vs. Tables), and links out to every other skill (`routines`, `workflows`, `tables`, `searches`, `public-api`, `cli`).

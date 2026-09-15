@@ -28,9 +28,10 @@ their records, and the most common reason to build a workflow over Audiences:
    by `email` / `linkedin_url` (people) or `domain` (companies).
 
 Lead with the count from `clay audiences records search-count` so the user can
-see the size and likely cost. You may build the reversible draft incrementally
-while details are still being refined, but get confirmation before starting a
-credit-consuming backfill or publishing the workflow.
+see the size. You may build the reversible draft incrementally while details are still
+being refined. Run a backfill only within the authorized scope and get confirmation before
+publishing the workflow. Follow the shared cost policy in `workflows-discover-actions/cost-and-budget.md` for cost disclosure
+and significant-spend confirmation.
 
 Before proposing it, confirm the data really is missing: read the existing field
 first (see the `audiences` skill's `answering-data-questions.md`). A workflow that
@@ -44,12 +45,12 @@ This file owns **building** the upsert workflow. The **`routines` skill** owns
 Use this when the user wants net-new people or companies from Clay's GTM database
 **kept in Audiences** — not just enriched and discarded:
 
-1. **Use the `search` skill** to find the records and learn real field names
+1. **Use the `searches` skill** to find the records and learn real field names
    (`email`, `linkedin_url`, `domain`, etc.) from Search results — do not invent
    JSON paths.
 2. **Build a workflow that upserts one record per run.** Routine items are the
-   batch. Trigger is `manual` or `webhook`, **not** `audience_segment` — these
-   records are not in an audience yet.
+   batch. Trigger must be `manual` so the routine has an input schema and can
+   run; do not use `webhook` or `audience_segment`.
 3. **Add a tool node** with `upsert-audiences-record` (see below for
    `actionKey` / `actionPackageId`). Bind lookup keys from the search item;
    record fields from `clay audiences fields list`.

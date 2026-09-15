@@ -42,7 +42,7 @@ Continue to step 4 for those row ids. Report the number of retained rows inspect
 **Query-enabled normal table → scan with `tables query`.** Each cell comes back with its `status` and, on an error, its `error` message — so one pass finds the failures _and_ their messages (skip step 4). Paginate via the top-level `cursor`:
 
 ```bash
-echo '{"tables":[{"id":"tbl_abc123"}]}' | clay tables query --query - --limit 100 | jq '{next: .cursor, errored: [ .data[] | [ to_entries[] | select(.value.status == "error") | { col: .key, msg: .value.error } ] | select(length != 0) ]}'
+echo '{"tables":[{"id":"t_abc123"}]}' | clay tables query --query - --limit 100 | jq '{next: .cursor, errored: [ .data[] | [ to_entries[] | select(.value.status == "error") | { col: .key, msg: .value.error } ] | select(length != 0) ]}'
 ```
 
 **Not query-enabled → walk `clay tables rows list` pages** and filter client-side on cell `status` (list output carries every cell's status); the full messages then come from `rows get` (step 4). Don't enable sync just for a sweep — it's an escalation that costs a limited slot.

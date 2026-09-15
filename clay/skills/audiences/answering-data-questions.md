@@ -10,12 +10,12 @@ When a user mentions people, companies, contacts, leads, accounts, or customers
 without naming a surface, they mean **their workspace's records — Audiences**.
 Go straight to `clay audiences`.
 
-| The user means                                    | Surface                                                                                                                                                                                      |
-| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "my/our/their" people, companies, leads, accounts | **Audiences** (`clay audiences`)                                                                                                                                                             |
-| net-new prospects not in the workspace yet        | When `search` is an available CLI command, the `search` skill (Clay's GTM database)                                                                                                          |
-| net-new results they want kept in Audiences       | When `search` and `routines` are available CLI commands, the `search` skill, then a routine wrapping an upsert workflow (the `workflows` skill's `audiences.md`, then the `routines` skill). |
-| a named table they built                          | the tables entry-point skill — only when they name one                                                                                                                                       |
+| The user means                                    | Surface                                                                                                                                                                                        |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "my/our/their" people, companies, leads, accounts | **Audiences** (`clay audiences`)                                                                                                                                                               |
+| net-new prospects not in the workspace yet        | When `search` is an available CLI command, the `searches` skill (Clay's GTM database)                                                                                                          |
+| net-new results they want kept in Audiences       | When `search` and `routines` are available CLI commands, the `searches` skill, then a routine wrapping an upsert workflow (the `workflows` skill's `audiences.md`, then the `routines` skill). |
+| a named table they built                          | the tables entry-point skill — only when they name one                                                                                                                                         |
 
 Do **not** open `clay tables --help` to answer a question about people or
 companies. Tables are a separate surface holding whatever the user built there;
@@ -91,15 +91,15 @@ from the populated subset as though it were the whole set.
 
 If they want it filled:
 
-- **Ask before running anything that costs credits.** Show the record count and
-  the estimated cost, and wait. Never kick off an enrichment on your own
-  initiative.
+- **Stay within the authorized scope.** Never start an enrichment on your own initiative.
+  Follow the shared cost policy in `workflows-discover-actions/cost-and-budget.md` for cost disclosure and significant-spend
+  confirmation; ordinary authorized enrichments do not need a cost-only check-in.
 - **In a workflow context, the answer is a workflow**: one that reads the records
   missing the field, runs the enrichment, and writes the result back with
   `upsert-audiences-record`. Start with that shape — trigger on an audience of
   the records missing the field, enrich, upsert — and build the reversible draft
-  incrementally. Confirmation is required before the credit-consuming run, not
-  before draft construction. See the `workflows` skill's `audiences.md`
+  incrementally. A request to analyze missing data alone does not authorize the enrichment
+  run. See the `workflows` skill's `audiences.md`
   for the trigger and node mechanics.
 - The audience of records missing the field is itself the input: an `Empty`
   filter on that field, saved with `clay audiences create`, becomes the

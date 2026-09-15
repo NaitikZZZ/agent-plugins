@@ -19,6 +19,8 @@ When a customer asks to build an inbound lead routing workflow, or describes a u
 
 ## Instructions
 
+Follow the host agent's existing policies for reasoning, planning, requesting user input, and approvals. This skill supplies routing requirements and workflow guidance; it does not define a separate interaction policy. Treat the example questions below as inputs to establish, not a mandatory interview script.
+
 ### Step 1 — Establish the Trigger
 
 Start by telling the customer:
@@ -35,7 +37,7 @@ Available triggers (present as alternatives only if the customer pushes back or 
 - Audience segment updated on schedule
 - **Webhook (recommended default)**
 
-Ask the customer:
+Establish the lead source if it is not already known:
 
 > "Are you capturing leads through an inbound form, like Typeform, or is this coming from another source like your data warehouse or website?"
 
@@ -44,23 +46,21 @@ Ask the customer:
 
 ---
 
-### Step 2 — Ask the Five Core Questions
+### Step 2 — Establish the Routing Requirements
 
-Before building, gather all five answers across at least two messages. Ask no more than three questions per message. Do not build until you have the answers.
+Establish the five inputs below, along with the trigger, enrichment level, scoring criteria, and routing tiers. Reuse information already provided or available in the workspace. Let the host agent’s policies determine which remaining decisions require user input and how to request it.
 
 **Q1 — CRM**
 
 > "Which CRM are you using?"
 
-- Salesforce → native Clay integration available
-- HubSpot → native Clay integration available
-- Other → search the workspace action catalog for a native CRM write action first. Recommend a webhook only if no suitable native action is available.
+For every CRM, including Salesforce and HubSpot, follow `workflows-discover-actions` to verify a suitable write action in the live workspace catalog and confirm the user can access the required connected account before proposing that route. If the action exists but no usable account is connected, establish that setup requirement. Recommend a webhook only if no suitable native action is available.
 
 **Q2 — Scoring Model**
 
 > "Do you have an existing lead scoring model, or do we need to build one?"
 
-- Has one → ask them to describe the logic; you'll implement it in a Run Code node
+- Has one → use the existing scoring logic; you'll implement it in a Run Code node
 - Doesn't have one → tell them: "No problem. We'll build one together in a Run Code node. It'll use firmographic data, form fields, and intent signals from your enrichment steps."
 
 **Q3 — Rep Routing**
@@ -82,7 +82,7 @@ Options (pick one):
 
 **Q5 — Disqualification Handling**
 
-Ask as two separate yes/no questions:
+Collect both preferences together:
 
 - "Add disqualified leads to a nurture sequence?"
 - "Tag or update disqualified leads in the CRM?"
@@ -111,7 +111,7 @@ Walk the customer through each node:
 
 > "First, we'll enrich the inbound lead to fill in any missing data — company size, industry, job title, and any intent signals. This gives the scoring model everything it needs."
 
-Ask: "Do you want to enrich at the person level, company level, or both?"
+Use the person-level, company-level, or combined enrichment requirement established above.
 
 #### Node 2: Run Code (Scoring Model)
 
@@ -119,7 +119,7 @@ Ask: "Do you want to enrich at the person level, company level, or both?"
 
 If building from scratch:
 
-> "Tell me what matters most for a high-quality lead — company size, industry, job title, intent signals? I'll help you translate that into a scoring formula."
+Translate the established lead-quality criteria into a scoring formula.
 
 Typical inputs to the scoring model:
 
@@ -129,7 +129,7 @@ Typical inputs to the scoring model:
 
 #### Node 3: Conditional Logic
 
-> "Now we'll add conditional logic to route based on the score. What are your tiers?"
+Use the established tiers to route based on the score.
 
 Standard structure:
 
@@ -165,20 +165,18 @@ Build the routing outcome based on answers from Step 2:
 
 ---
 
-### Step 4 — Confirm and Build
+### Step 4 — Summarize and Build
 
-Once all questions are answered and the node structure is clear, summarize the workflow back to the customer before building:
+Summarize the proposed workflow as part of the host agent’s planning process:
 
-> "Here's the workflow we're going to build:
+> Here's the workflow we're going to build:
 >
 > 1. [Selected trigger] trigger from [source]
 > 2. Enrich at [person/company/both] level
 > 3. Score the lead using [existing model / model we'll build] based on [inputs]
 > 4. Route Tier 1 leads to [rep via Slack/CRM task/email], Tier 2 to [sequence], and disqualified leads to [dead end/nurture/CRM tag]
->
-> Does that look right?"
 
-Only proceed to build once the customer confirms.
+Follow the host agent’s approval policy before making changes.
 
 When building, follow the workflows entry-point skill for the actual node and
 graph edits — this skill is the consultative playbook only.
@@ -188,6 +186,5 @@ graph edits — this skill is the consultative playbook only.
 ## Tone Guidelines
 
 - Be **opinionated and directive**. Don't present every option as equal — recommend the right approach and explain why.
-- Keep questions focused. Ask one thing at a time where possible.
 - If a customer proposes something that will make the workflow harder to maintain (e.g., parallel branches, skipping enrichment), push back and explain the tradeoff.
 - Use plain language. Avoid jargon unless the customer introduces it first.

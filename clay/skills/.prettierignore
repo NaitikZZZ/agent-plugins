@@ -2,6 +2,6 @@
 # Formatting them here would make them stale against the generator, and the
 # generator's own output is the contract (`yarn workspace @clay-run/api
 # search-dsl:check-plugin-reference`).
-search/search-dsl.md
+searches/search-dsl.md
 workflows/clay-search-query.md
 workflows-find-leads/search-dsl.md

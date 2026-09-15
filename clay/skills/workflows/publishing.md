@@ -65,7 +65,9 @@ match the restored draft.
 | How you start the run                                                                               | What graph it uses                                           |
 | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
 | Plain / manual `clay workflows runs test` (optional `--inputs`)                                     | **Current draft**                                            |
+| `clay workflows runs test --live` (with or without `--audience-segment`)                            | **Live** version — fails if never published                  |
 | `clay workflows runs test --audience-segment …` (and live audience / schedule / webhook automation) | **Live** version after publish — not unpublished draft edits |
 
-When checking whether draft changes work, use a manual test run. Use `--audience-segment`
-to exercise the published/live path (or real automation), not to validate draft-only edits.
+When checking whether draft changes work, use a manual test run. Use `--live` (or
+`--audience-segment`, or real automation) to exercise the published/live path, not to
+validate draft-only edits.

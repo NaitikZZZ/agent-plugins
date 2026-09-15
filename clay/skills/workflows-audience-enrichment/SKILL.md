@@ -35,15 +35,16 @@ writeback node. Confirm with the user:
 - whether the workflow should enrich people or companies
 - whether the requested fields are actually missing or sparse
 - the action or function to use when the workspace catalog offers consequential alternatives
-- the audience size and likely credit exposure before testing or publishing
+- the audience size before testing or publishing
 
 Use the `audiences` skill to inspect field fill rates and count matching records. Prefer direct
 enrichment actions for provider data, Clay functions for reusable workspace logic, agents for
 unstructured research or classification, conditionals for eligibility and fallbacks, and code for
 deterministic transformations.
 
-Present a short plan and get approval before editing the graph. Get separate approval before a
-credit-consuming test or publish.
+Present a short plan and get approval before editing the graph. Get separate approval before
+publishing. Testing must be within the authorized scope; follow the shared policy in
+`workflows-discover-actions/cost-and-budget.md` for cost disclosure and significant-spend confirmation.
 
 ## Build the enrichment path
 
