@@ -14,3 +14,11 @@ when any exist.
   them.
 - Delete: `clay workflows groups delete <workflowId> <nodeGroupId>` — ungroups
   only; member nodes stay on the graph.
+- Publish as function:
+  `clay workflows groups publish-as-function <workflowId> <nodeGroupId> [--name <name>]`
+  — copies the group into a new published function (a standalone workflow that
+  other workflows call) and replaces the group with a function call node wired
+  to the same inputs and outputs. Blocked while any member has a validation
+  error (`clay workflows graph validate`). Gated on the workspace's functions
+  flag (separate from node groups), so it can return `auth_forbidden` even
+  where create and delete work.

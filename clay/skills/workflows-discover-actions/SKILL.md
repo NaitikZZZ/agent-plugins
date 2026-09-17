@@ -174,8 +174,19 @@ clay workflows actions schema 56058efe-4757-4fe7-a44b-39c2d730c47a find-email-fr
 
 This returns the action's `packageId`, `actionKey`, `displayName`, `inputParameters`
 (the input parameter schema), and `outputParameters` (the declared output fields,
-flattened to leaf paths — available before the node has ever run). Pipe to
-`jq '.inputParameters'` or `jq '.outputParameters'` to see just one side. An enrich
+flattened to leaf paths — available before the node has ever run). Select `options`
+and `autocompleteOptions` are omitted by default because some actions carry thousands;
+the response's `inputOptionsIncluded` says whether they are present. Pipe to
+`jq '.inputParameters'` or `jq '.outputParameters'` to see just one side. When exact
+choices or suggestions are needed for one input, request them and filter in the same
+command so the full arrays do not enter the conversation:
+
+```bash
+clay workflows actions schema <packageId> <actionKey> --include-options \
+  | jq '.inputParameters[] | select(.name == "<parameterName>") | { options, autocompleteOptions }'
+```
+
+An enrich
 (tool) node stores the action payload under `result`, so an output's wiring path is
 `$.result.<outputPath>` — see the workflows entry-point skill's `data-passing.md`
 ("Output

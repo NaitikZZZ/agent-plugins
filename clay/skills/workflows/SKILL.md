@@ -6,7 +6,8 @@ description: Clay workflows — build and edit automations with `clay workflows 
 # Building Clay workflows with the CLI
 
 Supporting files in this directory: `publishing.md`, `testing.md`, `data-passing.md`,
-`presenting.md`, `audiences.md`, `account-agents.md`, `run-analysis.md`, `node-groups.md`.
+`presenting.md`, `audiences.md`, `account-agents.md`, `run-analysis.md`, `node-groups.md`,
+`csv-triggers.md`.
 
 When working in an existing workflow, read it with `clay workflows get <workflowId>` before
 planning edits. If its `type` is exactly `audience_enrichment`, read the complete
@@ -221,8 +222,20 @@ with stable route/transition ids, then attach each destination with the matching
 
 ### Triggers, audiences, and draft vs live
 
-**Triggers** start a workflow (audience segments, schedules, webhooks, Clay tables). Create/edit
-them with `clay workflows triggers …`. Clay table triggers remain UI-only.
+**Triggers** start a workflow (signals, audience segments, schedules, webhooks, Clay tables, CSV uploads).
+Create/edit them with `clay workflows triggers …`. Clay table triggers remain UI-only.
+
+**Running a workflow from a CSV** (upload a file, one run per row): the `clay workflows triggers
+csv` commands — including attaching a CSV the user dropped in chat (at
+`/mnt/session/uploads/<filename>`). See `csv-triggers.md`.
+
+**Choose the trigger from context.** When the choice is clear and the user requested
+a draft, create it without asking for confirmation again. When signals, segments, or other sources could
+match the request, use the user's intended event, population, cadence, and prior
+discussion to distinguish them. A shared keyword does not favor any trigger type.
+If the choice remains ambiguous, ask the user to choose between the plausible sources
+and wait before binding the trigger. Do not pick a default and merely ask to proceed. Read
+`trigger-selection.md` for selection rules and examples.
 
 **Audiences inside a workflow** (`upsert-audiences-record`, `audience_segment` trigger):
 `audiences.md`.
@@ -340,6 +353,7 @@ says the daily allowance is exhausted, stop testing; do not sleep or retry in th
   note below. The writable shape is dynamic per trigger type — read an existing trigger first, same
   pattern as nodes. When no trigger of the target type exists to read, the core writable fields per
   type: `audience_segment` = `triggerType, segmentId, entityType ("CONTACT"|"ACCOUNT")`;
+  `audience_signal` = `triggerType, signalId (signal.id, "sig_…"), entityType`;
   `audience_scheduled` = those plus `scheduleConfig`; `scheduled` = `triggerType, scheduleConfig`;
   `webhook` / `manual` = `triggerType, inputSchema`. `clay_table` triggers cannot be created
   from here — they are wired from inside a Clay table ("Invoke Workflow" action).
@@ -348,6 +362,8 @@ says the daily allowance is exhausted, stop testing; do not sleep or retry in th
 - Update: `clay workflows triggers update <triggerId> --input <json|file|->` — takes the trigger
   id, not the workflow's. Only the fields in `--input` change.
 - Delete: `clay workflows triggers delete <triggerId>` — trigger id again.
+- CSV: `clay workflows triggers csv upload|run|remove <triggerId>` — link a CSV file to a
+  `csv_upload` trigger and run one workflow run per row. See `csv-triggers.md`.
 
 **Webhook payloads:** the trigger URL (`webhookUrl` on `triggers get`) accepts a JSON body. An
 object body becomes the run inputs as-is, so `inputSchema` describes the object and downstream

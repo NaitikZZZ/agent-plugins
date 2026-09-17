@@ -57,8 +57,9 @@ Use this when the user wants net-new people or companies from Clay's GTM databas
 4. **Expose it as a routine:**
    `clay routines create workflow <workflowId> --name "…"`. Then hand off to the
    **`routines` skill** to run it in bulk over Search results.
-5. **If they then want ongoing automation** on those records, save an audience
-   and switch to the backfill shape above (`audience_segment` trigger).
+5. **If they then want ongoing automation**, choose what should start each run:
+   segment membership, a signal event, or a schedule. See `trigger-selection.md`;
+   use the backfill shape above when processing audience members is the intent.
 
 Do not use list mode or `clay workflows runs test` as the bulk upload path.
 

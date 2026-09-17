@@ -61,3 +61,11 @@ curl -fsSL https://raw.githubusercontent.com/clay-run/agent-plugins/main/GETTING
 
 Then follow the instructions in that fetched document for your agent
 environment.
+
+## Support
+
+Questions, bugs, or feature requests: email
+[support@clay.com](mailto:support@clay.com), or send them straight from your
+agent with the `clay-feedback` skill (`clay feedback`).
+
+[Privacy Policy](https://www.clay.com/privacy)

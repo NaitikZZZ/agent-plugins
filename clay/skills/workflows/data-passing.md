@@ -150,14 +150,11 @@ a code node to produce a named output and reference that output downstream.
 with a pipe. A `fields` group with `domain` and `fieldsToFilterBy` sub-fields is
 mapped as `fields|domain` and `fields|fieldsToFilterBy`.
 
-**`inputMappingConfig` lives on the tool, not the node.** Setting it updates the
-tool and re-syncs every node bound to that tool — which is why node create/update gives
-each node its own tool instance: it keeps a tool only when the node already has
-it, and otherwise creates a new one (same action, same credentials) even when you
-pass a `toolId` or an `actionKey` that already has a workspace tool. Mappings you
-set therefore stay local to the node. Workflows built before this may still share
-a tool across nodes; if a mapping change turns up on another node, re-add the
-action to that node so it gets a fresh instance.
+**Where `inputMappingConfig` is stored depends on the tool type.** A `clay_action`
+stores it on the tool and re-syncs every node bound to that tool — which is why node
+create/update gives each node its own tool instance. A `clay_function` has no tool
+record, so its mapping is stored on the node instead. In both cases, pass the mapping
+inside the `tools` entry and expect `nodes get` to return it there.
 
 **Gotcha — don't invent inputSchema variables on tool nodes.** A property added to
 a tool node's `inputSchema` that isn't a real action parameter is **silently

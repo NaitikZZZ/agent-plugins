@@ -85,6 +85,12 @@ is `CONTACT` / `ACCOUNT`, not `people` / `companies`.
 
 ## Audiences (saved segments)
 
+Prefer dynamic segments: saved audience filters whose membership updates as
+records start or stop matching the criteria. Use the user’s request and
+conversation context to determine the filter. Use a fixed cohort with hard coded
+matching values only when explicitly requested. Read `filters.md` before building
+the filter.
+
 ```bash
 clay audiences list --entity-type people          # id, name, entityType (no filter); 50/page, pass back .cursor
 clay audiences get <audienceId>                   # same, plus the full filter AST

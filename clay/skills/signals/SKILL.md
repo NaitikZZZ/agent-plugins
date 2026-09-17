@@ -439,6 +439,12 @@ existing signal's output, not a new signal:
 
 ## How signals get used
 
+**Resolve workflow trigger intent from context.**
+The workflow CLI supports `audience_signal`, bound to the underlying `signal.id`,
+when signal events are the intended trigger. Compare plausible sources using the
+request and prior discussion, then ask if the choice remains ambiguous. See
+`workflows/trigger-selection.md` for examples and binding details.
+
 The standard GTM shape is **detect → qualify → act**, and a signal is only the
 first step. When helping a user design one, ask what the other two are.
 
@@ -451,7 +457,8 @@ first step. When helping a user design one, ask what the other two are.
   whose filter selects records with recent events of that type (the
   `signal_events` filter — see the `audiences` skill's `filters.md`). The
   segment is live: records enter as events arrive and age out with the lookback
-  window, and workflows or exports hang off the segment.
+  window. Use that segment for membership-based workflows or exports; use an
+  `audience_signal` workflow trigger when the user wants to react to signal events.
 - **Hiring / funding as account intent** — `JobPost` and `News` on a company
   audience, feeding prioritization: a company hiring for the role your product
   serves, or one that just raised, moves up the outreach queue.
@@ -460,8 +467,8 @@ first step. When helping a user design one, ask what the other two are.
   acted on alone.
 
 Events land in the destination — table rows, or activities on audience entities
-plus the derived `signal_summary` field — and downstream automation (workflows,
-CRM sync, Slack alerts) reads from there, not from the signal itself.
+plus the derived `signal_summary` field. Workflows can react through an
+`audience_signal` trigger or use a segment when membership is the intended condition.
 
 ## Common issues and how to avoid them
 

@@ -3,6 +3,10 @@
 Prefer `--query` for ad-hoc people, company, and opportunity (deal) counts and ID searches,
 and for activity counts. These queries
 search the workspace's existing records, not the net-new prospect database.
+For a saved segment, read `filters.md` and encode the criteria in `--filter`.
+Do not turn these queries' matching emails, domains, or IDs into the saved
+filter unless the user explicitly wants a fixed cohort. `create` and `update`
+do not accept `--query`.
 Use the default field IDs in `SKILL.md`; for other fields, discover IDs once with
 `clay audiences fields list --entity-type people --include-system` (or
 `companies`) and reuse the response. A field's existence does not mean it is

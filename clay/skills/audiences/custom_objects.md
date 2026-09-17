@@ -49,6 +49,8 @@ companies. Opportunity is the only custom object type that exists today, so
 Deals link to both companies and people: one deal belongs to an account and can
 have several associated contacts (with CRM roles such as "Decision Maker").
 
+To resolve deal-to-company mappings, first query `select from companies where opportunities.exists(id in (<deal_ids>))` for all selected deal IDs: if none match, report associations unavailable; otherwise resolve per-deal mappings with bounded parallel queries, retain each deal ID alongside its result, and bulk-fetch the company IDs without searching by deal/company name.
+
 ## Deals are read-only
 
 Deals only enter a workspace through a CRM sync. There is no way to create,
