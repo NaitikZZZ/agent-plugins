@@ -222,8 +222,11 @@ with stable route/transition ids, then attach each destination with the matching
 
 ### Triggers, audiences, and draft vs live
 
-**Triggers** start a workflow (signals, audience segments, schedules, webhooks, Clay tables, CSV uploads).
-Create/edit them with `clay workflows triggers …`. Clay table triggers remain UI-only.
+**Triggers** start a workflow (signals, audience segments, schedules, webhooks, Clay tables, CSV
+uploads, Find leads searches). Create/edit them with `clay workflows triggers …`. Clay table
+triggers remain UI-only. A Find leads trigger (`triggerType: "action_source_scheduled"`) runs a
+Clay search and starts one run per record it finds; if a Find leads skill (`workflows-find-leads`)
+is in your catalog, follow it for the `dataSource` shape and how to run the trigger.
 
 **Running a workflow from a CSV** (upload a file, one run per row): the `clay workflows triggers
 csv` commands — including attaching a CSV the user dropped in chat (at
@@ -309,11 +312,14 @@ don't guess at flags.
 
 ### Running a workflow
 
-- `clay workflows runs test <workflowId> [--inputs <json|file|->] [--audience-segment <id> --limit <n>]`
-  starts a run (`--limit` is required with `--audience-segment`, and the two forms are mutually
-  exclusive); `runs get`, `runs steps`, `runs list`, `runs pause`, `runs resume` inspect and control it,
-  and `clay workflows publish <workflowId>` ships the draft. Flags, the `--wait` poll, and which
-  runs exercise draft vs live are in `testing.md` and `publishing.md`.
+- `clay workflows runs test <workflowId> [--inputs <json|file|->] [--audience-segment <id> --limit <n>] [--trigger <triggerId>]`
+  starts a run (`--limit` is required with `--audience-segment`; `--inputs`, `--audience-segment`,
+  and `--trigger` are mutually exclusive). `--trigger` runs a source trigger — Find leads, CSV
+  upload, or audience segment — and starts one run per record; the trigger must be live, which
+  for Find leads and segment triggers means publishing the workflow first (a CSV trigger is live
+  from creation). `runs get`, `runs steps`, `runs list`, `runs pause`, `runs resume` inspect and control
+  runs, and `clay workflows publish <workflowId>` ships the draft. Flags, the `--wait` poll, and
+  which runs exercise draft vs live are in `testing.md` and `publishing.md`.
 
 ### Testing actions and code
 

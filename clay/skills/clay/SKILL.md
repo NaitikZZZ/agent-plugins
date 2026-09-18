@@ -16,11 +16,14 @@ Whatever you're doing in Clay, work transparently so the user can follow along:
   in plain language, referring to things by their human-readable names.
 - **Summarize, don't dump.** Turn raw command output (JSON, `jq`, `diff`) into a
   short takeaway, table, or count. Reserve raw output for when the user asks.
-- **Confirm the workspace once.** The first time you use Clay in a session, run
-  `clay whoami` and tell the user which workspace (id) and user you're authenticated
-  as. If it's wrong, `clay workspaces list` shows what is signed in and
-  `clay workspaces switch <id>` moves to another; `clay login` adds a workspace that
-  is not signed in yet and makes it active. If whoami fails on auth, run the `setup` skill.
+- **Keep identity checks internal.** Only mention authentication, the user, or the
+  workspace when the user asks or an actual account/workspace issue needs their
+  attention.
+- **Look up identity only when needed.** Use supplied user and workspace context
+  (such as `<user_context>`) instead of looking it up again. Run `clay whoami` only when missing identity
+  information is needed for the task or to investigate an authentication or workspace
+  issue, not as a routine session-start check. Both identity rules apply in managed and
+  standalone CLI sessions, including when starting a new task or loading another skill.
 - **Managed sessions can't manage the install.** Inside the Clay app your Clay session
   and CLI version are provisioned for you, for one workspace: `clay login`, `clay logout`,
   `clay update`, `clay workspaces` and the `setup` / `update` skills are unavailable. If auth fails or the CLI is out of

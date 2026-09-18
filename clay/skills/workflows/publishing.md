@@ -49,25 +49,30 @@ match the restored draft.
 ## What you should do
 
 1. Build against the draft (`clay workflows nodes …`, `graph validate`/`format`). To verify **unpublished**
-   edits, use a plain / manual `clay workflows runs test` (no `--audience-segment`) —
-   that exercises the current draft. Do not treat `--audience-segment` as a draft test
-   after the workflow is published (that path runs the live version; see below).
+   edits, use a plain / manual `clay workflows runs test`, or `--trigger` on a CSV or audience
+   segment trigger — those exercise the current draft. A Find leads trigger cannot: its source
+   always runs the published version (see below).
 2. After a successful draft e2e test, if the user wants automation to run this graph,
    run `clay workflows publish <workflowId>`. Use `--name` only to label the
    published version, not to rename the workflow.
 3. If they edit a workflow that is already live, remind them that draft changes
-   stay draft-only until they publish again — and that audience-trigger backfills
-   still run the previous live version until then.
+   stay draft-only until they publish again — and that live automation, including
+   Find leads runs, still runs the previous live version until then.
 4. Never invent a publish API call or imply that restore/undo shipped a release.
 
 ## Which runs exercise draft vs live
 
-| How you start the run                                                                               | What graph it uses                                           |
-| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Plain / manual `clay workflows runs test` (optional `--inputs`)                                     | **Current draft**                                            |
-| `clay workflows runs test --live` (with or without `--audience-segment`)                            | **Live** version — fails if never published                  |
-| `clay workflows runs test --audience-segment …` (and live audience / schedule / webhook automation) | **Live** version after publish — not unpublished draft edits |
+| How you start the run                                                            | What graph it uses                                                                                                 |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Plain / manual `clay workflows runs test` (optional `--inputs`)                  | **Current draft**                                                                                                  |
+| `clay workflows runs test --audience-segment …`, or `--trigger` on a CSV trigger | **Current draft** — no publish needed (the segment companion is created live; a CSV trigger is live from creation) |
+| `clay workflows runs test --trigger …` on an audience segment trigger            | **Current draft** — but the segment trigger itself must be live, so publish first (or use `--audience-segment`)    |
+| Any of the above with `--live`                                                   | **Live** version — fails if never published                                                                        |
+| `clay workflows runs test --trigger …` on a Find leads trigger                   | **Live** version, with or without `--live` — the source hands records to the published version only                |
+| Live audience / schedule / webhook / Find leads automation                       | **Live** version — not unpublished draft edits                                                                     |
 
-When checking whether draft changes work, use a manual test run. Use `--live` (or
-`--audience-segment`, or real automation) to exercise the published/live path, not to
-validate draft-only edits.
+When checking whether draft changes work, use a manual test run or `--trigger` on a CSV or
+segment trigger. Use `--live` or real automation to exercise the published path. A Find leads
+trigger only ever runs the published version: to check a draft edit against one of its records,
+run `clay workflows nodes test <workflowId> <nodeId> --source-run <runId>` with a run the live
+source already produced, or publish.

@@ -10,10 +10,17 @@ echo '{"key":"value"}' | clay workflows runs test <workflowId> --inputs -
 clay workflows runs test <workflowId>                  # no inputs
 clay workflows runs test <workflowId> --live           # run the published (live) version
 
-# Audience-segment backfill (up to --limit members) — not a draft test after publish
+# Audience-segment backfill (up to --limit members) — runs the current draft unless --live
 clay workflows runs test <workflowId> --audience-segment <segmentId> --limit 5
 clay workflows runs test <workflowId> --audience-segment <segmentId> --record-ids 8814,8815
 clay workflows runs list <workflowId> --audience-segment <segmentId>
+
+# Run a source trigger (Find leads search, CSV upload, audience segment) — one run per record
+clay workflows runs test <workflowId> --trigger <triggerId>                # CSV / segment: current draft; Find leads: published version
+clay workflows runs test <workflowId> --trigger <triggerId> --live         # CSV / segment: pinned to the published version
+clay workflows runs test <workflowId> --trigger <triggerId> --replay     # Find leads: re-run already-found records too
+clay workflows runs test <workflowId> --trigger <triggerId> --limit 5    # audience segment trigger: --limit or --record-ids required
+clay workflows runs list <workflowId>
 
 # Partial single-node test (exactly one of --source-run or --inputs)
 clay workflows nodes test <workflowId> <nodeId> --source-run <runId>
@@ -25,19 +32,42 @@ clay workflows nodes test <workflowId> <nodeId> --inputs '{"param":"value"}'
 - **Plain / manual `clay workflows runs test`** (with or without `--inputs`) starts a run
   via the manual trigger and exercises the **current draft**. Use this to verify
   unpublished edits.
-- **`--audience-segment`** starts runs through that audience segment trigger. After the
-  workflow is published, those runs use the **live** version — not draft-only edits you
-  have not published yet. Do not conclude “the draft works” from a successful
-  `--audience-segment` run on a published workflow; publish first if you need the live
-  path to pick up draft changes, or use a manual test to validate the draft.
+- **`--audience-segment`** starts runs for members of that segment through the segment
+  trigger's manual companion. It needs no publish — the companion is created live even while
+  the segment trigger is still a draft — and like the plain form the runs exercise the
+  **current draft** unless you pass `--live`. Real segment automation (membership changes,
+  schedules) runs the live version, so a passing `--audience-segment` run does not prove the
+  published graph works — use `--live` for that.
 - **`--live`** (works with or without `--audience-segment`) pins the runs to the
   workflow's published (live) version instead of the draft. It fails with
   `validation_error` if the workflow has never been published.
 
+- **`--trigger <triggerId>`** runs whichever source sits behind that trigger and starts one
+  run per record it returns. Which graph the runs use depends on the source:
+  - **CSV upload** and **audience segment** triggers run the **current draft** unless you pass
+    `--live`, so you can keep editing and re-run the same records against the draft.
+  - A **Find leads** trigger always runs the **published version** — the source hands its
+    records to the trigger's live version, and `--live` changes nothing. Draft edits are not
+    exercised until you publish; to check one node against a real record first, use
+    `clay workflows nodes test <workflowId> <nodeId> --source-run <runId>` with a run the
+    source already produced.
+
+  The trigger named by `--trigger` must be live. A Find leads or audience segment trigger goes
+  live when the workflow is published, so `clay workflows publish` first for those — "is draft,
+  not live" means publish, not retry. To run segment members against the draft without
+  publishing, use `--audience-segment` instead, which does not check the trigger's status. A
+  CSV trigger is live from creation and needs no publish (see `csv-triggers.md`); do not publish
+  just to test one. "has no source yet" / "has no CSV file
+  yet" mean the source is not provisioned or no file is linked. It returns `{ ok: true }` rather
+  than a run id — watch the runs with `clay workflows runs list`. On an audience segment trigger
+  it is bounded like `--audience-segment`: pass `--limit` (max 10) or `--record-ids`. Triggers
+  this command cannot run (manual, webhook, scheduled, signal, Clay table) are rejected; use the
+  plain form or the trigger's own entry point for those.
+
 `--record-ids` runs exactly those Audiences records instead of the segment's first
 `--limit` members; pass one or the other, not both.
 
-`--inputs` and `--audience-segment` cannot be combined. See `publishing.md`.
+`--inputs`, `--audience-segment`, and `--trigger` cannot be combined. See `publishing.md`.
 
 ```bash
 # Status / progress for a run

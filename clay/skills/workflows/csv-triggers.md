@@ -13,10 +13,11 @@ where `triggers create` isn't available, create it from the trigger in the workf
 then read its id with `graph get`.
 
 A `csv_upload` trigger goes live when it's created — with no separate publish step — but it
-can still be paused from the editor, and a paused trigger makes `csv run` fail. On the CLI
-`clay workflows triggers get <triggerId>` returns its `status`; `graph get` does not include
-status, and Sculptor has no other read path to it, so if a run fails as not-live, have the
-user resume the trigger in the editor.
+can still be paused from the editor, and a paused trigger makes `csv run` fail. Neither
+`triggers get` nor `graph get` reports a trigger's status, so a run failing as not-live is the
+signal that it is paused. On the CLI resume it with
+`clay workflows triggers update <triggerId> --input '{"status":"live"}'`; in Sculptor, which
+has no `triggers update`, have the user resume the trigger in the editor.
 
 A run always executes the workflow's **current draft graph** as it stands the moment the
 run starts — there is no way to run the last published version through this command. Any

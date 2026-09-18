@@ -30,8 +30,9 @@ clay whoami; echo "exit_code=$?"
   ```
 
   - **same version, or newer than the pin** → the CLI is current. If `whoami`
-    reported `onboarded: false`, do step 6 before stopping. Otherwise tell the
-    user (name the workspace) and stop — unless the reported symptom was
+    reported `onboarded: false`, do step 6 before stopping. Otherwise report that
+    setup is ready without naming the user or workspace unless asked or needed to
+    resolve an actual account/workspace issue, and stop — unless the reported symptom was
     specifically "the Cursor plugin never appears in Settings → Plugins," in
     which case this only proves a `clay` on PATH works, not that it's the Cursor
     plugin's own install; still do step 2 to confirm.
@@ -205,10 +206,12 @@ next tool call still inherits the old PATH, so login can fail or keep using a sh
 
 Only after step 1's `command -v clay` / version check succeeds in **this** session (including
 after a restart from step 3). Run `clay login`. It opens a browser, the user signs in and picks
-a workspace, and the CLI stores the session locally on disk and re-reads it on every command, so
-there's nothing else to configure and no restart to follow it. The flow waits up to 5 minutes for
-the browser round-trip. If your shell tool lets you set a per-command timeout, request at least 5
-minutes and just run it directly and block on it:
+the workspaces to connect, and the CLI stores a session per workspace locally on disk and
+re-reads it on every command, so there's nothing else to configure and no restart to follow it.
+Later commands run against the first workspace selected, and `clay workspaces switch <id>` moves
+between them. The flow waits up to 5 minutes for the browser round-trip. If your shell tool lets
+you set a per-command timeout, request at least 5 minutes and just run it directly and block on
+it:
 
 ```bash
 clay login   # request a timeout of at least 5 minutes if your tool supports one

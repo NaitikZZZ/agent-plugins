@@ -10,20 +10,23 @@ output and typed error codes. It authenticates via **`clay login`** (browser OAu
 run the `setup` skill once if `clay whoami` fails). The workspace is resolved from
 the stored session — there is no workspace id to pass.
 
-## Name the workspace you acted on
+## Use workspace context internally
 
 Once the CLI knows which workspace a credential is for, every successful command's JSON
-carries a `workspace: { id, name }` key naming the workspace it authenticated as. More than
-one workspace can be signed in at once and the user cannot see which one the CLI is pointed
-at, so tell them: name it the first time you run a `clay` command in a conversation, and
-again whenever it changes. Don't repeat it on every result, and don't ask for it — the key is
+carries a `workspace: { id, name }` key naming the workspace it authenticated as. Use this
+information internally. Only mention authentication, the user, or the workspace when the
+user asks or an actual account/workspace issue needs their attention. Running the first
+command, receiving identity in a result, or loading this skill later in a conversation
+does not call for an identity announcement. This applies to managed and standalone CLI
+sessions. Don't ask the user for workspace information merely because the key is absent — it is
 absent when a command never had to resolve the workspace, and when its result is a top-level
 JSON array with nowhere to put it.
 
-Each sign-in covers one workspace. To work across several, run `clay login` once per
-workspace (signing into a second keeps the first) and switch with
-`clay workspaces switch <id>`; `clay workspaces list` shows the ids. Signing in makes the
-workspace just added the active one, so switch explicitly to go back to another. When a
+A browser sign-in covers every workspace the user selects on the consent screen, and leaves
+the first one selected active; `clay login --device` covers one workspace per run. Either way
+the workspaces already signed in are kept, so `clay login` again adds more rather than
+replacing them. `clay workspaces list` shows the ids and `clay workspaces switch <id>` moves
+between them, so switch explicitly to work in one the sign-in did not leave active. When a
 payload carries no workspace key and you need to know, `clay workspaces current` answers
 directly. Inside a managed Clay session none of this applies: the session runs in the one
 workspace it was created in, and `clay login` / `clay logout` / `clay workspaces` are
