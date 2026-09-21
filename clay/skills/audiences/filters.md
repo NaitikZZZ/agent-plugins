@@ -23,6 +23,12 @@ The parts that cost the most time:
   `{"type":"GroupOp","combinationMode":"And","items":[]}`.
 - **Node `id`s are UI bookkeeping** — they are stripped, so never author them.
 
+## Discover categorical values before filtering
+
+Use `fields list-values` before filtering categorical fields instead of guessing
+labels. Follow the value discovery and high-cardinality guidance in
+`answering-data-questions.md`.
+
 ## Filter dates without guessing
 
 Choose the field before the operator. For any request with a time constraint,

@@ -12,6 +12,12 @@ create the trigger: on the CLI use `clay workflows triggers create <workflowId> 
 where `triggers create` isn't available, create it from the trigger in the workflow editor,
 then read its id with `graph get`.
 
+A newly created `csv_upload` trigger has no file, so it can't run anything yet. After
+creating one, ask the user for the CSV to run through the workflow — have them attach it to
+the chat (it lands at `/mnt/session/uploads/<filename>`) or give a file path — then link it
+with `csv upload`. Don't leave the trigger fileless or assume a file; a run needs a linked
+CSV.
+
 A `csv_upload` trigger goes live when it's created — with no separate publish step — but it
 can still be paused from the editor, and a paused trigger makes `csv run` fail. Neither
 `triggers get` nor `graph get` reports a trigger's status, so a run failing as not-live is the
@@ -63,6 +69,9 @@ whole file again — a lost response or timeout that you retry doubles the runs 
 spend. (Re-running deliberately reuses each row's identity, which groups the reruns under
 the same subjects; it does not dedupe them away.) After an ambiguous result, inspect the
 workflow's runs before rerunning rather than blindly retrying.
+
+For finding the runs and waiting for completion, read `testing.md`, including the
+distinction between `batchKey` and the legacy `batchId`.
 
 ## Attaching a CSV the user uploaded in chat
 

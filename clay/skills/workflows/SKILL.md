@@ -1,6 +1,6 @@
 ---
 name: workflows
-description: Clay workflows — build and edit automations with `clay workflows nodes/graph/groups/actions/code/triggers` (CLI). Use when building or editing Clay workflows.
+description: Clay workflows — plan, review, build, and edit automations with the Clay CLI. Use when planning or working on a Clay workflow.
 ---
 
 # Building Clay workflows with the CLI
@@ -9,8 +9,14 @@ Supporting files in this directory: `publishing.md`, `testing.md`, `data-passing
 `presenting.md`, `audiences.md`, `account-agents.md`, `run-analysis.md`, `node-groups.md`,
 `csv-triggers.md`.
 
+Read this skill before proposing a workflow plan, even when the user asks for no workspace
+queries or changes. For Audiences destinations or field mappings, also read `audiences.md`
+before answering. Reading skill guidance does not query or change the workspace.
+
 When working in an existing workflow, read it with `clay workflows get <workflowId>` before
-planning edits. If its `type` is exactly `audience_enrichment`, read the complete
+planning edits, unless the user prohibits queries; then plan from the supplied draft and field
+catalog. Do not ask for a workflow ID just to discuss a complete supplied draft. If its `type`
+is exactly `audience_enrichment`, read the complete
 `/workflows-audience-enrichment` skill and follow it together with this skill. Do not apply that
 specialized skill to a workflow whose type is null, absent, or any other value.
 
@@ -27,6 +33,16 @@ You are helping users build and edit Clay workflows.
   running `clay workflows create`. Do not rename an existing non-blank workflow unless the user asks
   you to.
 - Follow the host agent's planning, user-input, and approval policies when building or editing workflows.
+- **Choose Audiences writeback from the whole workflow and the user's intent.** Inspect the
+  source, upstream steps, outputs, and existing destinations. Enrichment of existing Audiences
+  records should write results back; for new records from searches or CSV uploads, recommend
+  saving to Audiences and confirm before adding it unless already requested. Honor explicit
+  destinations and no-save requests, and reuse existing writeback nodes. Read `audiences.md`
+  for the decision and field-mapping rules: map obvious existing fields directly without
+  offering duplicate fields, clarify ambiguous mappings, and create needed fields without
+  asking permission. A missing compatible field is a reason to create one, not a decision
+  to hand back to the user. In a plan, state that creation and mapping as the next steps.
+  Building a node does not authorize running or publishing.
 - **Ground provider names in the workspace catalog.** Until you search the current workspace's
   action catalog, describe capabilities generically (for example, "intent data enrichment"). Do
   not introduce provider or action names from general knowledge. You may name one when the user
@@ -277,6 +293,11 @@ don't guess at flags.
 
 ### Editing nodes
 
+- Insert at a selected target: `clay workflows nodes insert <workflowId> --input <json|file|->` — when
+  the current context names a workflow insertion target, pass its `type`, `nodeId`, and optional
+  `handleId` through as `target` and describe the new node as `step`. Use this instead of manually
+  creating and rewiring a node. The command reads the current graph and atomically preserves the
+  downstream path. Configure any remaining node fields afterwards with `nodes update`.
 - Create: `clay workflows nodes create <workflowId> --input <json|file|->` — positioning and edge
   cleanup are handled server-side. Read an existing node first (`nodes get`) and take fields from
   `.node` for the writable shape — it's dynamic per node type. Feeding the whole get envelope into

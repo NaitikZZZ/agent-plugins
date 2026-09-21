@@ -14,6 +14,25 @@ populates people or companies uses the action below. Audiences itself is
 CLI-only — no MCP tool or `surfaces_*` resource type reads segments or fields,
 so don't go looking for one.
 
+## Decide whether to write back
+
+Inspect the whole workflow and prior user instructions before adding an
+`upsert-audiences-record` node. Follow records from their source through enrichment to the
+intended destination; the trigger type or the last node alone does not establish intent.
+
+- **Existing Audiences records:** write enrichment, qualification, and scoring results back
+  to those records without asking whether to save. Reuse and extend an existing writeback
+  node when possible. Resolve any field choices below before configuring those mappings.
+- **New records from outside Audiences**, such as search results or a CSV upload: recommend
+  saving the results to Audiences and ask before adding writeback. If the user already asked
+  to save them there, proceed without asking again.
+- **Explicit destination or no-save instructions:** follow them. Do not add Audiences as an
+  extra destination or repeatedly recommend it after the user declines.
+
+For `audience_enrichment` workflows, use `/workflows-audience-enrichment` to ensure the final
+writeback. Draft construction does not authorize execution or publishing; preview-only work
+must not execute writeback.
+
 ## The backfill shape: audience → enrich → upsert back
 
 This is the standard answer when a field the user wants is missing or sparse on
@@ -99,7 +118,48 @@ Every id in a `selected*` array MUST have a matching `<group>|<id>` binding, or 
 
 ### Discover real field IDs
 
-Run `clay audiences fields list` with `--entity-type people` or `--entity-type companies` first — schema ids and English names often differ (account "company name" is `org_name`). It returns the workspace's record field catalog; lookup keys are fixed (CONTACT → `email`, `linkedin_url`, `phone`; ACCOUNT → `domain`, `linkedin_url`).
+Run `clay audiences fields list` with `--entity-type people` or `--entity-type companies` first — schema ids and English names often differ (account "company name" is `org_name`). For planning-only requests that prohibit workspace queries, use the supplied catalog and defer ID discovery until editing is authorized. It returns the workspace's record field catalog; lookup keys are fixed (CONTACT → `email`, `linkedin_url`, `phone`; ACCOUNT → `domain`, `linkedin_url`).
+
+Match each upstream output by meaning and data type, using the workflow context:
+
+- When one existing field clearly fits, map to its real ID without asking whether to use it
+  or create a new field. For a requested update, existing values are not a reason to reopen
+  that choice, create a duplicate field, or limit the workflow to filling blanks. Follow the
+  user's update intent and preserve unrelated fields.
+- When several fields plausibly fit, ask an explicit question naming those fields and the
+  option to create a new field, including in a planning-only reply. Saying you would ask or
+  listing the ambiguity is not a question. Wait for the user's choice before configuring
+  that mapping.
+- When no existing field clearly fits, create a suitable field without asking permission,
+  as described below. An incompatible type or meaning is not a plausible match: a boolean
+  verdict needs a boolean field, not an existing text field used for human explanations.
+
+Reuse field choices already made. Do not
+force a mapping into an unrelated field, change an existing field's type, or silently drop an
+output to avoid asking. Continue independent draft work while a field decision is pending.
+
+### Create missing fields
+
+**You can create fields through the CLI.** Use `clay audiences fields create` when a workflow
+output needs a new field. Choose a descriptive name and matching data type, then map the output
+using the returned field ID. Creating needed fields requires no separate user approval; tell
+the user what you created. Honor explicit instructions not to create fields or to plan only.
+Audiences fields are distinct from table columns; limitations on adding table columns do not
+apply to `clay audiences fields create`.
+Do not claim field creation is unsupported or hand it back to the user without an actual tool
+error establishing a blocker. Use the `audiences` skill for command details.
+
+For a planning-only request, state the new field's name and type and the write-to-audiences
+mapping you will create through the CLI, without executing anything. Do not add hypothetical
+CLI limitations or a manual handoff. Carry forward agreed field names and mappings; ask only
+about unresolved choices needed for the requested work, not speculative gates, extra outputs,
+or testing the user has excluded.
+
+For example, a boolean qualification output with only a human-written text field available
+calls for a new boolean field and a write-to-audiences node mapping to it. State that plan
+directly. If the user already chose a name and mapping, retain them without reopening the
+decision. Waiting to execute a planning-only request does not require asking again whether
+the field should exist.
 
 ### Worked example — account upsert
 

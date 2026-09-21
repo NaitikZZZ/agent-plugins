@@ -92,9 +92,30 @@ clay workflows publish <workflowId> --name "July enrichment rollout"
 When you create or first load a workflow, share its `url` as a clickable Markdown
 link (`[Open workflow](<url>)`) — see `presenting.md`.
 
+## Finding runs after starting a trigger
+
+Inspect `clay workflows runs list <workflowId>` before choosing filters. On a fresh
+workflow triggered once, its runs are sufficient; check the expected row count and
+follow pagination when needed. On an existing workflow, use trigger IDs and creation
+times to narrow the results, but these may not distinguish overlapping executions of
+the same trigger.
+
+`batchId` (CLI `.batch.id`) identifies a legacy workflow batch record. `batchKey`
+(CLI `.batch.key`) is a trigger execution/deduplication key, not that record's ID.
+Never compare them. A run can legitimately have no `.batch`; this does not mean it
+hasn't started. The run-list output does not expose the trigger's batch key.
+
+If a filter finds no runs, inspect the unfiltered response before polling again.
+Runs can appear asynchronously; an empty lookup does not mean you should retrigger
+the workflow.
+
 ## Watching a run to completion
 
 Prefer a single blocking call with `--wait` instead of hand-rolling a poll loop.
+Once you have run IDs, wait on those runs rather than repeatedly rediscovering them.
+There is no universal completion time: code, provider calls, agent steps, and explicit
+delays take different amounts of time. Use status and progress to decide whether more
+waiting is useful.
 `status` is one of `pending` / `running` / `paused` / `waiting` / `completed` /
 `failed` / `cancelled`; `progress.percentage` tracks progress.
 

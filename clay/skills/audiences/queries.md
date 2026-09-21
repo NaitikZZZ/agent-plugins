@@ -192,6 +192,23 @@ unit        := day | week | month | year
   `$name` variables require API bindings; these CLI commands have no binding flag,
   so provide literal values.
 
+## Taxonomy
+
+Taxonomy returns the distinct values of a field with their record counts.
+The DSL supports `GROUP BY`, but it is intentionally excluded from the grammar
+available to agents above. Agents must never write or execute `GROUP BY` queries
+directly. Use grouping only through `list-values`, which constructs the
+`count from ... group by ...` query:
+
+```bash
+clay audiences fields list-values title --entity-type people
+```
+
+Results include up to 50 values by default; use `--limit` explicitly when more
+are needed (maximum 24,999). Grouped results are not supported
+by `records search-count` or `records search-ids`. For interpreting values and
+handling high cardinality, see `answering-data-questions.md`.
+
 ## Text matching
 
 `contains` matches a substring, not a word or a semantic category.
@@ -200,9 +217,8 @@ are case-insensitive. In Audiences,
 `title contains "CTO"` can match "Director of Sales". Use `title = "CTO"`
 or `title in ("CTO", "Chief Technology Officer")` for exact values; use
 `title contains "Engineer"` only when that substring is the intended criterion.
-For an ambiguous category, inspect a small sample of populated values before
-choosing a predicate, and state the interpretation in the answer. Do not keep
-guessing synonyms until a query returns results.
+For ambiguous categories, follow the value discovery guidance in
+`answering-data-questions.md` before choosing a predicate.
 
 ## Relationship predicates (a company's people, a person's company)
 
