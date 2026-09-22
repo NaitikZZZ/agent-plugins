@@ -19,9 +19,10 @@ in the workspace yet).
 
 Read this before any audiences work. Supporting references:
 
-- `answering-data-questions.md` — **read this first for any "how many / who has /
-  look up X" question.** Covers reading existing fields before paying for an
-  enrichment, checking fill rates, and what to do when the data is mostly missing.
+- `answering-data-questions.md` — **read this first for any request to count,
+  find, or filter existing records.** Before filtering a categorical field, call
+  `fields list-values` as described there. Also covers field coverage and when
+  to enrich.
 - `queries.md` — **read before writing a `--query`.** Audiences DSL grammar,
   relationship semantics, data or date filters, and server-side sorting for
   top-N questions.
@@ -66,12 +67,12 @@ mapping right up front — it is the most common source of wasted round trips.
 
 Supported `--entity-type` values by command (all under `clay audiences`):
 
-| Commands                                                                   | Accepted values                | Deals support                                              |
-| -------------------------------------------------------------------------- | ------------------------------ | ---------------------------------------------------------- |
-| `records get`, `records search-ids`, `records search-count`, `fields list` | `people`, `companies`, `deals` | Supported; deal searches with this flag must be unfiltered |
-| `list`, `create`                                                           | `people`, `companies`          | Not supported; saved audiences target people or companies  |
-| `fields create`, `fields update`, `fields delete`, `fields segments`       | `people`, `companies`          | Not supported                                              |
-| `signals get --entity-id`                                                  | `people`, `companies`          | Not supported                                              |
+| Commands                                                                                         | Accepted values                | Deals support                                              |
+| ------------------------------------------------------------------------------------------------ | ------------------------------ | ---------------------------------------------------------- |
+| `records get`, `records search-ids`, `records search-count`, `fields list`, `fields list-values` | `people`, `companies`, `deals` | Supported; deal searches with this flag must be unfiltered |
+| `list`, `create`                                                                                 | `people`, `companies`          | Not supported; saved audiences target people or companies  |
+| `fields create`, `fields update`, `fields delete`, `fields segments`                             | `people`, `companies`          | Not supported                                              |
+| `signals get --entity-id`                                                                        | `people`, `companies`          | Not supported                                              |
 
 Use these exact plural values: `person`, `company`, and `deal` are invalid.
 Commands not listed above do not take `--entity-type`; segment-scoped commands
@@ -120,7 +121,8 @@ clay audiences fields create --entity-type people --name "Lead score" --data-typ
 clay audiences fields update <fieldId> --entity-type people --hidden true
 clay audiences fields delete <fieldId> --entity-type people
 clay audiences fields segments <fieldId> --entity-type people         # audiences whose filter references the field
-clay audiences fields list --entity-type deals                        # deal fields; list is the one subcommand taking deals
+clay audiences fields list --entity-type deals                        # deal field definitions
+clay audiences fields list-values title --entity-type people          # distinct values and counts
 ```
 
 - **Run `fields list` once and save it** (`> /tmp/people-fields.json`), then slice
@@ -130,6 +132,9 @@ clay audiences fields list --entity-type deals                        # deal fie
   excluded) — use those ids for `upsert-audiences-record`.
 - **Names are not ids.** Account "company name" is `org_name`. Never guess an id
   from a display name.
+- **Discover categorical values before filtering.** Use `fields list-values`
+  instead of guessing labels. See `answering-data-questions.md`
+  for value discovery and high-cardinality guidance.
 - `create` silently uniquifies a taken name (`"Tier (2)"`) — read the returned
   `name` and `id` rather than assuming the one you passed.
 - Before `update --data-type` or `delete`, run `fields segments <fieldId>`: a

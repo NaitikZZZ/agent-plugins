@@ -10,6 +10,12 @@ Send feedback or a bug report to the Clay team using `clay feedback`. It reads t
 
 The CLI does no confirmation of its own, so confirm with the user before sending.
 
+Feedback is one-way: it lands in the Clay team's triage queue and nobody replies. When the
+user wants a human who responds — they explicitly ask for support, or the matter needs staff
+action (a disputed or duplicate charge, a refund, account recovery) — use `clay support`
+instead (see the `clay` skill's "Getting help and reporting problems"). Product feedback
+_about_ billing or plans (confusing UX, a feature request) is still feedback and belongs here.
+
 ## Steps
 
 1. **Determine type.** Default to `feedback`. Choose `bug` **only** when something that previously worked (or is established existing behavior) has **regressed** — it used to work and now doesn't. Choose `feedback` for everything else: missing behavior, feature requests, UX suggestions, confusing flows, "I expected X but Clay doesn't do that," errors that look like product gaps rather than regressions, and general product ideas. Missing behavior is feedback (closer to a feature request), not a bug. If unclear whether this is a regression, prefer `feedback`; only ask the user when they clearly mean either a regression or a request for new/missing behavior and you still can't tell which.
@@ -27,10 +33,11 @@ The CLI does no confirmation of its own, so confirm with the user before sending
    > Send this feedback?
 
 4. **If confirmed**, send the message on stdin. The CLI reads the feedback from stdin. Do **not** pass it inline in the shell command (no heredoc, no `echo`): the feedback is arbitrary user text, and a here-doc delimiter or quote appearing in it would truncate or mis-parse the message — or let pasted text run as shell. Instead, write the text to a temp file with your file-writing tool (which never goes through the shell), then redirect that file into the command. Always pass `--type bug` or `--type feedback` from step 1.
-   - Write the feedback text verbatim to a temp file, e.g. `/tmp/clay-feedback.txt`.
+   - Write the feedback text verbatim to a temp file with an unpredictable name (a shared
+     fixed path lets other local sessions read or clobber it), e.g. `/tmp/clay-feedback-<random>.txt`.
    - Then run:
 
    ```bash
-   clay feedback --type <bug|feedback> < /tmp/clay-feedback.txt
-   rm -f /tmp/clay-feedback.txt
+   clay feedback --type <bug|feedback> < /tmp/clay-feedback-<random>.txt
+   rm -f /tmp/clay-feedback-<random>.txt
    ```

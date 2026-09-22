@@ -51,12 +51,30 @@ The sequence:
    Fetch a total count too if the user needs a fill-rate percentage. A simple
    request with known fields need not start with a separate coverage audit.
 
-3. **Resolve ambiguous values with a bounded sample.** For categories such as
-   department, role, industry, or seniority, get a small page of records with
-   the field populated, then read those values with `records get`. A sample
-   helps choose a predicate; it is not an exhaustive vocabulary or proof that
-   a value is absent. Do not issue a count for every guessed synonym. If the
-   sample leaves a material ambiguity, state the interpretation or ask.
+3. **Discover categorical values before filtering.** For fields expected to
+   have low cardinality, such as job title, department, persona, industry,
+   or seniority, use `fields list-values` to get the available values and
+   counts instead of guessing enum labels or testing every synonym.
+
+   ```bash
+   clay audiences fields list-values title --entity-type people
+   ```
+
+   Call this command directly; no DSL query is needed. Results include up to
+   50 values by default; request more only when needed with `--limit` (maximum
+   24,999). These are observed values, not a predefined enum.
+   Check `truncated` before treating the vocabulary as complete. Do not sample
+   or enumerate records with `search-ids` and `records get` to discover field
+   values. Counts from `list-values` cover the workspace's entity type; retain
+   the user's original audience or filter scope when counting matches for the
+   chosen values.
+
+   If cardinality is high or the result is truncated, inspect the field's
+   `dataType` and meaning. Check whether it is incorrectly typed, whether a
+   different categorical field is more appropriate, or whether a numeric/date
+   range or targeted predicate would answer the question. High cardinality alone
+   does not prove a type error. Explain any remaining limitation or ambiguity;
+   never fall back to reading all records, even to obtain an exhaustive taxonomy.
 
 4. **Then** answer the question, or — if the field is sparse or missing —
    recommend an enrichment (below).

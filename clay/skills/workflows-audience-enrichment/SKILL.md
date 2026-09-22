@@ -29,7 +29,8 @@ skill. Never convert or reclassify a workflow implicitly.
 ## Plan the enrichment
 
 Read the full graph and identify the audience trigger, existing enrichment steps, and current
-writeback node. Confirm with the user:
+writeback node. Resolve the following from the workflow and user instructions, asking only
+where a choice remains:
 
 - which audience fields should be populated
 - whether the workflow should enrich people or companies
@@ -42,7 +43,14 @@ enrichment actions for provider data, Clay functions for reusable workspace logi
 unstructured research or classification, conditionals for eligibility and fallbacks, and code for
 deterministic transformations.
 
-Present a short plan and get approval before editing the graph. Get separate approval before
+Map unambiguous existing fields without asking whether to use them or create new ones. A request
+to update a field does not need another confirmation because it may already have values; do not
+add a fill-blanks-only restriction unless requested. For ambiguous mappings, offer plausible fields
+and a new-field option. Create needed fields without asking permission, following the
+`workflows` skill's `audiences.md`. Reuse field choices already made.
+
+Present a short plan and get approval before editing the graph unless the user already authorized
+the edits. Get separate approval before
 publishing. Testing must be within the authorized scope; follow the shared policy in
 `workflows-discover-actions/cost-and-budget.md` for cost disclosure and significant-spend confirmation.
 

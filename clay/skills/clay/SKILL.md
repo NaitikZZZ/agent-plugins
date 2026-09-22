@@ -1,6 +1,6 @@
 ---
 name: clay
-description: Clay — start here. A table of contents for working with Clay and which skill to use for each thing — audiences (the workspace's own people/companies/deals), campaigns (create, improve, and analyze outbound email sequences), search (find net-new people/companies), routines (run Clay-managed and custom functions), tables (query/export data), the CLI (ephemeral programmatic access), the Public API (build services on Clay), workflows (build automations), and feedback. Read this first to answer "what can I do with Clay?"
+description: Clay — start here. A table of contents for working with Clay and which skill to use for each thing — audiences (the workspace's own people/companies/deals), campaigns (create, improve, and analyze outbound email sequences), search (find net-new people/companies), routines (run Clay-managed and custom functions), tables (query/export data), the CLI (ephemeral programmatic access), the Public API (build services on Clay), workflows (build automations), feedback, and getting help — reaching Clay support or a human about billing, refunds, or account problems. Read this first to answer "what can I do with Clay?"
 ---
 
 # Working with Clay
@@ -12,6 +12,10 @@ contents: find what you want to do and go to that skill.
 
 Whatever you're doing in Clay, work transparently so the user can follow along:
 
+- **Read the relevant skill before responding.** This file is an index, not the full
+  guidance. Follow its links and read the relevant skill and applicable references before
+  giving advice, asking clarifying questions, or taking action. Use that guidance to
+  determine capabilities and which decisions require user input.
 - **Narrate as you go.** Say what you're about to do and why, then what happened —
   in plain language, referring to things by their human-readable names.
 - **Summarize, don't dump.** Turn raw command output (JSON, `jq`, `diff`) into a
@@ -24,6 +28,9 @@ Whatever you're doing in Clay, work transparently so the user can follow along:
   information is needed for the task or to investigate an authentication or workspace
   issue, not as a routine session-start check. Both identity rules apply in managed and
   standalone CLI sessions, including when starting a new task or loading another skill.
+  When auth is broken and the user needs support or account recovery, don't block on
+  sign-in: `clay support` works signed out and with broken auth, so produce the handoff
+  (see "Getting help and reporting problems") instead.
 - **Managed sessions can't manage the install.** Inside the Clay app your Clay session
   and CLI version are provisioned for you, for one workspace: `clay login`, `clay logout`,
   `clay update`, `clay workspaces` and the `setup` / `update` skills are unavailable. If auth fails or the CLI is out of
@@ -136,6 +143,44 @@ real limits without inventing prices. It also defines when spending needs confir
 | `workflows`           | Building and editing Clay workflows via the CLI.                                                                                                                                                                                                                                                                               |
 | `workflows-vs-tables` | Explaining the difference between Workflows and Tables, or recommending which to use.                                                                                                                                                                                                                                          |
 | `clay-feedback`       | Sending a bug report or product feedback to the Clay team.                                                                                                                                                                                                                                                                     |
+
+## Getting help and reporting problems
+
+Default to solving the problem with the skills above. When that isn't the answer:
+
+- **Something in Clay is broken or behaving wrong** (a command misbehaves, data looks
+  wrong, an error makes no sense): offer to send a bug report via the `clay-feedback`
+  skill. It goes to the Clay team's triage queue; nobody replies to it.
+- **The user explicitly asks for support or a human**, or needs something only Clay staff
+  can resolve — a disputed or duplicate charge, a refund, account access they cannot
+  recover themselves, or a product failure that persists after your retries and
+  workarounds (first-occurrence bugs are feedback, above). Plan changes and member
+  management are usually self-service in the app's settings — but when the app says the
+  plan is managed by Clay (e.g. demo workspaces), that is a support matter too. In a
+  surface with a native support handoff (such as the GTM agent's ContactSupport
+  component), render that instead of running the CLI. Otherwise run
+  `clay support` and give the user the returned `url` — it opens the Clay app with a
+  support conversation ready to send — with the `email` as a fallback. To prefill the
+  conversation, write a first-person summary to a private file with an unpredictable
+  name (a shared fixed path lets other local sessions read or clobber it) using your
+  file-write tool — never inline on the command line, via shell `echo`, or as a heredoc,
+  where the summary's own text can escape parsing or execute (e.g. `$(...)`) — then pipe
+  it on stdin:
+
+  ```sh
+  clay support --message - < /tmp/clay-support-msg-<random>.txt
+  ```
+
+  Then remove the file as a separate command (`rm -f /tmp/clay-support-msg-<random>.txt`),
+  even when the command failed — a combined `…; rm` would mask the exit code you need to
+  see the failure.
+
+  Don't volunteer this for capability gaps or questions you can
+  answer, and never claim you contacted support: the user decides by opening the link.
+
+- **Clay supports it, just not from this surface** (for example, creating tables): follow
+  the relevant skill's guidance and point the user to the Clay app. That's a product
+  boundary, not a bug and not a support case.
 
 ## If another Clay MCP is connected
 
