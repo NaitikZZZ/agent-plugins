@@ -1,37 +1,31 @@
 ---
 name: update
-description: Keep Clay up to date. Use when the user asks to update or upgrade Clay, the plugin, or the `clay` CLI; when `clay update` reports the CLI is pinned / managed by the plugin; or to check whether a newer version is available. In the plugin, the CLI is pinned by the plugin, so updating means updating the plugin.
-allowed-tools: Bash
+description: Keep Clay up to date. Use when the user asks to update or upgrade Clay, the plugin, or the `clay` CLI; when `clay update` reports the CLI is pinned / managed by the plugin; or to check whether a newer version is available. The plugin and CLI update independently; migrate older plugin-managed installs through setup.
+allowed-tools: Bash, Read
 ---
 
 # Keeping Clay up to date
 
-The plugin **bundles and pins** a specific `clay` CLI version. Because of that pin,
-`clay update` **cannot** self-update here: it detects the plugin-managed binary and
-tells you to update the plugin instead. So for plugin users, "update the CLI" means
-**update the plugin** — that moves the pin, and the newer CLI is fetched on next use.
+The CLI is installed independently. The plugin declares its minimum compatible CLI
+in `cli-min-version`; a newer CLI is fine. Updating one does not automatically update
+the other.
 
-## 1. Check what you're on, and whether a newer version exists
+## 1. Check and update the CLI
 
-```bash
-clay --version        # reports <cliVersion>+<commit>
-clay update --check   # reports { updated, latestVersion, message }
-```
+Run `bash "<PLUGIN_ROOT>/scripts/check-cli.sh" plain`, resolving `<PLUGIN_ROOT>` two
+levels above this skill. If it reports a missing, old, or plugin-managed executable,
+follow the `setup` skill to locate the executable and choose the appropriate action:
+existing native CLIs upgrade through their own `clay update`, npm CLIs through npm,
+and missing or plugin-managed CLIs use installation or migration. An old plugin forwarder needs
+migration even when a cached launcher still responds. Preserve the installation method
+and existing sign-in.
 
-`clay update --check` reports the latest published CLI version and a `message`. In the
-plugin, that message is:
-
-> "This binary is managed by the Clay agent plugin and is pinned to a specific version.
-> Update the plugin to change the CLI version."
-
-Seeing that message is expected — it's the signal to update the plugin (step 2), not an
-error. Compare `latestVersion` against the `<cliVersion>` from `clay --version`: if
-they differ, an update is available.
-
-When an update is available, `message` ends with the GitHub release URL for that version.
-Fetch it and **show the user what's new** — the release body carries the changelog under a
-`## What's new` heading, and it's the only place they see what they're getting. No URL
-means you're already on the latest version.
+Once the independent executable works, run `clay update --check` to check the latest
+published release. Show the user what's new from the release URL when one is returned.
+For a native installation, run `clay update`. For an npm installation, use
+`npm install --global --ignore-scripts @clay-run/cli@latest`; `clay update` identifies
+npm installs and provides that direction. Use the verified absolute executable path
+if the current session's PATH has not refreshed.
 
 ## 2. Update the plugin
 
@@ -47,7 +41,7 @@ claude plugin update clay@clay-plugins
 ```
 
 Then have the user run `/reload-plugins` (or restart Claude Code) so the new version
-loads. If `clay --version` still shows the old version after that, the marketplace
+loads. If the plugin still shows the old version after that, the marketplace
 clone was stale — the explicit `claude plugin marketplace update clay-plugins` above
 force-refreshes it; as a last resort, uninstall and reinstall the `clay` plugin.
 
@@ -71,38 +65,13 @@ Cursor is UI-driven — tell the user to do this (there's no reliable CLI path):
   cycle; a manual **Refresh** forces it.
 - If the content still looks stale, uninstall and reinstall the Clay plugin.
 
-## 3. Verify
+## 3. Verify both installations
 
-Updating the plugin only moves the pinned CLI version (`bin/cli-version`); the plugin's
-`bin/clay` shim then downloads and caches that binary on the next `clay` call. That
-fetch is the same on every harness (`bin/` is shared). What differs is whether the
-`clay` on your PATH resolves to the **updated** plugin:
+After refreshing the plugin, read its new `cli-min-version` and run its
+`scripts/check-cli.sh` again. If the minimum increased, run the current plugin's
+`setup` skill. Confirm `clay --version` is at least that minimum. Only investigate
+sign-in if an authenticated command reports an auth error; an update does not require
+another login.
 
-- **Claude Code** adds the plugin's `bin/` to PATH and repoints it to the new version
-  automatically, so the next `clay` call runs the updated shim.
-- **Codex / Cursor** use the `~/.local/bin/clay` forwarder the `setup` skill wrote.
-  The current forwarder re-resolves the newest bundled launcher on every call, so a
-  plugin update is picked up automatically once you restart the agent — no need to
-  repoint it. One exception: an older, hard-coded forwarder (from before setup wrote
-  the self-resolving kind) execs a stale plugin-version path and keeps running the
-  old pinned CLI. If `clay --version` stays on the old version after updating and
-  restarting, re-run the `setup` skill once to replace it.
-
-Then re-check — the first `clay --version` is also what pulls the newly-pinned binary:
-
-```bash
-clay --version
-clay update --check
-```
-
-The `<cliVersion>` should now match the `latestVersion` from `clay update --check`. If you
-haven't shown the user what's new from the release URL in step 1 yet, do it now — the
-update is done and this is what changed for them.
-
-## Authoritative details
-
-The CLI help text is a machine-readable spec written for you to read:
-
-```bash
-clay update --help
-```
+The session-start hook makes the same local readiness check. It does not poll releases
+or install software. Hosts without hooks use the `clay` skill's readiness check instead.

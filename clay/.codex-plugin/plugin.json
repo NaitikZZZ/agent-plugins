@@ -1,13 +1,18 @@
 {
   "name": "clay",
-  "version": "2.26.0",
+  "version": "2.27.0",
   "description": "Build with Clay in Codex",
-  "author": { "name": "Clay" },
+  "author": {
+    "name": "Clay"
+  },
   "skills": "./skills/",
   "hooks": "./hooks/codex-hooks.json",
   "interface": {
     "displayName": "Clay",
     "shortDescription": "Build with Clay in Codex",
-    "capabilities": ["Read", "Write"]
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
   }
 }

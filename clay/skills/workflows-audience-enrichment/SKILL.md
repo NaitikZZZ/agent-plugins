@@ -109,7 +109,31 @@ Read the writeback node again after updating it and confirm the mappings persist
 
 ## Validate, test, and publish
 
-Validate the graph and show the resulting diagram. Test a small audience sample first, inspect both
-the enrichment output and the final Audiences update, and correct mappings before increasing the
-limit. Publish only after the user approves the tested draft. Later edits remain draft-only until
-the workflow is published again.
+Finish an audience enrichment workflow in this order:
+
+1. Run `clay workflows ensure-audience-writeback <workflowId>`, read the returned node, and confirm
+   its mappings persisted.
+2. Validate the graph with the available workflow tools and show the resulting diagram.
+3. Resolve the segment id from the workflow's existing `audience_segment` trigger. Do not search
+   for audience entities or records to decide what to publish or run. If the workflow has no
+   `audience_segment` trigger, stop this completion sequence and use the general `workflows`
+   testing guidance; do not alter its triggers.
+4. Explain the likely credit exposure and get approval for a credit-consuming test.
+5. Test 10 segment records from the current draft by default:
+
+   ```bash
+   clay workflows runs test <workflowId> --audience-segment <segmentId> --limit 10
+   ```
+
+   Use a different limit only when the user requests or approves it.
+
+6. Wait for the run to finish. Inspect both the enrichment output and the final Audiences update.
+   If mappings need correction, correct and validate them, then return to step 4 and get renewed
+   approval before another credit-consuming test.
+7. Get separate approval, then publish the tested draft with
+   `clay workflows publish <workflowId>`.
+
+When the user asks to **publish and run** an `audience_segment` workflow, publish first, then test 10
+records from the version just published with `--audience-segment <segmentId> --limit 10 --live`.
+Do not substitute an entity lookup, a record search, or a plain manual run for the requested segment
+run. Later edits remain draft-only until the workflow is published again.

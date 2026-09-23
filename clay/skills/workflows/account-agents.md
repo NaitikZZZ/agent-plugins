@@ -14,6 +14,14 @@ The flow for a **new** step: create the agent node bare (name, `incomingEdges`, 
 
 If linking or editing operations return "Account agents are not enabled", account agents are not available on this workspace — tell the user and do not retry. An `auth_forbidden` from `clay workflows nodes create-account-agent` or `upgrade-to-account-agent` is ambiguous: it also fires when the API key lacks workflow edit access, before the account-agent check runs. Read the error message to tell the causes apart; only "Account agents are not enabled" means the workspace lacks account agents.
 
+## Write results back to Audiences
+
+When building or editing an account-agent workflow, include a downstream write-to-audiences node (`upsert-audiences-record`) for its research, enrichment, qualification, and scoring outputs. Account context and `accountId` wiring do not replace this step. Reuse and extend an existing write-to-audiences node instead of adding a duplicate, and preserve the identity of the account being enriched. Under a people trigger, account-level results belong on the associated company, not the triggering person.
+
+For a people trigger, set the upsert's `entityType` to `ACCOUNT`, set `lookupFields|selectedLookupFields` to `["id"]`, and bind `lookupFields|id` to the same associated `accounts[].id` used for the agent's `accountId`. Reuse that account selection; do not independently choose another linked company. The trigger guarantees the associated account ID, but company fields such as domain may be absent, so do not require domain or LinkedIn for this writeback.
+
+Read `audiences.md` for field mapping and field creation. Map obvious compatible fields directly; create missing fields without separate approval and ask only about ambiguous mappings. Honor explicit destinations and no-save instructions. Draft construction does not authorize running or publishing the workflow.
+
 ## Link an existing account agent
 
 When the user supplies the exact account-agent ID (or a full node read exposes it), use `agentClaygentId` as the only agent selector/content field. Otherwise set `agentName` to its exact name — no `agentPrompt`, `agentModel`, or `outputSchema`. An upgraded account agent shares its name with the original regular Claygent; when several agents share a name the edit is rejected with "Multiple agents are named…", so use `agentClaygentId` instead. If neither the ID nor exact name is known, ask the user to select the account agent in the workflow UI; `clay claygents list` discovers regular Claygents only, so do not guess. Account agents can run only on `nodeType: "agent"` — never map, reduce, tool, or conditional nodes — and they do not support Repeat/list mode. The node runs the account agent's current configuration.

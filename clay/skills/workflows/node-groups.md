@@ -22,7 +22,7 @@ when any exist.
   delete instead.
 - Delete: `clay workflows groups delete <workflowId> <nodeGroupId>` — ungroups
   only; member nodes stay on the graph.
-- Publish as function:
+- Convert to function:
   `clay workflows groups publish-as-function <workflowId> <nodeGroupId> [--name <name>]`
   — copies the group into a new published function (a standalone workflow that
   other workflows call) and replaces the group with a function call node wired

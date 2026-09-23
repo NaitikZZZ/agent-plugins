@@ -15,8 +15,7 @@ onboarded. There is nothing to record locally.
 who isn't: it signs the user in and invokes this skill right afterward. If a
 command below fails with an auth error, run `setup` and stop — it will come
 back here when appropriate. If bare `clay` isn't on PATH this session (a fresh
-same-session Claude Code install — setup resolves an absolute launcher path for
-this case), use that resolved path in place of `clay` for every command in this
+install — setup reports an absolute executable path for this case), use that resolved path in place of `clay` for every command in this
 skill.
 
 **The user's own request always wins.** If sign-in was just a prerequisite for
@@ -49,11 +48,10 @@ clay whoami
   one-line welcome back is enough — no pitch, no menu.
 - **The field is absent** — an outdated CLI omits it too, so don't conclude the
   server predates onboarding until you've ruled that out: compare
-  `clay --version` against the plugin's pinned `bin/cli-version`. If it's
-  older, run the `setup` skill with that context — it installs the plugin's
-  pinned launcher (its step 3) — then re-run `clay whoami` through that
-  launcher and read `onboarded` from there. If the versions match (or the
-  launcher's whoami still omits the field), the server predates onboarding —
+  `clay --version` against the plugin's minimum `cli-min-version`. If it's
+  older, run the `setup` skill with that context — it installs a compatible independent CLI (its step 3) — then re-run `clay whoami` through that
+  executable and read `onboarded` from there. If the versions match (or the
+  CLI's whoami still omits the field), the server predates onboarding —
   stand down as in the `true` case.
 
 ## 2. Show the banner
@@ -108,9 +106,9 @@ they can also just say what they'd like to do instead.
 If the command is missing (`command not found`, or an unknown-command error
 naming `onboard`), the installed CLI predates onboarding. If the `setup` skill
 hasn't already run in this session, run it now with that context — the CLI on
-PATH is outdated, so it must install the plugin's pinned launcher (its step 3)
+PATH is outdated, so it must install a compatible independent CLI (its step 3)
 even though sign-in checks pass — then retry `clay onboard options` once and
-continue normally if it works. Retry via the launcher's absolute path when bare
+continue normally if it works. Retry via the verified CLI's absolute path when bare
 `clay` still resolves to the old install (no restart needed for that). If setup
 already ran or the retry still fails, treat it like any other failure below.
 
@@ -128,11 +126,8 @@ clay onboard select <option-id>
 ```
 
 This records the pick and returns `instructions` — follow them as if the user
-had asked for that task directly. If a CLI command isn't on PATH this session
-(setup step 3 deferred a restart so the forwarder is visible), walk
-them through that restart and tell them to ask for the task again by name once
-they're back (e.g. "set up the webhook starter") — a fresh session won't
-remember this conversation, so the task name is what carries it over.
+had asked for that task directly. If the independent CLI's directory is not on PATH in this session,
+use the verified absolute executable path from setup for the selected task too.
 
 If `select` fails, proceed anyway: treat the option's label as the user's
 request — but still get the user's explicit go-ahead before running anything

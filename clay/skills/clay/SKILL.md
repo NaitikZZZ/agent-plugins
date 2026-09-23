@@ -36,6 +36,15 @@ Whatever you're doing in Clay, work transparently so the user can follow along:
   `clay update`, `clay workspaces` and the `setup` / `update` skills are unavailable. If auth fails or the CLI is out of
   date there, tell the user rather than trying to fix it.
 
+## CLI readiness in external agents
+
+Before the first CLI task in Claude Code, Codex, Cursor, or Cowork, follow any
+session-start readiness message. Resolve `<PLUGIN_ROOT>` as two levels above this
+skill’s directory. If no hook message was available, run
+`bash "<PLUGIN_ROOT>/scripts/check-cli.sh" plain` from this plugin copy. Follow
+`setup` if it reports a missing, old, or plugin-managed CLI; do not reinstall or
+check for latest releases on every command. Skip this in managed Clay sessions.
+
 ## Answering "what can I do with Clay?"
 
 When a user asks what they can do, you are describing **Clay's product**, not your own
@@ -197,4 +206,4 @@ Run the `setup` skill.
 ## Keeping Clay up to date
 
 Check `clay update --check` to make sure you're on the latest CLI version. To update Clay — update the plugin (which
-pins the `clay` CLI it bundles) — use the `update` skill.
+declares the minimum compatible CLI version) — use the `update` skill.

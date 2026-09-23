@@ -13,6 +13,12 @@ Not to be confused with `clay routines` — that lists saved function/workflow
 routines in the workspace, a different concept from workflow actions. For
 workflow building blocks, use `clay workflows actions`.
 
+The actions catalog only discovers tool and function nodes. Claygents are dedicated
+workflow nodes and do not need to appear in this catalog. When a step needs custom LLM
+reasoning, research, drafting, summarization, or classification, use the
+`/workflows-claygent` skill instead of treating an absent Claygent action as an unavailable
+capability.
+
 ## Actions catalog
 
 The catalog is fetched live from the workspace's action catalog API. It includes all available actions with workspace-specific configuration (configured tools, app accounts, credit costs).
