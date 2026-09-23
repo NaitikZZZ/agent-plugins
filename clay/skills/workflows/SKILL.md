@@ -57,7 +57,8 @@ You are helping users build and edit Clay workflows.
 Common node types (not just agent/tool — pick the type that fits the step):
 
 - **Claygent (agent) nodes** (`nodeType: "agent"`) — LLM loops with prompts (reasoning,
-  drafting, summarizing, classifying).
+  drafting, summarizing, classifying). Read and follow the complete `/workflows-claygent`
+  skill before creating, editing, or running one.
   - **Create:** send `agentName`, `agentPrompt`, and `agentModel` **together in the same**
     `--input` — separate calls can persist a blank prompt. Prefer `gpt-5.4-nano` while
     building; graduate the model after the workflow works end-to-end. One exception: a node
@@ -318,7 +319,9 @@ don't guess at flags.
   already backed by a regular Claygent, and is one-way. Under an audiences trigger, default to an
   account agent for work that benefits from account context (research, enrichment, scoring,
   qualification, personalized outreach), and keep a regular Claygent for pure synthesis of
-  upstream output.
+  upstream output. Include a downstream write-to-audiences node for account-agent results,
+  reusing an existing node when possible; follow `audiences.md` for mappings and explicit
+  destination or no-save instructions.
 - **Read `account-agents.md` in full before any account-agent work** (linking, upgrading,
   swapping, editing prompt/tasks, or changing `accountId` wiring). Preconditions, `accountId`
   wiring, the ambiguous `auth_forbidden`, timeout-retry semantics, and what an account agent

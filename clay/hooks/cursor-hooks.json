@@ -6,6 +6,11 @@
         "command": "./hooks/approve-cli.sh cursor",
         "matcher": "clay"
       }
+    ],
+    "sessionStart": [
+      {
+        "command": "bash ./scripts/check-cli.sh cursor"
+      }
     ]
   }
 }

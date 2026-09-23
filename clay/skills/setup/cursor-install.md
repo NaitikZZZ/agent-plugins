@@ -65,7 +65,7 @@ elif local_ok:
     print("path 3 (local sideload): allowed; marketplace import (path 1/2) is policy-blocked")
 elif marketplace_ok:
     print("local sideload is policy-blocked; path 1/2 (marketplace import) is allowed — "
-          "do not apply path 3. If ~/.cursor/plugins/cache/*/clay/*/bin/clay exists, "
+          "do not apply path 3. If ~/.cursor/plugins/cache/*/clay/*/scripts/install-cli.sh exists, "
           "continue to SKILL.md step 3; otherwise print path 1/2 and STOP until the "
           "import lands and Cursor is fully restarted")
 else:
@@ -113,12 +113,11 @@ is allowed. If local sideload is blocked and marketplace import is allowed, prin
 steps, then distinguish **import still pending** from **import already landed**:
 
 ```bash
-ls -1dt "$HOME"/.cursor/plugins/cache/*/clay/*/bin/clay 2>/dev/null | head -n1
+ls -1dt "$HOME"/.cursor/plugins/cache/*/clay/*/scripts/install-cli.sh 2>/dev/null | head -n1
 ```
 
 A printed path means the marketplace plugin is on disk — **skip path 3** (sideload stays
-blocked) and **continue to `SKILL.md` step 3** so the PATH forwarder can point at that
-launcher. An empty result means the import hasn't landed — **stop** and wait for the user
+blocked) and **continue to `SKILL.md` step 3** to install the independent CLI. An empty result means the import hasn't landed — **stop** and wait for the user
 (or admin) to import + fully restart Cursor, then re-run `SKILL.md` step 1 (it should now
 see the cache and continue). There is no self-serve fallback once path 4 is gone, and
 applying path 3 with sideload blocked just leaves a dead never-loading entry.
@@ -133,8 +132,8 @@ both scopes, since `clay-run/agent-plugins` is a third-party marketplace either 
 itself is a server-side RPC tied to the account — there's no CLI/script shortcut to complete it,
 only to know in advance whether it'll work. State the steps. If local sideload is also allowed,
 you can still apply path 3 below so they have a working install while the marketplace step is
-pending. If local sideload is blocked, run the marketplace-cache check above: a launcher means
-the import has landed — skip path 3 and continue to `SKILL.md` step 3. No launcher means the
+pending. If local sideload is blocked, run the marketplace-cache check above: an installer means
+the import has landed — skip path 3 and continue to `SKILL.md` step 3. No installer means the
 import is still pending — **stop here**; after the user (or their admin) imports and fully
 restarts Cursor, re-run `SKILL.md` step 1 (it should now find the cache and continue).
 
@@ -205,22 +204,8 @@ fi
 ```
 
 Earlier setup runs may have left a permanent plugin copy at `~/.config/clay-plugin/clay`.
-Deleting it unconditionally can leave the machine with no CLI at all — on an org where
-plugin imports were blocked no plugin cache was ever populated, so its `bin/clay` can be
-the only launcher `SKILL.md` step 3's forwarder is able to resolve. Remove it only once a
-launcher exists elsewhere (keep this list in sync with step 3's pre-flight, minus the
-entry being deleted):
-
-```bash
-if sh -c 'ls -1dt \
-  "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/*/clay/*/bin/clay \
-  "${CODEX_HOME:-$HOME/.codex}"/plugins/cache/*/clay/*/bin/clay \
-  "$HOME"/.cursor/plugins/cache/*/clay/*/bin/clay \
-  "$HOME"/.cursor/plugins/local/clay/bin/clay \
-  2>/dev/null | grep -q .'; then
-  rm -rf "$HOME/.config/clay-plugin/clay"
-fi
-```
+Leave it in place until `SKILL.md` step 3 has migrated and verified the independent CLI;
+an old forwarder may still depend on it. It is no longer needed after that migration.
 
 **Landed on path 1 or 2 (a marketplace path)?** Remove any dead local-sideload copy so Cursor
 doesn't show a permanently-broken plugin entry. **Skip this after path 3** — it installs into

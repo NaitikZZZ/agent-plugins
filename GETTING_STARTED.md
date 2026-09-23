@@ -44,6 +44,11 @@ needs to a permanent location.
 
 ## Run the `setup` skill
 
+The CLI installs independently of the plugin. Setup defaults to a native executable
+at `~/.local/bin/clay`; organizations that require Node-based execution can choose
+`@clay-run/cli` through npm. Existing plugin launchers are migrated during setup,
+without replacing your saved sign-in. You do not need Node for the native install.
+
 Once installed, run the bundled **`setup` skill** now, in this session, before anything else below. It puts `clay` on PATH, signs you in, and verifies the CLI works.
 
 - Try invoking the plugin's `setup` skill directly by its fully qualified name, `clay:setup` — Claude Code's Skill tool supports this, and Codex or Cursor may too depending on version.
@@ -56,9 +61,9 @@ Once installed, run the bundled **`setup` skill** now, in this session, before a
 
   Read the path that prints and carry out its steps directly.
 
-If something doesn't work, the skill's own **Troubleshooting** table covers the common
-symptoms — a plugin that never appears, greyed-out marketplace import options, tools missing
-after install, and auth failures.
+If something doesn't work, follow the setup skill's **Cursor only** section for plugin
+registration problems, **Install or migrate the CLI** for executable and PATH problems,
+and **Sign in when needed** and **Verify and onboard** for authentication failures.
 
 ## What's next
 

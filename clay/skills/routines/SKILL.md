@@ -10,6 +10,8 @@ already exists in this workspace. This skill is about _running_ an existing rout
 getting its results — not building one.
 
 - To **build or edit** a workflow, use the workflows entry-point skill.
+- If no existing routine matches a request for custom Claygent or LLM work, use the
+  `/workflows-claygent` skill to build and run it.
 - To **query data** out of a Clay table, use the tables entry-point skill.
 - To **find the records** to run a routine over, use the `searches` skill for net-new people
   or companies, or the `audiences` skill for members of a saved audience, then feed the
