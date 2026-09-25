@@ -54,6 +54,54 @@ The root determines what is returned: the first query returns deals, the second 
 Activity predicates can use typed fields, for example
 `count from activities where task.subject contains "demo"`.
 
+## Find records by activities and signals
+
+Use `--query` for these searches, including when you will later save an audience.
+`activities.exists(...)` and `signals.<type>.exists(...)` return matching people
+or companies through their event associations. The result counts distinct
+records, so repeated touches do not inflate coverage. Negating `exists` also
+includes records with no events. Keep all conditions that must match the same
+event inside one `exists(...)`.
+
+```bash
+# Companies emailed or met with in the last 30 days.
+clay audiences records search-ids --query 'select from companies where activities.exists(activity_type in ("email", "meeting") and activity_timestamp >= today() - interval 30 day)' --limit 100
+
+# Companies with neither a recent email nor a recent meeting.
+clay audiences records search-count --query 'count from companies where not activities.exists(activity_type in ("email", "meeting") and activity_timestamp >= today() - interval 30 day)'
+
+# Fundraising news: date and topic must belong to the same event.
+clay audiences records search-ids --query 'select from companies where signals.news.exists(activity_time >= today() - interval 30 day and topics = "Fundraising")' --limit 100
+```
+
+Activity columns include `activity_type`, `activity_timestamp`, and `title`.
+`activity_type` uses the enum values shown by `activities get --help`, such as
+`email` and `meeting`. For type-specific fields, use
+`activities.<activityTypeId>.exists(...)` with the id returned by `activities
+get/summary`, or the type's normalized display name.
+
+Signal type names use snake case (`job_post`, `new_hire`, `news`, `job_change`)
+or their enum spelling. Use `signals.job_post.exists(...)` and
+`signals.new_hire.exists(...)` for job postings and new hires. Their event date
+is `activity_time`; specify the requested window instead of relying on the
+default 90-day lookback. For News, `title` addresses `newsData.newsTitle` and
+`topics` addresses the primitive `newsData.newsTopics` array: `topics = "Fundraising"`
+matches an array element without an AST `ColOp`.
+
+Combine alternative event types with `or`. Preserve any target-population
+criteria and hydrate only the matching IDs for record fields or owner breakdowns.
+Keep requested payload restrictions in every count, ID search, and saved filter:
+funding news requires `topics = "Fundraising"`; a recent News event alone is not
+a match. Broader diagnostic searches must not expand the delivered audience.
+Ground reported event details and dates in returned event data. When existing
+results lack those details, use `clay audiences signals get` with the relevant
+record or segment and requested window. Once the workspace-record scope is
+established, query these event relationships directly; trigger inventories and
+the saved-audience list are not prerequisites.
+`today()` anchors at midnight UTC; use an explicit ISO timestamp if the requested
+read requires an exact instant. Saving a rolling audience still uses a relative
+AST filter from `filters.md`, not the returned list of matching IDs.
+
 ## Sorting and top-N results
 
 **Server-side sorting is the best way to answer "Top N" questions supported by

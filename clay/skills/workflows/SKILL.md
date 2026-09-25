@@ -7,7 +7,7 @@ description: Clay workflows — plan, review, build, and edit automations with t
 
 Supporting files in this directory: `publishing.md`, `testing.md`, `data-passing.md`,
 `presenting.md`, `audiences.md`, `account-agents.md`, `run-analysis.md`, `node-groups.md`,
-`csv-triggers.md`.
+`csv-triggers.md`, `table-primitives.md`.
 
 Read this skill before proposing a workflow plan, even when the user asks for no workspace
 queries or changes. For Audiences destinations or field mappings, also read `audiences.md`
@@ -327,6 +327,13 @@ don't guess at flags.
   wiring, the ambiguous `auth_forbidden`, timeout-retry semantics, and what an account agent
   already sees live there; `--help` carries exit codes and examples.
 
+### Canvas node groups
+
+Read `node-groups.md` before planning or building a workflow that will have more than
+8–10 nodes, and when reviewing one that already does. Follow its grouping policy: group
+new large graphs as you build; suggest grouping existing large ungrouped graphs and wait
+for the user before changing them.
+
 ### Validating and formatting
 
 - `clay workflows graph validate <workflowId>` — structural checks only. Read-only: it neither
@@ -495,11 +502,18 @@ their own CLI commands elsewhere rather than a `clay workflows` subcommand:
   It takes ClayQL directly — write the query yourself off the columns above; there is no
   natural-language query option. Don't reach for `clay tables query` instead — that reads a
   different store (synced ClickHouse, gated on Enterprise sync).
+- **Table configuration migration** — read `table-primitives.md` when rebuilding
+  table columns as workflow nodes. Preserve referenced resources and verify the
+  persisted bindings before testing.
 - **Bulk enrichment migration** — for a known bulk enrichment table, use
   `clay tables columns get <tableId>` to determine the
   source origin and column DAG. When a source includes `audience`, use its configuration
   (global when `isGlobal`; otherwise `segments[].id`). Do not assume every bulk enrichment is
   Audiences-backed.
+  When the destination has type `audience_enrichment`, read
+  `/workflows-audience-enrichment` before translating the columns. Its migration guidance
+  explains how to replace the table's source-record lookups and extracted columns with
+  bindings to the existing audience trigger.
   `clay tables rows list <tableId> --limit <n>` is only an optional,
   unfiltered, unordered sample (`n` at most 20): it returns `truncated: true`, accepts and returns no
   cursor, and completed passthrough rows may already be deleted. Never treat it as a complete source dataset.

@@ -57,9 +57,12 @@ When the task requires public evidence, put the research criteria and source exp
 the Claygent prompt. The Claygent performs the per-record web research during its run; the
 host agent should not manually research every record before launching it.
 
-Search criteria that Clay Search cannot express—such as a funding event's exact date—still
-need either separate external verification or a clearly disclosed proxy. Do not claim the
-Claygent's future research has already verified them.
+When the user needs an exact criterion checked by the research — a funding event's date, a
+launch in the last 12 months — have the Claygent return it as an output field, left empty when
+the evidence does not establish it rather than guessed. Add a conditional that stops
+non-matching records only when the user asked to keep just the matches ("only companies
+that…", "skip anyone without…"); otherwise every record continues with the field as returned.
+Do not claim the Claygent's future research has already verified it.
 
 ## Test, run, and deliver
 

@@ -85,6 +85,10 @@ enforce this: they only keep a tool the node already has, and otherwise create a
    }
    ```
 
+Never load the full `clay workflows actions list` output into context; it can be megabytes.
+Save it to a file or filter with `jq`, returning only relevant actions and fields.
+Do not read the entire saved catalog.
+
 Fetch the catalog with the command below. If it fails (e.g. missing
 credentials), run the `setup` skill first.
 
@@ -153,6 +157,13 @@ For Salesforce specifically the package is "Salesforce" and the write actions ar
 the right choice for "write back onto the record" (it needs an external ID
 field). Confirm these are absent from the catalog before telling the user to pick
 some other write-back mechanism.
+
+### People at a company is a Find leads node, not an action
+
+Before recommending a "Find contacts at company" / "Find people at company" action for a step
+that finds people at each company the workflow is handling, check whether the
+`workflows-find-leads` skill is in your catalog. It owns that step and the cases where a catalog
+action is the right fallback.
 
 ### When several actions fit, recommend a default
 

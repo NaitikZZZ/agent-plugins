@@ -56,6 +56,30 @@ publishing. Testing must be within the authorized scope; follow the shared polic
 
 ## Build the enrichment path
 
+### Migrating an Audience bulk enrichment table
+
+Read the table's full column settings and the destination trigger's output schema before
+creating nodes. Preserve the table's enrichment behavior while using the existing audience
+trigger as the source of the original record ID and fields:
+
+- Replace a lookup that only reloads the triggering Audience record, and columns that only
+  extract its fields, with direct trigger bindings. Keep formulas that transform those fields.
+- Only carry over a related-company lookup when a downstream enrichment or writeback uses
+  its output and that value is not already available from the trigger. Preserve user lookups
+  that retrieve different records or implement additional filtering.
+- Pin each required value on the consuming code or tool node using an `inputSchema` property
+  with the trigger's `sourceNodeId` and the exact `sourcePath` from its output schema. For
+  example, a trigger exposing `fields.Name` supplies `sourcePath: "$.fields.Name"`; this may
+  differ from the Audience field ID `name`. A nested expression like `{{fields.id}}` does not
+  replace an explicit upstream binding. Read `/workflows`'s `data-passing.md` for the writable shape.
+- In code, read the pinned input by its property name with `context.get_input`. On the final
+  writeback, pin the original record ID from the trigger and the transformed value from the
+  enrichment node, then reference those input names in `inputMappingConfig`. Read each node
+  back and confirm its source bindings survived before running.
+
+Use the shared writeback procedure below for the table's final Audience update. Do not copy
+the table's source-record lookup or legacy writeback action into a separate update path.
+
 Build from the existing audience trigger. Preserve the trigger and any existing
 `upsert-audiences-record` node.
 

@@ -1,5 +1,10 @@
 # Writing an audience filter
 
+Use this reference to create/update a saved audience or validate its filter.
+For ad-hoc record searches and counts, prefer `--query` using `queries.md`,
+including activity and signal criteria. Use an AST search only when DSL cannot
+express the criteria or when checking the exact filter you will save.
+
 A filter is a `ConditionalExpressionGroup` AST — the same shape an audience
 stores, `records search-ids` / `search-count` accept ad hoc, and the Clay UI's
 filter editor produces. `clay audiences create --help` carries the full node and
@@ -7,7 +12,7 @@ operator reference; read it once instead of guessing at the shape.
 
 The parts that cost the most time:
 
-- **`key` + `dataPath` name the field.** `dataPath` is
+- **`key` + `dataPath` name a record field.** For record fields, `dataPath` is
   `[<root for the entity type>, "field", <fieldId>]` — see the entity-type table
   in `SKILL.md` for the root. `key` is the field id.
 - **A filter is always rooted at people or companies, never deals** — and that is
@@ -132,12 +137,68 @@ Swap `email` for any field id from `clay audiences fields list`, and swap the
 `CONTACT` / `contact_entity_field_values` pair for `ACCOUNT` /
 `account_entity_field_values` to filter companies.
 
+## Filter by email, meeting, or other activities
+
+Read `clay audiences activities get` or `summary` to discover the returned
+`activityTypeId`. It is distinct from the `activityType` enum (`email`, `meeting`,
+etc.); never substitute that enum or infer record ids from the opaque `eventId`.
+For distinct-account coverage, use `records search-ids` / `search-count --query`
+with an activity relationship (see `queries.md`), then hydrate the matching records for the owner breakdown.
+Summing event counts double-counts accounts with repeated touches.
+
+Use `ColOp` on `["activities", "<activityTypeId>"]` with `AnyItems` (has a matching
+activity) or `NoItems` (has none, including records with no activities at all).
+`AllItems` is unsupported. The condition must be an `And` group of `BinOp`s for
+exactly one activity type. Use `["activities", "activity_timestamp"]` for recency;
+activity fields use `["activities", "fields", "<fieldId>", "<activityTypeId>"]`.
+
+No email in the rolling last 30 days, replacing `<activityTypeId>` with the
+discovered email type id:
+
+```json
+{
+  "type": "GroupOp",
+  "combinationMode": "And",
+  "items": [
+    {
+      "type": "ColOp",
+      "dataPath": ["activities", "<activityTypeId>"],
+      "operator": "NoItems",
+      "entityType": "ACCOUNT",
+      "condition": {
+        "type": "GroupOp",
+        "combinationMode": "And",
+        "items": [
+          {
+            "type": "BinOp",
+            "dataPath": ["activities", "activity_timestamp"],
+            "operator": "WithinLast",
+            "value": 30,
+            "timeUnit": "day",
+            "entityType": "ACCOUNT"
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+For **email OR meeting**, combine two `AnyItems` collections in an outer `Or`.
+For **neither email NOR meeting**, combine two `NoItems` collections in an outer
+`And`. Keep the target audience's existing filter in the outer `And` so the
+result stays within the requested population. Validate with `search-count`,
+then save the same rolling filter instead of a snapshot of matching ids/names.
+
 ## Filter by signal activity
 
 Signal events captured on a record (see `SKILL.md`, "Signals write activities
 onto records") are filterable through the `signal_events` dataPath root — this
 is how "companies with a job posting in the last 30 days" is expressed, and it
 is what the app's signal-based segments store.
+
+For payload arrays such as funding-news topics, read **Primitive-array payloads**
+below before saving; a News type/window clause alone includes every news topic.
 
 Every example below is a whole filter, rooted at a `GroupOp` — `--filter` runs
 `ConditionalExpressionGroup.safeParse`, so a bare `BinOp` or `ColOp` is rejected as
@@ -264,6 +325,52 @@ them together instead:
 Payload shapes differ per signal type; read a real event's shape (or an existing
 segment's filter) before authoring one, and always keep the aggregate-occurrences
 clause in the condition so the scan stays scoped to that signal type and window.
+
+### Primitive-array payloads
+
+For an array such as `newsData.newsTopics`, the `ColOp` path must name the full
+array, and the element `BinOp` uses `["."]`. Put the type/window clause in the
+**same array condition**; do not nest this inside a second `ColOp` or put the
+window beside it at the root. Otherwise old fundraising news plus recent
+unrelated news could qualify the record.
+
+Fundraising news in the rolling last 30 days:
+
+```json
+{
+  "type": "GroupOp",
+  "combinationMode": "And",
+  "items": [
+    {
+      "type": "ColOp",
+      "dataPath": ["signal_events", "data", "newsData", "newsTopics"],
+      "operator": "AnyItems",
+      "entityType": "ACCOUNT",
+      "condition": {
+        "type": "GroupOp",
+        "combinationMode": "And",
+        "items": [
+          {
+            "type": "BinOp",
+            "key": "signal_News_aggregate_occurrences",
+            "dataPath": ["signal_events"],
+            "operator": "WithinLast",
+            "value": 30,
+            "timeUnit": "day",
+            "entityType": "ACCOUNT"
+          },
+          {
+            "type": "BinOp",
+            "dataPath": ["."],
+            "operator": "Equal",
+            "value": "Fundraising"
+          }
+        ]
+      }
+    }
+  ]
+}
+```
 
 A signal `ColOp` does compose with ordinary **field** predicates in the root group —
 ICP fit AND recent signal activity is the standard signal-based-play segment, and a
