@@ -20,6 +20,10 @@ Whatever you're doing in Clay, work transparently so the user can follow along:
   in plain language, referring to things by their human-readable names.
 - **Summarize, don't dump.** Turn raw command output (JSON, `jq`, `diff`) into a
   short takeaway, table, or count. Reserve raw output for when the user asks.
+- **Keep usable results.** Select JSON keys with `jq` instead of truncating raw
+  JSON with `head` or `tail`. Reuse returned IDs and saved results rather than
+  fetching them again. Check command errors before treating an empty projection
+  as no matches; a successful pipe does not prove the CLI command succeeded.
 - **Keep identity checks internal.** Only mention authentication, the user, or the
   workspace when the user asks or an actual account/workspace issue needs their
   attention.
@@ -151,6 +155,7 @@ real limits without inventing prices. It also defines when spending needs confir
 | `public-api`          | Building services and applications on top of Clay over HTTP.                                                                                                                                                                                                                                                                   |
 | `workflows`           | Building and editing Clay workflows via the CLI.                                                                                                                                                                                                                                                                               |
 | `workflows-vs-tables` | Explaining the difference between Workflows and Tables, or recommending which to use.                                                                                                                                                                                                                                          |
+| `clay-docs`           | Clay product questions — how a feature works, whether Clay supports or integrates with something, plans and pricing, security — answered from Clay's live public documentation.                                                                                                                                                |
 | `clay-feedback`       | Sending a bug report or product feedback to the Clay team.                                                                                                                                                                                                                                                                     |
 
 ## Getting help and reporting problems

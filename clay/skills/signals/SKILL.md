@@ -9,6 +9,14 @@ A signal watches a set of records and emits an **event** when something changes
 in the real world — someone changes job, a company posts a role or raises a
 round. It has two halves, and telling them apart is the first thing to get right.
 
+**Resolve the population before discovery.** For a historical question, use the
+request and context to distinguish existing workspace records from net-new
+prospects; ask if unclear before exploring either surface. For existing records,
+read the `audiences` skill's `queries.md` and query captured events directly.
+List triggers when managing watches, not as a prerequisite for historical
+queries. An empty trigger inventory or summary field does not establish that
+captured events are absent; check history before proposing a new watch.
+
 | Record             | Id prefix | What it is                                           |
 | ------------------ | --------- | ---------------------------------------------------- |
 | Trigger definition | `td_…`    | The runnable unit: name, run status, filter, output. |

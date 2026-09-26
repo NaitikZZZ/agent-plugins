@@ -23,11 +23,12 @@ Read this before any audiences work. Supporting references:
   find, or filter existing records.** Before filtering a categorical field, call
   `fields list-values` as described there. Also covers field coverage and when
   to enrich.
-- `queries.md` — **read before writing a `--query`.** Audiences DSL grammar,
+- `queries.md` — **read before searching or counting records. Prefer `--query`,
+  including activity and signal criteria, even when the task will later save an audience.** Audiences DSL grammar,
   relationship semantics, data or date filters, and server-side sorting for
   top-N questions.
-- `filters.md` — writing the filter AST that defines an audience. Read it before
-  you author or edit a filter.
+- `filters.md` — writing the filter AST to create/update a saved audience, or
+  validate that saved filter. Use it for record searches only when DSL cannot express the criteria.
 - `custom_objects.md` — **deals / opportunities.** Read it before anything that
   touches them, including vague rankings such as "largest opportunities",
   "biggest things in our pipeline", or "recent wins", and GTM phrasings:
@@ -206,7 +207,8 @@ The `activities` root supports counts; activity IDs are strings and cannot use
 `search-ids`' numeric pagination. See `queries.md` and `custom_objects.md`.
 
 `search-ids` returns ids only — feed them to `records get --ids` in batches of
-100 for field values, keyed by field id (unset fields may be omitted). Records
+100 for field values, keyed by field id (unset fields may be omitted). Combine
+known IDs into batches and reuse hydrated records across overlapping scopes. Records
 not found are omitted rather than erroring. To size a scope, use `search-count`,
 not a paging loop over `search-ids`.
 
@@ -240,12 +242,16 @@ clay audiences activities summary --segment-id audseg_abc --since 2026-08-01 --u
 
 - Use `activities get` for the raw activity feed. It returns cursor-paginated
   events for records in the segment.
+- For distinct-record coverage, read `queries.md` and use `--query` with
+  `activities.exists(...)`. To save the criteria as an audience, use `filters.md`,
+  "Filter by email, meeting, or other activities". `eventId` is opaque and must
+  not be parsed for record ids.
 - Use `activities summary` for grouped counts by activity type and source when
   the user asks for totals, trends, or a quick breakdown instead of individual
   events.
-- Bound the first request with `--since` and, when possible, `--until`,
-  `--activity-types`, or `--sources`. These queries can take a few seconds on
-  large segments, so prefer one targeted request over repeated exploratory calls.
+- Bound activity reads to the requested time window and activity types. These
+  queries can take a few seconds on large segments, so prefer one targeted
+  request over repeated exploratory calls.
 - It is okay to page through `activities get` with each returned cursor when the
   user needs the full bounded result set. Continuation requests pass only
   `--cursor` and optional `--limit`; do not repeat time, activity-type, or source
@@ -301,9 +307,12 @@ Once the intended meaning is clear:
   returns the full event history for one person or company with `--entity-id`,
   or full payloads across a saved segment with `--segment-id`. The
   `signals summary` command groups a segment's counts by signal id and type.
-- **Filters can select on them.** "Companies with a job posting in the last 30
-  days" is a `signal_events` predicate — see `filters.md`, "Filter by signal
-  activity".
+- **Find matching records with DSL.** Use `records search-ids/search-count --query`
+  with `signals.<type>.exists(...)` — see `queries.md`. To save those criteria as
+  an audience, see `filters.md`, "Filter by signal activity".
+- Check captured history through those event relationships. An empty trigger
+  inventory (`clay signals list`) or `signal_summary` field does not prove that
+  no events exist.
 - For which signals exist, what one watches, and why one is not producing
   events, see the `signals` skill — that is where to start for "is this
   audience's signal firing?"

@@ -34,9 +34,7 @@ The same snapshot table holds two roles:
 
 Publishing marks a snapshot of the current draft as a numbered release; it does not create a separate store. See the workflows entry-point skill's `publishing.md` for draft vs live.
 
-**This skill is for undo/history** (`list` / `get` / `restore`). Publishing is a separate command (`clay workflows publish`); there is no CLI to list only published versions.
-
-`clay workflows snapshots list` projects only `id`, `hash`, `createdAt`, `nodeCount`, and `edgeCount`. It does **not** show `version` / `name` / which snapshot is live. Treat the list as newest-first history, not a release picker — after a restore it is not a linear undo stack.
+**This skill is for undo/history** (`list` / `get` / `restore`). Publishing is a separate command (`clay workflows publish`). `clay workflows snapshots list` returns only the most recent snapshots (newest first) and is not a complete or reliable index of published versions — an older release can fall outside its window. To map a version like "V4" to its snapshot id (e.g. to filter runs by version), use `clay workflows versions list <workflowId>`, which lists every published version with its `number`, `label`, and `id`; select by the unique `number` for a `V{n}` version (or by `label` for a named one) and use that `id`.
 
 ## CLI reference
 
@@ -50,7 +48,26 @@ clay workflows snapshots list <workflowId>
 
 Returns `{ data: [...] }`, newest first, each with `id`, `hash`, `createdAt`, and
 `nodeCount`/`edgeCount`. So `data[0]` is the most recent snapshot by `createdAt`,
-which may not be the current graph (see restore above).
+which may not be the current graph (see restore above). This list is capped at the
+most recent snapshots — to look up a published version, use `versions list` (below).
+
+### List published versions (label → snapshot id)
+
+```bash
+clay workflows versions list <workflowId>
+```
+
+Returns `{ data: [...] }` of every published version, ordered by version `number`
+descending, each with `id`, `number`, `name`, `label`, and `publishedAt`. This is the
+complete, reliable index for mapping a version the user names ("V4", or a published name)
+to its snapshot `id` — e.g. to filter runs by version. Published names are not guaranteed
+unique, so a `label` can match more than one entry; prefer the unique `number`
+(`select(.number==4)`) when the user names a `V{n}` version, and only match on `label` for a
+named version. Unlike `snapshots list`, it is not
+capped and excludes draft-history snapshots. Note the highest `number` is not necessarily
+the currently-live version: restoring an older version and republishing reuses that
+version's number, so it can outrank later ones. To find which version a run actually used,
+read `workflowSnapshot.id` from a recent run row (`clay workflows runs query run` / `runs list`) rather than assuming `data[0]`.
 
 ### Show a snapshot (whole graph, or one node)
 
