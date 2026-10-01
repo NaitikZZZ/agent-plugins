@@ -56,6 +56,17 @@ the `type: "object"` + `properties` wrapper). The reverse is not true: `outputSc
 takes **only** the flat form — wrapping it in `type: "object"` + `properties` is
 rejected as a validation error.
 
+**Schema validation happens in two stages.** A malformed schema is rejected when the node is
+created or updated. A valid schema whose values do not match fails when the node runs.
+Input/trigger JSON Schema describes an email as `{"type":"string","format":"email"}`;
+`{"type":"email"}` is only a flat output-field type. Nullable type unions such as
+`["string","null"]` are unsupported. Every flat output field becomes required;
+`required:false` does not make it optional, and `null` is not a string. For code, use
+`code test --output-schema` with the exact field map and representative missing-data inputs
+before saving if the installed CLI offers the flag (`clay workflows code test --help`).
+Otherwise, test the saved node with `nodes test`; an execution-only code test does not validate
+the schema. Use `nodes test` to check the saved schema and mappings in either case.
+
 **Accessing pinned inputs:** in an agent prompt, `{{company_name}}` resolves to
 the pinned value.
 
@@ -230,9 +241,13 @@ and `$.result.domain`.
 
 Some actions only reveal their real parameters once an earlier input is chosen —
 a CRM "create object" exposes a different field set per object type; a dependent
-dropdown's options depend on a parent selection. These are **not** in the static
-action schema (`clay workflows actions schema`). Resolve them with the CLI — it
-hits the live integration, so pass the connected account:
+dropdown's options depend on a parent selection. The static action schema lists
+their containers and `dynamicParameters` paths, but not their revealed fields.
+Start with `clay workflows actions schema <packageId> <actionKey> --resolve-dynamic --account <appAccountId>`
+to resolve all paths together and inspect
+`resolvedInputParameters` and `resolvedDynamicParameters[].errors`. Resolution
+hits the live integration, so pass a usable connected account when needed.
+For a specific path, use:
 
 ```bash
 # 1. resolve a dependent dropdown's values (the "driver")
@@ -251,8 +266,9 @@ clay workflows actions dynamic-fields pkg_abc123 hubspot-create-object fields --
   next dependent parameter.
 - Preconditions: the driver must be a concrete value in `--inputs` (a
   `{{reference}}` won't resolve at design time), and `--account` is required for
-  actions that authenticate. Get `<packageId>`/`<actionKey>` and the connected
-  account from `clay workflows actions list`.
+  actions that authenticate. Get `<packageId>`/`<actionKey>` and a connected
+  account whose `abilities.canAccess` is `true` from the action's
+  `availableAppAccounts` in `clay workflows actions list`.
 
 ## Choosing a method
 

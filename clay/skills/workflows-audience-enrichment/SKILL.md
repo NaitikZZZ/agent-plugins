@@ -1,12 +1,13 @@
 ---
 name: workflows-audience-enrichment
-description: Clay workflows — build enrichment steps and map their results back to Audiences in an existing audience enrichment workflow. Use only while editing a workflow whose `clay workflows get` output has type `audience_enrichment`.
+description: Clay workflows — build enrichment steps and map their results back to Audiences in an existing audience enrichment workflow. Use while editing an audience enrichment workflow or migrating an Audience-backed bulk enrichment table into a workflow.
 allowed-tools: Bash(clay *), Bash(jq *), Read
 ---
 
 # Build an audience enrichment workflow
 
-Use this skill only for an existing workflow whose type is `audience_enrichment`. It owns the
+Use this skill for an existing `audience_enrichment` workflow or an explicitly requested
+Audience-backed bulk enrichment migration. It owns the
 workflow-specific sequence: build enrichment steps, ensure the shared final Audiences writeback,
 and map enrichment results onto audience fields.
 
@@ -22,9 +23,10 @@ Start every task with:
 clay workflows get <workflowId>
 ```
 
-Continue only when `.type` is exactly `audience_enrichment`. If the type is null, absent,
-`account_agents`, or anything else, stop using this skill and return to the general `workflows`
-skill. Never convert or reclassify a workflow implicitly.
+Continue when `.type` is exactly `audience_enrichment`. For a regular workflow (null or
+absent type), convert only as part of an authorized Audience bulk enrichment migration,
+using the procedure below. For other tasks or workflow types, return to `/workflows`.
+Never convert or reclassify a workflow implicitly.
 
 ## Plan the enrichment
 
@@ -57,6 +59,11 @@ publishing. Testing must be within the authorized scope; follow the shared polic
 ## Build the enrichment path
 
 ### Migrating an Audience bulk enrichment table
+
+If the destination is a regular workflow, convert it with
+`clay workflows update <workflowId> --type audience_enrichment` once the user has
+authorized the migration. Then create draft Audience triggers matching the table's source
+segments and entity type. Conversion alone does not create triggers or run enrichment.
 
 Read the table's full column settings and the destination trigger's output schema before
 creating nodes. Preserve the table's enrichment behavior while using the existing audience

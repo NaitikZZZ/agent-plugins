@@ -32,3 +32,20 @@ empty value and a meaningful false or zero.
 Validate the persisted graph and test the final configuration. In the handoff,
 distinguish preserved configuration from paths that actually executed, and identify
 any untested changes.
+
+## Search-backed tables
+
+For a DSL search source, read `sources[].search` in `clay tables columns get`.
+Use the saved `dslQuery` and `entityType` to create the equivalent Find leads
+trigger; do not reconstruct filters from the table name or replace the search
+with a manual trigger. If `/workflows-find-leads` is in your catalog, follow it
+for the trigger schema.
+Preserve the source result limit in the query when the workflow source uses a
+query limit. A smaller test limit is temporary: restore the intended limit after
+testing and read back the saved source.
+
+The table projection and workflow projection can expose different field paths.
+Inspect the actual trigger outputs before mapping derived fields. Preserve
+fallback expressions such as LinkedIn URL or profile URL; do not guess structured
+location fields by splitting a display string. Disclose any source field or
+setting the workflow surface cannot represent.

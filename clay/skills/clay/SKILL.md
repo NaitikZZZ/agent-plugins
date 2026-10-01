@@ -97,8 +97,15 @@ uses more than one primitive, and they need to flow together — see Combining p
    there — searching or enriching first spends the user's money to rediscover data
    they have. Don't route a question about their own records to the
    tables entry-point skill; that's a separate surface, and only when the user names a table.
+   Unqualified requests for accounts, leads, contacts, or customers start in Audiences.
+   Hiring, funding, or job-posting criteria do not make the request net-new. Read the
+   relevant existing records and captured signal events without asking the user to
+   choose a source. If a successful, relevant Audiences query finds no matches and the
+   user has not restricted the request to existing records, continue with Search and
+   say that you broadened the scope. A failed query is not evidence of no matches.
+   Explicit net-new requests or a named surface take precedence over this default.
 2. **Search** — need a list of people or companies **new to the workspace**? Open the
-   `searches` skill. Finding prospects or accounts is Search: not a table query, not a
+   `searches` skill. Finding net-new prospects or accounts is Search: not a table query, not a
    routine, and not a workflow. Public search supports **people and companies only** —
    not jobs. A request framed around job posts (e.g. "companies hiring for X") can't be
    a public search: approximate it with the closest company or people filters, then use

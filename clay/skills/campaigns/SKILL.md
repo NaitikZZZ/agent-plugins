@@ -93,7 +93,7 @@ When the review finds a material copy-fixable concern with a clear improvement, 
 
 Amend the candidate only after that update. Then review it again. Repeat only while another clear improvement exists. Never batch these updates. Never expose an intermediate draft.
 
-The final response shows the final copy and any remaining concerns under `Unresolved`. Do not replay the critique updates. If the first review finds no material concern, say so and present the final copy without inventing a critique. For review-only work, return critiques without amending copy, showing a final-copy section, or mutating sequence copy.
+Present the final copy once in the current surface's supported format, and put any remaining concerns under `Unresolved`. Do not replay the critique updates. If the first review finds no material concern, say so and present the final copy without inventing a critique. For review-only work, return critiques without amending copy, showing a final-copy section, or mutating sequence copy.
 
 For an exact mechanical edit, skip the writing skill, review skill, and progress updates. If the requested change introduces a material contradiction that cannot be resolved within scope, flag it before mutation. Use the question tool to ask permission to expand the scope. If it merely exposes a pre-existing independent contradiction, allow the requested edit and flag the existing issue separately. Do not manufacture a critique.
 
