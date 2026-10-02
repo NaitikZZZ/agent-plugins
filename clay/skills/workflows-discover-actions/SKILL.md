@@ -25,6 +25,8 @@ multiple steps, including installed waterfalls. Compare both against the request
 inputs and outputs; a suitable function can satisfy a capability without composing
 several actions.
 
+Prefer suitable Clay waterfalls over individual providers.
+
 1. Identify the inputs available at the insertion point from the conversation and
    existing workflow inspection. For an existing workflow, use
    `clay workflows graph get <workflowId> --mode full` and inspect individual nodes

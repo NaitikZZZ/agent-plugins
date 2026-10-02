@@ -77,7 +77,9 @@ Common node types (not just agent/tool — pick the type that fits the step):
   (`rules` / `agentic` / `code` via `conditionalMode`).
 - **Code nodes** (`nodeType: "code"`) — deterministic Python transforms (no LLM), for shaping
   and filtering; use an agent when the step needs LLM judgment. The handler goes in top-level
-  `code`. Prefer `clay workflows code test` before wiring.
+  `code`. Code runs on the Python standard library only, with no network access and no Clay
+  actions, and each run is stopped after 1 second: use a tool node for enrichment or HTTP calls
+  and a delay node to wait, never `time.sleep()`. Prefer `clay workflows code test` before wiring.
 - **Delay nodes** (`nodeType: "delay"`) — pause a run before the next step without producing
   data. Set integer `delaySeconds` from 1 to 86400 (24 hours) in the create or update `--input`. To
   wait for a duration computed upstream instead, add a `delaySeconds` property to `inputSchema` with
@@ -364,18 +366,17 @@ for the user before changing them.
   action ran fine and found nothing — that is a valid result, not an error.
   Discover `packageId`/`actionKey` with `/workflows-discover-actions`, and the input shape
   with `clay workflows actions schema`.
-- `clay workflows code test --file <path|-> [--inputs <json|file|->] [--output-schema <json|file|->] [--tools <json|file|->] [--packages <csv>]`
-  — runs Python in a sandbox to test code before adding it to a node. The file must define
-  `handler(context)` returning a dict. `--inputs` backs named calls such as
-  `context.get_input("email")`; `get_input()` requires a key and has no zero-argument form. `--tools`
-  (a JSON array of `{actionKey, actionPackageId}`) backs `context.call_tool()`, and
-  `--packages` installs extra pip packages. **Before saving code with declared outputs, pass
-  `--output-schema` with the exact flat `outputSchema` you will save on the node when the installed
-  CLI offers that flag.** Check `clay workflows code test --help`; if the flag is unavailable,
-  test the saved node with `clay workflows nodes test` instead until the CLI is updated.
-  Without the flag, success only means execution succeeded. Exits 0 even on handler or schema
-  failure — require
-  `.isError != true and .outputSchemaValidated == true` for a schema test.
+- `clay workflows code test --file <path|-> [--inputs <json|file|->] [--output-schema <json|file|->]`
+  — runs Python in the code-node runtime to test code before adding it to a node. The file must
+  define `handler(context)` returning a dict. `--inputs` backs named calls such as
+  `context.get_input("email")`; `get_input()` requires a key and has no zero-argument form. The
+  same limits as code nodes apply: standard library only, no network, 1 second. **Before saving
+  code with declared outputs, pass `--output-schema` with the exact flat `outputSchema` you will
+  save on the node when the installed CLI offers that flag.** Check `clay workflows code test --help`;
+  if the flag is unavailable, test the saved node with `clay workflows nodes test` instead until the
+  CLI is updated. Without the flag, success only means execution succeeded. Exits 0 even on handler
+  or schema failure — require `.isError != true and .outputSchemaValidated == true` for a schema
+  test.
 
 Both are single-shot previews. External CLI users have per-user daily caps (defaults ~25 action
 tests and ~10 code tests, overridable per workspace). Clay's built-in GTM Agent and Workflows

@@ -56,7 +56,7 @@ When a downstream node needs specific typed data from an upstream node:
 ### Simplify tool usage
 
 - If a node has tools it never uses, remove them (reduces prompt size and cost)
-- If a node calls one tool and passes the result, consider making it a code node with `context.call_tool()`
+- If a node calls one Clay action and passes the result, make it a tool node rather than an agent node
 
 ### Use code mode for conditional and map nodes
 
