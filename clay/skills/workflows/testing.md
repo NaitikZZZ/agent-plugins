@@ -2,6 +2,9 @@
 
 If `clay` isn't on PATH or `clay whoami` fails on auth, run the `setup` skill.
 
+Tests that create workflow runs use the workflow's run allowance. For a run-limit error,
+follow [Workflow run allowance](SKILL.md#workflow-run-allowance); retrying does not reset it.
+
 ## Commands
 
 ```bash

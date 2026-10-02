@@ -53,6 +53,12 @@ You are helping users build and edit Clay workflows.
   graph (`presenting.md`).
 - **Ask when there's a real choice** — refer to actions by human-readable names, never bare
   `actionKey`s.
+- **Qualify the person's role, not just title keywords.** Require the right function and
+  decision-making seniority. Mentioning a function may mean selling to, recruiting for, or
+  assisting its leaders. Use compatible structured function/seniority fields or unambiguous
+  rules; when titles need judgment, use a small Claygent classification of supplied inputs
+  before paid contact enrichment. Select existing candidate IDs and reuse the decision
+  downstream; don't generate people or research externally when supplied fields suffice.
 
 Common node types (not just agent/tool — pick the type that fits the step):
 
@@ -390,6 +396,26 @@ those caps.
 says the daily allowance is exhausted, stop testing; do not sleep or retry in this session.
 `details.retryAfter` gives the delay in seconds.
 
+### Workflow run allowance
+
+When the server reports that a workflow has reached its run limit, explain the limit rather
+than retrying or treating it as invalid workflow input. The CLI may label this response
+`validation_error`; use the message to distinguish it from other validation failures.
+
+- Where enabled, Free/Trial workspaces have a lifetime allowance of 100 runs per workflow,
+  not per workspace or per month. Paid plans do not have this cap. Use the server response
+  as the source of truth; do not assume the limit is enabled for every workspace.
+- Successful and unfinished runs count, including hidden or deleted runs. Failed and
+  cancelled runs do not count. Do not calculate remaining allowance from the visible run
+  history, which may be filtered or limited by the plan's history window.
+- Tests that create workflow runs consume this allowance too. Standalone action/code
+  previews have the separate daily caps described above. Credits and API rate limits are
+  separate from the workflow run allowance.
+- Explain that upgrading allows more runs; do not suggest copying a workflow or deleting
+  runs to bypass the limit. After a confirmed upgrade, allow up to about a minute for the
+  plan to refresh instead of asking the user to upgrade again. If it still blocks after
+  that, report the issue rather than repeatedly retrying.
+
 ### Triggers
 
 - Get: `clay workflows triggers get <triggerId>` — trigger ids come from `clay workflows graph get`,
@@ -480,13 +506,14 @@ If the workspace has list mode disabled, the update rejects — relay that rathe
 
 ### Wiring the first node after creating a trigger
 
-`triggers create` returns only a confirmation (`resourceId`, `operation`), and `resourceId` is the
-**trigger** id, not the canvas node's. Passing it as an `incomingEdges` source wires the node to an
-id that doesn't exist there. Read the trigger back first and take `workflowNodeId` from that:
+`triggers create` returns `resourceId` (the **trigger** id) and `workflowNodeId`
+(the canvas node id). Use `workflowNodeId` to wire the first node; do not use
+`resourceId` as an `incomingEdges` source. If the response omits `workflowNodeId`,
+read `clay workflows triggers get <resourceId>` to obtain it.
 
 ```bash
-trigger_id=$(clay workflows triggers create wf_1 --input trigger.json | jq -r '.resourceId')
-node_id=$(clay workflows triggers get "$trigger_id" | jq -r '.workflowNodeId')
+clay workflows triggers create wf_1 --input trigger.json > created-trigger.json
+jq '{resourceId, workflowNodeId}' created-trigger.json
 ```
 
 Wire it with `incomingEdges: [{ "sourceNode": "<workflowNodeId>" }]`. Do not send
