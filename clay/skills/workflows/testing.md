@@ -67,14 +67,19 @@ clay workflows nodes test <workflowId> <nodeId> --inputs '{"param":"value"}'
 `--record-ids` runs exactly those Audiences records instead of the segment's first
 `--limit` members; pass one or the other, not both.
 
+`clay workflows nodes test <workflowId> <nodeId> --source-run <runId>` can start at a new
+or unexecuted node. Its current input mappings resolve against completed upstream steps in
+the source run; configure mappings first or run from the producer if its output is missing.
+An unfinished source step cannot be reused; use `--inputs` without `--source-run` instead.
+
 `--inputs`, `--audience-segment`, and `--trigger` cannot be combined. See `publishing.md`.
 
 ```bash
 # Status / progress for a run
-clay workflows runs get <workflowId> <runId>           # header + progress + map/reduce nodes
-clay workflows runs get <workflowId> <runId> --nodes   # include every node
-clay workflows runs get <workflowId> <runId> --verbose # + full inputs/outputs, mappings, entry steps
-clay workflows runs get <workflowId> <runId> --node-id <nodeId>  # isolate one node, full map/reduce results
+clay workflows runs get <runId>           # header + progress + map/reduce nodes
+clay workflows runs get <runId> --nodes   # include every node
+clay workflows runs get <runId> --verbose # + full inputs/outputs, mappings, entry steps
+clay workflows runs get <runId> --node-id <nodeId>  # isolate one node, full map/reduce results
 
 # List/filter the individual execution steps
 clay workflows runs steps <workflowId> <runId>
@@ -120,9 +125,9 @@ waiting is useful.
 `failed` / `cancelled`; `progress.percentage` tracks progress.
 
 ```bash
-clay workflows runs get <workflowId> <runId> --wait           # poll until terminal
-clay workflows runs get <workflowId> <runId> --wait 60        # same, but stop after 60s
-clay workflows runs get <workflowId> <runId>                  # single request (may still be running)
+clay workflows runs get <runId> --wait           # poll until terminal
+clay workflows runs get <runId> --wait 60        # same, but stop after 60s
+clay workflows runs get <runId>                  # single request (may still be running)
 ```
 
 Terminal statuses are `completed`, `failed`, `cancelled`, and `paused`. `paused`
@@ -141,16 +146,16 @@ is strictly better than grepping formatted text — filter it with `jq`:
 
 ```bash
 # Full, untruncated inputs/outputs per node
-clay workflows runs get <workflowId> <runId> --verbose | jq '.nodes'
+clay workflows runs get <runId> --verbose | jq '.nodes'
 
 # Just the failed nodes and their errors
-clay workflows runs get <workflowId> <runId> --nodes | jq '.nodes[] | select(.status=="failed") | {nodeId, errors}'
+clay workflows runs get <runId> --nodes | jq '.nodes[] | select(.status=="failed") | {nodeId, errors}'
 
 # Errors across the failed steps (including each map entry)
 clay workflows runs steps <workflowId> <runId> --status failed | jq '.data[].errors'
 
 # One node's config + full map/reduce results
-clay workflows runs get <workflowId> <runId> --node-id <nodeId> | jq '.nodes[0]'
+clay workflows runs get <runId> --node-id <nodeId> | jq '.nodes[0]'
 ```
 
 ## Tell the user what the run actually did
@@ -158,7 +163,7 @@ clay workflows runs get <workflowId> <runId> --node-id <nodeId> | jq '.nodes[0]'
 Don't dump raw run JSON at the user. After a run, **narrate the trace node-by-node**: for each node, what it received, what it produced, and (if it failed) why. `--verbose` gives you the untruncated inputs/outputs to do this from:
 
 ```bash
-clay workflows runs get <workflowId> <runId> --verbose | jq '.nodes'
+clay workflows runs get <runId> --verbose | jq '.nodes'
 ```
 
 Structure the recap as a short per-node walkthrough (or a small table: node → inputs → output/result → status), then call out any failures and what you'll change. Reserve raw JSON for when the user explicitly asks for it.
@@ -168,7 +173,7 @@ Structure the recap as a short per-node walkthrough (or a small table: node → 
 ## Example workflow
 
 1. Start a test: `echo '{}' | clay workflows runs test wf_abc --inputs -`
-2. Watch to completion: `clay workflows runs get wf_abc wfr_xyz --wait | jq -r '.status'`
+2. Watch to completion: `clay workflows runs get wfr_xyz --wait | jq -r '.status'`
 3. Inspect failures: `clay workflows runs steps wf_abc wfr_xyz --status failed | jq '.data[].errors'`
 4. Walk the user through the trace node-by-node (see "Tell the user what the run actually did" above), not as raw JSON.
 
@@ -178,9 +183,27 @@ Use `clay workflows actions test` and `clay workflows code test` as documented i
 the parent skill. After wiring, confirm the persisted config with
 `clay workflows nodes get` or `graph get --mode full`.
 
+For code with declared outputs, test against the exact flat schema before wiring:
+
+If `clay workflows code test --help` does not list `--output-schema`, use `nodes test`
+after saving the node instead; an execution-only code test does not validate its output schema.
+
+```bash
+clay workflows code test --file handler.py --inputs sample.json --output-schema outputs.json \
+  | jq -e '.isError != true and .outputSchemaValidated == true'
+```
+
+`outputs.json` contains the field map itself, for example
+`{"owner":{"type":"string","description":"Assigned owner"}}`, without an `outputSchema` wrapper.
+All declared fields are required and non-null. A successful Python return containing
+`{"owner":null}` therefore fails the schema test. Test representative missing-data and
+non-qualifying inputs as well as the happy path. Choose the missing-value behavior deliberately;
+do not substitute zero or a placeholder owner just to pass validation. After saving or changing
+the schema, use `nodes test` to verify the persisted node and its mappings before a full run.
+
 ## Pro tips
 
 - Prefer `runs get --wait` over a hand-rolled poll loop when watching a run.
 - Pipe to `jq` for filtering: `clay workflows runs steps <workflowId> <runId> | jq '.data[] | select(.status=="failed")'`
-- To save output for later analysis, capture `clay workflows runs get <workflowId> <runId> --verbose` with your file-writing tool.
+- To save output for later analysis, capture `clay workflows runs get <runId> --verbose` with your file-writing tool.
 - `--verbose` returns untruncated inputs/outputs; prefer it over reconstructing logs.

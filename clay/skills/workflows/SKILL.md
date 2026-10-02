@@ -7,7 +7,7 @@ description: Clay workflows — plan, review, build, and edit automations with t
 
 Supporting files in this directory: `publishing.md`, `testing.md`, `data-passing.md`,
 `presenting.md`, `audiences.md`, `account-agents.md`, `run-analysis.md`, `node-groups.md`,
-`csv-triggers.md`, `table-primitives.md`.
+`csv-triggers.md`, `table-primitives.md`, `table-waterfalls.md`.
 
 Read this skill before proposing a workflow plan, even when the user asks for no workspace
 queries or changes. For Audiences destinations or field mappings, also read `audiences.md`
@@ -79,7 +79,10 @@ Common node types (not just agent/tool — pick the type that fits the step):
   and filtering; use an agent when the step needs LLM judgment. The handler goes in top-level
   `code`. Prefer `clay workflows code test` before wiring.
 - **Delay nodes** (`nodeType: "delay"`) — pause a run before the next step without producing
-  data. Set integer `delaySeconds` from 1 to 3600 in the create or update `--input`.
+  data. Set integer `delaySeconds` from 1 to 86400 (24 hours) in the create or update `--input`. To
+  wait for a duration computed upstream instead, add a `delaySeconds` property to `inputSchema` with
+  type `number`, `sourceNodeId`, and `sourcePath`; it must resolve to a number of seconds from 1 to
+  86400 and overrides `delaySeconds`.
 - **Map / reduce** (`nodeType: "map"` / `"reduce"`) — fan-out over a list and aggregate the
   results. Use these when the fan-out itself has to be a graph step: per-item concurrency or
   retry settings, or a downstream aggregation. For the same per-record work inline on one node,
@@ -359,15 +362,20 @@ for the user before changing them.
   `.result` (use those for `$.result.<field>` wiring); `metadata` is credit/refund accounting when
   the runner reports it. A `result` of `null` with `metadata.status` `SUCCESS_NO_DATA` means the
   action ran fine and found nothing — that is a valid result, not an error.
-  Discover `packageId`/`actionKey` with `clay workflows actions list`
-  (see `/workflows-discover-actions`), and the input shape with `clay workflows actions schema`.
-- `clay workflows code test --file <path|-> [--inputs <json|file|->] [--tools <json|file|->] [--packages <csv>]`
+  Discover `packageId`/`actionKey` with `/workflows-discover-actions`, and the input shape
+  with `clay workflows actions schema`.
+- `clay workflows code test --file <path|-> [--inputs <json|file|->] [--output-schema <json|file|->] [--tools <json|file|->] [--packages <csv>]`
   — runs Python in a sandbox to test code before adding it to a node. The file must define
   `handler(context)` returning a dict. `--inputs` backs named calls such as
   `context.get_input("email")`; `get_input()` requires a key and has no zero-argument form. `--tools`
   (a JSON array of `{actionKey, actionPackageId}`) backs `context.call_tool()`, and
-  `--packages` installs extra pip packages. Exits 0 even on handler failure — inspect
-  `isError` in the JSON, not the exit code.
+  `--packages` installs extra pip packages. **Before saving code with declared outputs, pass
+  `--output-schema` with the exact flat `outputSchema` you will save on the node when the installed
+  CLI offers that flag.** Check `clay workflows code test --help`; if the flag is unavailable,
+  test the saved node with `clay workflows nodes test` instead until the CLI is updated.
+  Without the flag, success only means execution succeeded. Exits 0 even on handler or schema
+  failure — require
+  `.isError != true and .outputSchemaValidated == true` for a schema test.
 
 Both are single-shot previews. External CLI users have per-user daily caps (defaults ~25 action
 tests and ~10 code tests, overridable per workspace). Clay's built-in GTM Agent and Workflows
@@ -505,12 +513,16 @@ their own CLI commands elsewhere rather than a `clay workflows` subcommand:
 - **Table configuration migration** — read `table-primitives.md` when rebuilding
   table columns as workflow nodes. Preserve referenced resources and verify the
   persisted bindings before testing.
+- **Provider waterfall migration** — read `table-waterfalls.md` before translating
+  a table's provider waterfall. Check for an equivalent installed function and preserve
+  the input bindings, run condition, provider order, validation, and output selection.
 - **Bulk enrichment migration** — for a known bulk enrichment table, use
   `clay tables columns get <tableId>` to determine the
   source origin and column DAG. When a source includes `audience`, use its configuration
   (global when `isGlobal`; otherwise `segments[].id`). Do not assume every bulk enrichment is
   Audiences-backed.
-  When the destination has type `audience_enrichment`, read
+  For an Audience-backed bulk enrichment migration, or when the destination already
+  has type `audience_enrichment`, read
   `/workflows-audience-enrichment` before translating the columns. Its migration guidance
   explains how to replace the table's source-record lookups and extracted columns with
   bindings to the existing audience trigger.

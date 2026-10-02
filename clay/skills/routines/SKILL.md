@@ -105,7 +105,11 @@ There are **two independent budgets**, and a run needs enough of each:
 - `estimatedCreditCost.perRun` is charged against the data-credit `balance`.
 - `estimatedCreditCost.actionExecution` (when supplied) is charged against the separate
   `actionExecutionBalance` on action-execution pricing plans. A workspace can have plenty
-  of `balance` but no action executions left — enough of one budget does not cover the other. When not supplied the workspace is still on legacy billing and this balance can be ignored
+  of `balance` but no action executions left — enough of one budget does not cover the other.
+  A missing or null `actionExecution` does not identify the plan: it means the workspace is
+  on legacy billing **or** the estimate carries no priced action executions. Whether
+  `clay credits balance` returns `actionExecutionBalance` is what tells the plans apart —
+  present means action-execution pricing, absent means legacy.
 
 For how to read the balance and how the cost fields work, see the help text:
 

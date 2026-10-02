@@ -277,9 +277,8 @@ before telling a user something cannot be done.
 - **No run history command.** Nothing lists the tasks a schedule started or
   whether the last occurrence succeeded; `lastRunAt` on `list` is the only
   trace, and it does not distinguish a run from a skip.
-- **`list` cannot filter server-side.** It is cursor-paginated like every other
-  list command (`--limit`, `--cursor`), but the 20-schedule cap means one page
-  holds them all at the default limit, so `cursor` is normally absent. Narrow by
-  `status` with `jq`.
+- **`list` cannot filter server-side.** It is cursor-paginated (`--limit`,
+  `--cursor`), but the 20-schedule cap means one page holds them all at the
+  default limit, so `cursor` is normally absent. Narrow by `status` with `jq`.
 - **No cross-user visibility.** There is no way to list or manage schedules
   other workspace members created.

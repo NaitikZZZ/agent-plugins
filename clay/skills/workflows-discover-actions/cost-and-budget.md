@@ -42,6 +42,19 @@ continue within the authorized scope without speculative prices or a cost-only a
 An unavailable balance does not establish the 10% threshold. A zero balance with supported
 positive spend is an insufficient-credit constraint, not a percentage calculation.
 
+**An incomplete estimate is not a ceiling.** When the user has authorized a spend limit and
+the estimate is not established as complete — `containsVariablePricing: true`, or fan-out the
+estimate cannot count — treat it as a starting guess, not the maximum the run can charge.
+Probe a single item first, then dispatch in chunks sized so that even a several-fold miss on
+the per-item estimate stays inside the remaining authorization. Read metered actuals with
+`clay workflows runs get` (run-level `dataCreditsUsed` and `actionCreditsUsed`) and subtract
+a chunk's totals only once its run has finished: totals roll up at a terminal status, `--wait`
+also returns on paused or human-input waits where charges are still accruing (check the
+returned status), and a cancelled run's totals settle shortly after cancellation, so re-read
+until they stop changing. Where per-run totals are unavailable (routine runs, trigger
+backfills), say plainly that a hard cap cannot be enforced precisely and keep chunks small.
+If actual spend outpaces the estimate, stop and re-confirm with the user before continuing.
+
 This policy does not authorize extra work: a planning request is not permission to run an
 enrichment. Preserve independent approvals for publishing, purchases, external effects,
 and other consequential actions. Do not repeat a cost warning in progress updates or the

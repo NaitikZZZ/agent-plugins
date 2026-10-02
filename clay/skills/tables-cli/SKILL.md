@@ -108,6 +108,11 @@ clay tables columns get t_abc123
 clay tables query-live t_abc123 --query 'SELECT {{Name}}, {{ARR}} ORDER BY {{ARR}} DESC LIMIT 10'
 ```
 
+ClayQL is a whitelisted SQL subset — `clay tables query-live --help` lists the exact
+supported grammar. The two most common traps: date ranges use literal ISO strings
+(`{{Close date}} >= '2026-06-01'`) because `NOW()`, `INTERVAL`, and date arithmetic are
+rejected, and `CAST` works only to `decimal`.
+
 See `clay tables query-live --help` for output shape and errors. Output is
 `{ query, queryName?, rowCount, results }` — rows live under **`results`**, not `data`.
 Each call returns at most **100 rows**; page with `LIMIT n OFFSET m` in `--query` (bump
@@ -156,21 +161,21 @@ clay tables query --query ./query.json --limit 100 --cursor cursor_abc123
 
 Typical flow: `clay tables list --filter queryEnabled=true` to find the id → (if needed)
 `clay tables update <id> --query-enabled true` → wait, then `clay tables query`. To
-export, convert the JSON `data` array to CSV with the Write tool.
+export, serialize the JSON `data` array to CSV with a real writer (see below).
 
 ### Saving query results to CSV
 
 After a `query-live` or `query` run, save the results locally as a CSV so the user can
-access them. Convert the row array to CSV and write it with the Write tool — use
-**`.results`** for `query-live` and **`.data`** for synced `query`. For `query-live`,
-page with `LIMIT`/`OFFSET` and append each page so the CSV isn't truncated at 100 rows.
-
-1. Run `clay tables query-live` or `clay tables query`
-2. Take rows from `.results` (`query-live`) or `.data` (`query`); for live queries, keep
-   paging until a page is short
-3. Extract column headers from the first result row
-4. Convert each row to comma-separated values (quote fields containing commas)
-5. Write to a local file like `./query-results.csv`
+access them — **`.results`** for `query-live` (responses are capped, so page with
+`LIMIT`/`OFFSET` and append until a page comes back short), **`.data`** for synced
+`query`, projecting
+each synced cell wrapper to its `value` with an explicit marker for error and pending
+cells (they carry no `value`, and a blank would misread as empty). Serialize with a
+keyed CSV writer (for example `csv.DictWriter`, with fieldnames seeded from the
+response's `fields` plus any extra keys seen in rows), never by hand-writing delimiter
+text, prefix string values starting with `=`, `+`, `-`, or `@`
+with a single quote (leave numeric cells untouched), and write to a file like
+`./query-results.csv`.
 
 ## Example: join across tables
 
