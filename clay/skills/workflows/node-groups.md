@@ -1,10 +1,8 @@
 # Canvas node groups
 
 Groups are named frames around two or more nodes. Members do not need to be
-connected. Groups do not change edges or node configuration. The workspace must
-have canvas node groups enabled; otherwise create, add-nodes, remove-nodes, and
-delete return `auth_forbidden`. This file is withheld from the session when the
-flag is off — do not invent groups or mention them if you cannot read this file.
+connected. Groups do not change edges or node configuration. Do not invent
+groups or mention them if you cannot read this file.
 
 Group ids are listed on `clay workflows graph get` under `summary.nodeGroups`
 when any exist.
@@ -62,13 +60,3 @@ remove-nodes deletes the group when fewer than two members would remain.
   node both upstream and downstream).
 - Delete: `clay workflows groups delete <workflowId> <nodeGroupId>` — ungroups
   only; member nodes stay on the graph.
-- Convert to function:
-  `clay workflows groups publish-as-function <workflowId> <nodeGroupId> [--name <name>] [--description <description>]`
-  — copies the group into a new published function (a standalone workflow that
-  other workflows call) and replaces the group with a function call node wired
-  to the same inputs and outputs. External edges on any member are rewired onto
-  that call node. Stricter than create: the members must be one connected
-  component (sibling branches that share a parent count). Blocked while any
-  member has a validation error (`clay workflows graph validate`). Gated on the
-  workspace's functions flag (separate from node groups), so it can return
-  `auth_forbidden` even where create and delete work.

@@ -1,6 +1,6 @@
 ---
 name: clay
-description: Clay — start here. A table of contents for working with Clay and which skill to use for each thing — audiences (the workspace's own people/companies/deals), campaigns (create, improve, and analyze outbound email sequences), search (find net-new people/companies), routines (run Clay-managed and custom functions), tables (query/export data), the CLI (ephemeral programmatic access), the Public API (build services on Clay), workflows (build automations), feedback, and getting help — reaching Clay support or a human about billing, refunds, or account problems. Read this first to answer "what can I do with Clay?"
+description: Clay — start here. A table of contents for working with Clay and which skill to use for each thing — audiences (the workspace's own people/companies/deals), campaigns (create, improve, and analyze outbound email sequences), ad syncs (push audience segments to ad platforms), search (find net-new people/companies), routines (run Clay-managed and custom functions), tables (query/export data), the CLI (ephemeral programmatic access), the Public API (build services on Clay), workflows (build automations), feedback, and getting help — reaching Clay support or a human about billing, refunds, or account problems. Read this first to answer "what can I do with Clay?"
 ---
 
 # Working with Clay
@@ -68,6 +68,7 @@ abilities. Get the framing right:
   - "Enrich a list of leads or accounts with firmographics and contact data."
   - "Score a list of records against my ideal-customer profile."
   - "Create an outbound campaign, draft its sequence, and compare variants or reply performance."
+  - "Sync a saved segment to an ad platform as a custom audience, then check its match rate."
   - "Run a saved Clay function or workflow over a batch of inputs and collect the results."
   - "Query a table and export the rows matching a filter."
   - "Check how many credits are left, or estimate what a routine costs before running it."
@@ -82,6 +83,7 @@ Clay exposes these core primitives (callable from the plugin/CLI/API):
 | ----------------------- | ----------------------------------------------------------------------------------- |
 | **Audiences**           | The workspace's own people, companies, and deals — read and segment what they have  |
 | **Campaigns**           | Create, improve, compare, and analyze outbound email sequences                      |
+| **Ad syncs**            | Push an audience segment to ad platforms as a custom audience to advertise to       |
 | **Searches**            | Find companies and people using Clay's GTM database                                 |
 | **Routines**            | Run Clay-managed functions, custom functions, and existing Workflows                |
 | **Workflows**           | Build multi-node automations when an existing routine cannot do the job             |
@@ -155,6 +157,7 @@ real limits without inventing prices. It also defines when spending needs confir
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `audiences`           | Any question about the workspace's own people/companies/deals — counts, fill rates, lookups, and segments. `--entity-type deals` works on `records` and `fields list` only; other commands accepting that flag support only `people`/`companies`. Singular `deal` is invalid. See the audiences skill's command support table. |
 | `campaigns`           | Creating and improving outbound email campaigns, sequence copy, variants, and analytics.                                                                                                                                                                                                                                       |
+| `ad-syncs`            | Pushing an audience segment to ad platforms as a custom audience, and checking a sync's status, match rate, or run history.                                                                                                                                                                                                    |
 | `searches`            | Finding net-new people or companies in Clay's GTM database — prospects and accounts that aren't already in the workspace.                                                                                                                                                                                                      |
 | `routines`            | Creating a routine from an existing function/workflow, running a saved routine, and fetching its results.                                                                                                                                                                                                                      |
 | `tables-cli`          | Reading, querying, and exporting data from an existing Clay table via the CLI (creating tables is not supported).                                                                                                                                                                                                              |

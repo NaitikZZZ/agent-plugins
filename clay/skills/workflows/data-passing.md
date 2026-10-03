@@ -266,9 +266,9 @@ clay workflows actions dynamic-fields pkg_abc123 hubspot-create-object fields --
   next dependent parameter.
 - Preconditions: the driver must be a concrete value in `--inputs` (a
   `{{reference}}` won't resolve at design time), and `--account` is required for
-  actions that authenticate. Get `<packageId>`/`<actionKey>` and a connected
-  account whose `abilities.canAccess` is `true` from the action's
-  `availableAppAccounts` in `clay workflows actions list`.
+  actions that authenticate. Reuse the selected account, or list accessible connections
+  with `clay app-accounts list --filter type=<appAccountType>` when the provider's
+  connection type is known. Pass the chosen account's `id` as `--account`.
 
 ## Choosing a method
 

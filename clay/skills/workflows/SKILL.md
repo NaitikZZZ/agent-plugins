@@ -53,6 +53,12 @@ You are helping users build and edit Clay workflows.
   graph (`presenting.md`).
 - **Ask when there's a real choice** — refer to actions by human-readable names, never bare
   `actionKey`s.
+- **Qualify the person's role, not just title keywords.** Require the right function and
+  decision-making seniority. Mentioning a function may mean selling to, recruiting for, or
+  assisting its leaders. Use compatible structured function/seniority fields or unambiguous
+  rules; when titles need judgment, use a small Claygent classification of supplied inputs
+  before paid contact enrichment. Select existing candidate IDs and reuse the decision
+  downstream; don't generate people or research externally when supplied fields suffice.
 
 Common node types (not just agent/tool — pick the type that fits the step):
 
@@ -77,7 +83,9 @@ Common node types (not just agent/tool — pick the type that fits the step):
   (`rules` / `agentic` / `code` via `conditionalMode`).
 - **Code nodes** (`nodeType: "code"`) — deterministic Python transforms (no LLM), for shaping
   and filtering; use an agent when the step needs LLM judgment. The handler goes in top-level
-  `code`. Prefer `clay workflows code test` before wiring.
+  `code`. Code runs on the Python standard library only, with no network access and no Clay
+  actions, and each run is stopped after 1 second: use a tool node for enrichment or HTTP calls
+  and a delay node to wait, never `time.sleep()`. Prefer `clay workflows code test` before wiring.
 - **Delay nodes** (`nodeType: "delay"`) — pause a run before the next step without producing
   data. Set integer `delaySeconds` from 1 to 86400 (24 hours) in the create or update `--input`. To
   wait for a duration computed upstream instead, add a `delaySeconds` property to `inputSchema` with
@@ -364,18 +372,17 @@ for the user before changing them.
   action ran fine and found nothing — that is a valid result, not an error.
   Discover `packageId`/`actionKey` with `/workflows-discover-actions`, and the input shape
   with `clay workflows actions schema`.
-- `clay workflows code test --file <path|-> [--inputs <json|file|->] [--output-schema <json|file|->] [--tools <json|file|->] [--packages <csv>]`
-  — runs Python in a sandbox to test code before adding it to a node. The file must define
-  `handler(context)` returning a dict. `--inputs` backs named calls such as
-  `context.get_input("email")`; `get_input()` requires a key and has no zero-argument form. `--tools`
-  (a JSON array of `{actionKey, actionPackageId}`) backs `context.call_tool()`, and
-  `--packages` installs extra pip packages. **Before saving code with declared outputs, pass
-  `--output-schema` with the exact flat `outputSchema` you will save on the node when the installed
-  CLI offers that flag.** Check `clay workflows code test --help`; if the flag is unavailable,
-  test the saved node with `clay workflows nodes test` instead until the CLI is updated.
-  Without the flag, success only means execution succeeded. Exits 0 even on handler or schema
-  failure — require
-  `.isError != true and .outputSchemaValidated == true` for a schema test.
+- `clay workflows code test --file <path|-> [--inputs <json|file|->] [--output-schema <json|file|->]`
+  — runs Python in the code-node runtime to test code before adding it to a node. The file must
+  define `handler(context)` returning a dict. `--inputs` backs named calls such as
+  `context.get_input("email")`; `get_input()` requires a key and has no zero-argument form. The
+  same limits as code nodes apply: standard library only, no network, 1 second. **Before saving
+  code with declared outputs, pass `--output-schema` with the exact flat `outputSchema` you will
+  save on the node when the installed CLI offers that flag.** Check `clay workflows code test --help`;
+  if the flag is unavailable, test the saved node with `clay workflows nodes test` instead until the
+  CLI is updated. Without the flag, success only means execution succeeded. Exits 0 even on handler
+  or schema failure — require `.isError != true and .outputSchemaValidated == true` for a schema
+  test.
 
 Both are single-shot previews. External CLI users have per-user daily caps (defaults ~25 action
 tests and ~10 code tests, overridable per workspace). Clay's built-in GTM Agent and Workflows
@@ -388,6 +395,26 @@ those caps.
 `rate_limited` (HTTP 429, exit 4) includes daily caps and temporary throttling. If the message
 says the daily allowance is exhausted, stop testing; do not sleep or retry in this session.
 `details.retryAfter` gives the delay in seconds.
+
+### Workflow run allowance
+
+When the server reports that a workflow has reached its run limit, explain the limit rather
+than retrying or treating it as invalid workflow input. The CLI may label this response
+`validation_error`; use the message to distinguish it from other validation failures.
+
+- Where enabled, Free/Trial workspaces have a lifetime allowance of 100 runs per workflow,
+  not per workspace or per month. Paid plans do not have this cap. Use the server response
+  as the source of truth; do not assume the limit is enabled for every workspace.
+- Successful and unfinished runs count, including hidden or deleted runs. Failed and
+  cancelled runs do not count. Do not calculate remaining allowance from the visible run
+  history, which may be filtered or limited by the plan's history window.
+- Tests that create workflow runs consume this allowance too. Standalone action/code
+  previews have the separate daily caps described above. Credits and API rate limits are
+  separate from the workflow run allowance.
+- Explain that upgrading allows more runs; do not suggest copying a workflow or deleting
+  runs to bypass the limit. After a confirmed upgrade, allow up to about a minute for the
+  plan to refresh instead of asking the user to upgrade again. If it still blocks after
+  that, report the issue rather than repeatedly retrying.
 
 ### Triggers
 
@@ -479,13 +506,14 @@ If the workspace has list mode disabled, the update rejects — relay that rathe
 
 ### Wiring the first node after creating a trigger
 
-`triggers create` returns only a confirmation (`resourceId`, `operation`), and `resourceId` is the
-**trigger** id, not the canvas node's. Passing it as an `incomingEdges` source wires the node to an
-id that doesn't exist there. Read the trigger back first and take `workflowNodeId` from that:
+`triggers create` returns `resourceId` (the **trigger** id) and `workflowNodeId`
+(the canvas node id). Use `workflowNodeId` to wire the first node; do not use
+`resourceId` as an `incomingEdges` source. If the response omits `workflowNodeId`,
+read `clay workflows triggers get <resourceId>` to obtain it.
 
 ```bash
-trigger_id=$(clay workflows triggers create wf_1 --input trigger.json | jq -r '.resourceId')
-node_id=$(clay workflows triggers get "$trigger_id" | jq -r '.workflowNodeId')
+clay workflows triggers create wf_1 --input trigger.json > created-trigger.json
+jq '{resourceId, workflowNodeId}' created-trigger.json
 ```
 
 Wire it with `incomingEdges: [{ "sourceNode": "<workflowNodeId>" }]`. Do not send

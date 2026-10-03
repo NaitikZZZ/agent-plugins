@@ -25,6 +25,8 @@ multiple steps, including installed waterfalls. Compare both against the request
 inputs and outputs; a suitable function can satisfy a capability without composing
 several actions.
 
+Prefer suitable Clay waterfalls over individual providers.
+
 1. Identify the inputs available at the insertion point from the conversation and
    existing workflow inspection. For an existing workflow, use
    `clay workflows graph get <workflowId> --mode full` and inspect individual nodes
@@ -45,7 +47,7 @@ several actions.
 
    ```bash
    clay workflows actions search "<capability>" --limit 10 > enrichment-search-work-email-1.json
-   jq '.candidates[] | {type, candidateId, name: (.displayName // .name), packageId, actionKey, functionId, description, score, creditCost, requiresApiKey, requiredInputNames, requiredInputCombinations, inputs: [.inputParameters[]? | {name, type: (.type // .typeSettings.type), optional}], functionInputs: ((.inputSchema.properties // {}) | keys), functionOutputs: ((.outputSchema.properties // {}) | keys), outputs: [.outputParameters[]? | {outputPath, semanticType}]}' enrichment-search-work-email-1.json
+   jq '.candidates[] | {type, candidateId, name: (.displayName // .name), packageId, actionKey, functionId, description, score, creditCost, requiresApiKey, appAccountType, requiredInputNames, requiredInputCombinations, inputs: [.inputParameters[]? | {name, type: (.type // .typeSettings.type), optional}], functionInputs: ((.inputSchema.properties // {}) | keys), functionOutputs: ((.outputSchema.properties // {}) | keys), outputs: [.outputParameters[]? | {outputPath, semanticType}]}' enrichment-search-work-email-1.json
    ```
 
    The jq command is an optional compact-view convenience. If shell filtering
@@ -66,7 +68,11 @@ several actions.
    current employment, and a location field must refer to the requested entity.
    For actions, use `clay workflows actions schema <packageId> <actionKey>` for more detail.
    For functions, inspect the saved candidate’s `inputSchema` and `outputSchema`;
-   use `clay functions get <functionId>` if more detail is needed.
+   use `clay functions get <functionId>` before rejecting a promising function or
+   adding steps when its outputs or validation behavior are unclear. If inspection
+   establishes the requested validation, use the function's result without another
+   validator for the same check. Add validation only for a missing requested guarantee,
+   stale results, or an explicit independent check.
    Read input headers and alternatives before treating a field as required.
    When `requiredInputCombinations` is present and nonempty, satisfy every input in
    any one combination; the combinations override individual input optional flags.
@@ -121,22 +127,16 @@ but should not override stronger fit or drive exploration. When the ranked resul
 support the requirements and no material ambiguity remains, stop. Explain any
 requirement that remains unsupported.
 
-Check requiresApiKey before treating a provider account as a prerequisite. Missing
-configuredTools or availableAppAccounts does not make an action unavailable when
-requiresApiKey is false. A missing or null requiresApiKey means the credential requirement
-is unknown, not false; inspect the selected search candidate or report that uncertainty
-instead of claiming no connection is required. For a selected action with `requiresApiKey: true`, inspect its entry in
-`clay workflows actions list` before handing it to the builder. Reuse a saved
-catalog when available. Choose a bound configured tool only when its
-`appAccountAbilities.canAccess` is `true`, or an `availableAppAccounts` entry whose
-`abilities.canAccess` is `true`. Always pass the verified `appAccountId` with the
-action identifiers, including when also passing a configured `toolId`. An existing
-node may reuse its own tool, so `toolId` alone does not ensure the selected account
-is applied. Do not leave credential selection to automatic binding.
-An unbound configured tool is not evidence of an accessible connection. If access
-cannot be verified, report the prerequisite instead of handing off a ready-to-build
-credentialed action. Distinguish a missing connection from an existing connection
-that requires an administrator to grant access.
+Check requiresApiKey before requiring a provider connection (for catalog selections,
+read actionLabels.requiresApiKey on the selected action). When a connection is required,
+or the user requests their own credentials, use the action's appAccountType with
+`clay app-accounts list --filter type=<appAccountType>`.
+Reuse the returned accounts for other selected actions with the same connection type.
+If multiple accounts match and the user's intent or existing workflow does not identify
+which to use, ask. For the workspace's own credentials, exclude isClayManaged accounts.
+Pass the chosen account's id explicitly as appAccountId, even when passing a toolId.
+If no accessible accounts are returned, explain that a connection or access is needed.
+Do not fetch the full catalog for credential checks.
 
 Unknown schemas do not prove
 an action cannot do the work: distinguish a promising candidate from verified field
