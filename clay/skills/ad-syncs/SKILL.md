@@ -34,10 +34,11 @@ or `Vibe`, written in lowercase inside `type=<provider>-ad-audience` (e.g.
 ## Limits
 
 - You can always create an ad sync, and edit it while it is a draft or paused.
-- You cannot delete an ad sync, and a segment can have only one. Create one only for a segment the
-  user confirmed.
-- Pause a running sync only when the user asks, after telling them what pausing does (see
-  Statuses). Never start or resume one: the user does that in the Clay app, from the sync's `url`.
+- You cannot delete an ad sync: the user deletes it in the Clay app. A segment can have only one ad
+  sync, so create one only for a segment the user confirmed.
+- Pause a running sync only when the user asks. Before running `pause`, tell them what pausing does
+  (see Statuses) and ask them to confirm, even when they asked for it. Never start or resume one:
+  the user does that in the Clay app, from the sync's `url`.
 
 ## Schedules
 
@@ -77,8 +78,17 @@ Confirm each choice with the user before running the command that makes it.
    clay ad-syncs create --name "<name>" --source-id <segmentId> --entity-type <entityType> --schedule-type <ONE_TIME|RECURRING>
    ```
 
-2. **Accounts.** For each platform, run `clay app-accounts list --filter type=<provider>-ad-audience`,
-   then `clay ad-syncs ad-accounts list <appAccountId> --provider <provider>` for each connection.
+2. **Accounts.** For each platform, run `clay app-accounts list --filter type=<provider>-ad-audience`.
+   If it returns one connection, pick it. If it returns more than one, list them by name and ask the
+   user which to use. Don't check any connection's ad accounts before the user picks one, even if
+   you expect only one to work.
+
+   You MUST check the picked connection before using it, every time, including when it is the only
+   one: run `clay ad-syncs ad-accounts list <appAccountId> --provider <provider>`. Never pass an
+   `--app-account-id` to any command until that check has succeeded for it in this conversation. If
+   the check errors, don't use the connection: tell the user it couldn't load its ad accounts and
+   ask them to pick another one.
+
    An ad account is usable when `canManageAudiences` is true, `restrictions` is empty, and it has
    not already been added to this ad sync: compare its `accountId` with the
    `providerSyncConfigs[].providerAdAccount.id` values from `clay ad-syncs get <adSyncId>`. If there
@@ -107,8 +117,9 @@ Then give the user the sync's `url` so they can review it and start it in the Cl
 ## Edit
 
 Check `adSync.status` with `clay ad-syncs get <adSyncId>` first. `DRAFT` and `PAUSED` syncs can be
-edited. A running sync (`PROCESSING`, `ACTIVE`, or `WARNING`) has to be paused first, with the
-user's OK: `clay ad-syncs pause <adSyncId>`. `DONE`, `FAILED`, and `BULK_ENRICHMENT_FAILED` syncs
+edited. A running sync (`PROCESSING`, `ACTIVE`, or `WARNING`) has to be paused first. Tell the
+user it has to be paused and what pausing does, and ask them to confirm before running
+`clay ad-syncs pause <adSyncId>`. `DONE`, `FAILED`, and `BULK_ENRICHMENT_FAILED` syncs
 can't be edited.
 
 - Rename: `clay ad-syncs update <adSyncId> --name "<name>"`

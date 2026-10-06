@@ -185,16 +185,19 @@ clay workflows actions schema 56058efe-4757-4fe7-a44b-39c2d730c47a find-email-fr
 
 This returns the action's `packageId`, `actionKey`, `displayName`, `inputParameters`
 (the input parameter schema), and `outputParameters` (the declared output fields,
-flattened to leaf paths — available before the node has ever run). Select `options`
-and `autocompleteOptions` are omitted by default because some actions carry thousands;
-the response's `inputOptionsIncluded` says whether they are present. Pipe to
-`jq '.inputParameters'` or `jq '.outputParameters'` to see just one side. When exact
-choices or suggestions are needed for one input, request them and filter in the same
-command so the full arrays do not enter the conversation:
+flattened to leaf paths — available before the node has ever run). An input's settings
+are under `typeSettings`, including its select choices (`typeSettings.options`) and
+autocomplete suggestions (`typeSettings.autocompleteOptions`). Choices and suggestions
+are omitted by default because some actions carry thousands; the response's
+`inputOptionsIncluded` says whether they are present. Pipe to `jq '.inputParameters'` or
+`jq '.outputParameters'` to see just one side. When exact choices or suggestions are
+needed for one input, request them and filter in the same command so the full arrays do
+not enter the conversation:
 
 ```bash
 clay workflows actions schema <packageId> <actionKey> --include-options \
-  | jq '.inputParameters[] | select(.name == "<parameterName>") | { options, autocompleteOptions }'
+  | jq '.inputParameters[] | select(.name == "<parameterName>")
+        | { options: (.typeSettings.options // .options), autocompleteOptions: (.typeSettings.autocompleteOptions // .autocompleteOptions) }'
 ```
 
 Check each input's `name`, `required`, and `type`; `requiredInputCombinations`, when

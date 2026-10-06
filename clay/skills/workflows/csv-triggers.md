@@ -47,11 +47,17 @@ The flow has three commands, each taking the trigger id:
    first `n` rows. Rows run asynchronously; the command returns once the batch is
    accepted, not when every run finishes. This spends credits — one workflow run per row,
    so a large file multiplies the workflow's per-run cost. Before running, follow the
-   credit preflight in the `clay` skill: show the estimated cost (row count × per-run cost)
-   and the remaining balance, and get explicit confirmation. Use `--limit` when the user
-   wants a small test batch first.
+   shared cost policy in `workflows-discover-actions/cost-and-budget.md`. For a file of
+   more than 100 rows, that means a test batch first: run the top rows with `--limit`,
+   then ask before the rest.
 3. **Unlink** — `clay workflows triggers csv remove <triggerId>`. Detaches the file.
    The inferred input schema is kept, so downstream input mappings survive.
+
+`--limit` always takes rows from the top of the file and has no offset, so running the file
+again repeats the test rows. To run only the rest, write the rows after the first `n` to a
+new file with a CSV reader and writer, keeping the header row, link it with `csv upload`, and
+run it without `--limit`. The new file stays linked to the trigger afterward; say so if the
+user may want to run the original again.
 
 Before running, make sure the trigger is connected to a downstream node. On a freshly
 created workflow the trigger is unwired, so `csv run` is still accepted and returns a
@@ -86,8 +92,7 @@ clay workflows triggers csv upload <triggerId> --file /mnt/session/uploads/leads
 
 If no `csv_upload` trigger exists yet, create one first (see above — CLI
 `triggers create`, or the editor in Sculptor), then upload. Confirm the columns from the
-command's `csvFile.headers` (watch for duplicates), then run only after the credit
-preflight and the user's explicit go-ahead.
+command's `csvFile.headers` (watch for duplicates), then run it as step 2 above describes.
 
 ## Downstream mappings
 

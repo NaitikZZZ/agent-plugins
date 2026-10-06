@@ -32,7 +32,7 @@ Help users understand and improve campaigns in their current Clay workspace. You
 - `clay campaigns variants preview-sequence <campaign-id> --variant-id <id> [--lead-index <index>]`
 - `clay campaigns variants send-test <campaign-id> --variant-id <id> --sequence-step-index <index> [--lead-index <index>] --email-account-id <id> --recipient <email>`
 
-Use `clay campaigns <subcommand> --help` when you need the exact input or output schema. All successful commands return JSON on stdout. Errors return structured JSON on stderr with a stable error code and exit category.
+Before first using a campaign subcommand, read `clay campaigns <subcommand> --help` for its input and output schema. Reuse help already read in this conversation. Build inputs and JSON projections from that command’s documented schema, including its response root. All successful commands return JSON on stdout. Errors return structured JSON on stderr with a stable error code and exit category.
 
 ## Hard boundaries
 
@@ -48,7 +48,7 @@ These boundaries govern Campaigns work. Do not work around them through another 
 2. State the exact new campaign name.
 3. Run `campaigns create --name <name>` once.
 4. Store the returned ID for each later command.
-5. Report creation with the exact campaign name, not the internal ID.
+5. Report creation with the exact campaign name, plus the returned `url` when the response has one, not the internal ID.
 
 Creation and each later edit are separate mutations. Make and report them in order. Do not add audience, provider, or lifecycle inputs to creation.
 
@@ -109,7 +109,7 @@ After the candidate is final, use one `sequence edit` command. Supporting contex
 2. If multiple campaigns match, ask the user with the question tool.
 3. State the exact target campaign display name before one mutation.
 4. Make one mutation.
-5. Report the result from the mutation response.
+5. Report the result from the mutation response, including its `url` when present so the user can open the campaign.
 6. Read again only when the mutation response lacks the state required for the report.
 
 Before proposing any edit, use only ids and values from a fresh result. If the user or another actor changes the target campaign before the mutation is submitted, discard the draft and resolve it again.

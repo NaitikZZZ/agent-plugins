@@ -55,6 +55,39 @@ until they stop changing. Where per-run totals are unavailable (routine runs, tr
 backfills), say plainly that a hard cap cannot be enforced precisely and keep chunks small.
 If actual spend outpaces the estimate, stop and re-confirm with the user before continuing.
 
+**Test before running at scale.** Before a run that processes more than 100 records — CSV
+rows, segment members, routine items, records a source finds, or existing records the run
+updates — run about 10 of them first, then ask before running the rest. Where you pick the
+records, cover the variety in the data, and use fewer when each record is expensive, such as
+agent research. Run the test batch with the same command and options as the rest, changing
+only which records it covers. A source trigger that finds its own records, such as Find
+leads, cannot start part of its matches, so test it on the trigger's test data with
+`clay workflows test-data` instead, and treat going live as the rest. When the user asked for
+the run, the test batch is part of that request: start it without asking and say that you are
+checking a few records first. Ask first only when the whole run needs the significant-spend
+confirmation above, or when the test batch has effects outside Clay, such as sending email,
+and mention the test batch in that question. When the user has not asked to run anything,
+offer the test batch as the next step. Skip the test when the user declines it, when this
+conversation already tested the same operation with no changes since, or in a scheduled run,
+whose brief already authorizes its batch.
+
+After the test batch, report what it produced — results, failures, and anything that changes
+the decision — then ask whether to run the rest, giving the number of records left. That
+question is a decision on new results, not a repeat confirmation, so do not ask again about
+a spend the user already approved. Run only the records the test batch did not process. If
+you changed the operation after the test, include the test records again so every record
+gets the same version, and say so. When the rest cannot exclude them, as when a source
+trigger goes live over every record it finds, say that the test records run again.
+
+**Ask once per decision.** When the API holds a command for approval (`approval_required`),
+that approval is the question for that step, so do not ask about the step separately before
+or after it. Present it as the error says: in the GTM agent, raise its approval card; in a
+standalone CLI session, ask the human about that request and run `clay approvals approve` or
+`deny` on their answer. A command held once in a session is held again, so when the rest is
+the same command as a test batch that was held, skip your own question: report the test
+results, say what the next command runs, and run it so the approval asks. When the test
+batch ran without a hold, ask before the rest.
+
 This policy does not authorize extra work: a planning request is not permission to run an
 enrichment. Preserve independent approvals for publishing, purchases, external effects,
 and other consequential actions. Do not repeat a cost warning in progress updates or the

@@ -29,6 +29,8 @@ Read this before any audiences work. Supporting references:
   top-N questions.
 - `filters.md` — writing the filter AST to create/update a saved audience, or
   validate that saved filter. Use it for record searches only when DSL cannot express the criteria.
+- `frontend-ast-filters.md` — supported AST segment-editor fields, operators, and collection
+  shapes. Consult when choosing a saved filter; backend search support is broader.
 - `custom_objects.md` — **deals / opportunities.** Read it before anything that
   touches them, including vague rankings such as "largest opportunities",
   "biggest things in our pipeline", or "recent wins", and GTM phrasings:
@@ -91,10 +93,10 @@ Prefer dynamic segments: saved audience filters whose membership updates as
 records start or stop matching the criteria. Use the user’s request and
 conversation context to determine the filter. Use a fixed cohort with hard coded
 matching values only when explicitly requested. Read `filters.md` before building
-the filter.
+the filter, including saved-segment compatibility restrictions.
 
 ```bash
-clay audiences list --entity-type people          # id, name, entityType (no filter); 50/page, pass back .cursor
+clay audiences list --entity-type people          # id, name, description, entityType (no filter); 50/page, pass back .cursor
 clay audiences get <audienceId>                   # same, plus the full filter AST
 clay audiences create --entity-type people --name "Missing emails" --filter ./filter.json
 clay audiences update <audienceId> --name "…" --description "…" --filter ./filter.json
@@ -106,8 +108,28 @@ clay audiences archive <audienceId>               # soft delete, idempotent; rec
   triggers an approval prompt and invites quoting mistakes.
 - `update` replaces the whole filter; there is no partial merge, and entity type
   is immutable after creation. Omitted flags are left alone.
-- `get` returns an id-free filter, so `clay audiences get <id> | jq .filter` pipes
-  straight back into `create --filter -` to clone an audience.
+- `get` returns an id-free filter. Inspect it for unsupported clauses
+  before using it to clone an audience; see `filters.md`.
+
+### Choosing a segment
+
+When the work needs a saved segment and none is identified — no open `audience`
+surface, an entity-wide view, or a name that matches zero or several segments —
+look before you ask:
+
+1. Use `clay audiences list --entity-type <type>` to get all segments.
+2. If exactly one segment plausibly fits the request, use it and say which.
+3. Otherwise ask once with your ask-user tool (`AskUserQuestion`; `askUser`
+   inside the Clay app): the 2–3 segments that best fit the request as
+   `choices` — `value` = segment id, `label` = segment name, `description` = its
+   description (or what it contains when it has none) — best match first. When
+   the user is on an entity-wide view, also offer "All <entity> in this view".
+   Add `{ type: "text" }` so they can name another segment.
+
+Never ask for a segment name with only a text box. If none of the segments fit
+the request, say so and ask whether they want to create a new segment. If no
+segments of that type exist, don't offer one; offer the entity-wide scope or
+creating a segment instead.
 
 ## Fields
 
@@ -177,8 +199,8 @@ mutually exclusive):
   (combining them is an error). Use `count from ...` for `search-count` and
   `select from ...` for `search-ids`. Read `queries.md` before constructing the query
 - `--audience-id <id>` → a saved audience's records
-- `--filter <json|file|->` → AST fallback for unsupported DSL constructs, matching exactly what an audience
-  built from that filter would hold
+- `--filter <json|file|->` → AST fallback for unsupported DSL constructs;
+  backend query support does not guarantee the frontend can render the filter.
 
 Add `--archived` to either to search archived records instead of live ones.
 
@@ -243,9 +265,10 @@ clay audiences activities summary --segment-id audseg_abc --since 2026-08-01 --u
 - Use `activities get` for the raw activity feed. It returns cursor-paginated
   events for records in the segment.
 - For distinct-record coverage, read `queries.md` and use `--query` with
-  `activities.exists(...)`. To save the criteria as an audience, use `filters.md`,
-  "Filter by email, meeting, or other activities". `eventId` is opaque and must
-  not be parsed for record ids.
+  `activities.exists(...)`. Before saving criteria as an audience, follow
+  [Saved segment restrictions](filters.md#saved-segment-restrictions); activity
+  search predicates are not automatically supported saved filters. `eventId` is
+  opaque and must not be parsed for record ids.
 - Use `activities summary` for grouped counts by activity type and source when
   the user asks for totals, trends, or a quick breakdown instead of individual
   events.

@@ -90,5 +90,5 @@ When automatic wiring cannot resolve a source, the editor shows an "Enter or map
 
   An `inputSchema` update **replaces** the node's existing schema and wiring, so include every existing property you want to keep (including a previously wired `accountId`).
 
-- If there is no accounts audience trigger, offer to create an accounts audience segment trigger (`clay workflows triggers create`; Sculptor: the trigger surface) and connect the node to it — ask which accounts segment to use if none is obvious.
+- If there is no accounts audience trigger, offer to create an accounts audience segment trigger (`clay workflows triggers create`; Sculptor: the trigger surface) and connect the node to it — if none is obvious, list the company segments and ask with them as choices (the `audiences` skill's "Choosing a segment").
 - Only if the workspace has no accounts segment (or the user wants a different launch path) should you leave it to them to map the Account ID in the editor.
