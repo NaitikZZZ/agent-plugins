@@ -7,6 +7,8 @@ For a saved segment, read `filters.md` and encode the criteria in `--filter`.
 Do not turn these queries' matching emails, domains, or IDs into the saved
 filter unless the user explicitly wants a fixed cohort. `create` and `update`
 do not accept `--query`.
+Search support does not imply saved-segment support; follow the compatibility
+restrictions in `filters.md` before saving.
 Use the default field IDs in `SKILL.md`; for other fields, discover IDs once with
 `clay audiences fields list --entity-type people --include-system` (or
 `companies`) and reuse the response. A field's existence does not mean it is
@@ -56,7 +58,7 @@ Activity predicates can use typed fields, for example
 
 ## Find records by activities and signals
 
-Use `--query` for these searches, including when you will later save an audience.
+Use `--query` for these ad-hoc searches.
 `activities.exists(...)` and `signals.<type>.exists(...)` return matching people
 or companies through their event associations. The result counts distinct
 records, so repeated touches do not inflate coverage. Negating `exists` also
@@ -99,8 +101,9 @@ record or segment and requested window. Once the workspace-record scope is
 established, query these event relationships directly; trigger inventories and
 the saved-audience list are not prerequisites.
 `today()` anchors at midnight UTC; use an explicit ISO timestamp if the requested
-read requires an exact instant. Saving a rolling audience still uses a relative
-AST filter from `filters.md`, not the returned list of matching IDs.
+read requires an exact instant. A rolling audience requires a supported relative
+AST filter from `filters.md`. Follow its rewrite-and-clarify guidance if the
+proposed filter is unsupported.
 
 ## Sorting and top-N results
 

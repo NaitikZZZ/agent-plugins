@@ -20,6 +20,13 @@ Inspect the whole workflow and prior user instructions before adding an
 `upsert-audiences-record` node. Follow records from their source through enrichment to the
 intended destination; the trigger type or the last node alone does not establish intent.
 
+- **Audiences export workflows:** when building or editing a workflow whose source is an
+  Audiences-related trigger (for example, `audience_segment` or `audience_scheduled`) and
+  whose destination is an export enrichment node, do not add Write to Audiences
+  (`upsert-audiences-record`). This includes the scheduled segment trigger created by the
+  Audiences export UI. The records already come from Audiences; writing them back adds a
+  redundant no-op loop. Apply this exception before the default writeback rules below.
+  The intended path is audience trigger → export, with any requested processing in between.
 - **Existing Audiences records:** write enrichment, qualification, and scoring results back
   to those records without asking whether to save. Reuse and extend an existing writeback
   node when possible. Resolve any field choices below before configuring those mappings.

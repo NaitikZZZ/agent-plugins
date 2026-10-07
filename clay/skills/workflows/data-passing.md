@@ -119,7 +119,7 @@ with one entry per key. To pass an object an upstream node already produced, kee
 single-expression `reference` (`{ "type": "reference", "expression": "{{headers}}" }`) —
 it is type-preserving and passes the whole object, including dynamic keys.
 
-### Merge mappings after conditional branches
+### Coalesce mappings on tool nodes
 
 Use a `coalesce` mapping when conditional branches converge on a Clay action and
 one action parameter should take the value produced by whichever branch ran. Add
@@ -152,10 +152,122 @@ node must be reachable from every referenced branch. After saving, run
 `clay workflows graph validate <workflowId>` and fix any "required input is not
 available on every execution path" issue before testing.
 
-Use merge mappings only for a small number of direct values or simple
-`{{variable}}` string templates consumed by one node. For transformations more
-complex than that, or when multiple downstream nodes need the merged value, use
-a code node to produce a named output and reference that output downstream.
+Use an inline coalesce mapping only for a small number of direct values or simple
+`{{variable}}` string templates consumed by one node. When the same coalesced
+value is reused downstream, configure a merge node instead.
+
+### Merge nodes
+
+Use a merge node when multiple branches converge and downstream nodes need one
+or more coalesced values. It is a reusable, named-output form of a coalesce
+mapping: each merge output has its own ordered candidates, and downstream nodes
+can reference the resolved output repeatedly.
+
+Prefer a merge node whenever the desired operation can be expressed with
+coalesce mappings. Use a code node only when the workflow also needs
+computation, non-trivial transformation, or other custom behavior beyond
+selecting a candidate value. Merge nodes may not be enabled for every
+workspace. If creating one is rejected as unavailable or not enabled, do not
+retry; use a code node to produce the same named outputs and reference those
+outputs downstream.
+
+For every value to coalesce:
+
+1. Add a property with that output name to the merge node's `inputSchema`.
+2. Add a same-named entry to `mergeInputMappingConfig`; it must be a `coalesce`
+   mapping with candidates in preference order.
+3. Wire every branch that can supply a candidate into the merge node. The merge
+   node exposes its resolved input properties as downstream outputs.
+
+For example, two trigger paths may each supply an email address and company
+name. Configure a merge node with `email` and `company_name` inputs, then add
+one coalesce mapping per output:
+
+```json
+{
+  "nodeType": "merge",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "email": { "type": "string" },
+      "company_name": { "type": "string" }
+    }
+  },
+  "mergeInputMappingConfig": {
+    "email": {
+      "type": "coalesce",
+      "candidates": [
+        {
+          "type": "reference",
+          "expression": "{{email_from_trigger_a}}",
+          "sourceBindings": {
+            "email_from_trigger_a": {
+              "sourceNodeId": "<trigger-a-node-id>",
+              "sourcePath": "$.email"
+            }
+          }
+        },
+        {
+          "type": "reference",
+          "expression": "{{email_from_trigger_b}}",
+          "sourceBindings": {
+            "email_from_trigger_b": {
+              "sourceNodeId": "<trigger-b-node-id>",
+              "sourcePath": "$.email"
+            }
+          }
+        }
+      ]
+    },
+    "company_name": {
+      "type": "coalesce",
+      "candidates": [
+        {
+          "type": "reference",
+          "expression": "{{company_from_trigger_a}}",
+          "sourceBindings": {
+            "company_from_trigger_a": {
+              "sourceNodeId": "<trigger-a-node-id>",
+              "sourcePath": "$.company_name"
+            }
+          }
+        },
+        {
+          "type": "reference",
+          "expression": "{{company_from_trigger_b}}",
+          "sourceBindings": {
+            "company_from_trigger_b": {
+              "sourceNodeId": "<trigger-b-node-id>",
+              "sourcePath": "$.company_name"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+Candidates are ordered fallbacks: resolution proceeds only when the previous
+candidate is `null`, `undefined`, or an empty string. Add a static candidate
+last only when there is an intentional fallback value. A merge node is not a
+legacy fork/join node: it does not coordinate parallel execution; it coalesces
+values from paths that have already converged.
+
+Every candidate for one merged output must have the same data type, and that
+shared type must match the declared type of the output field. For example, an
+`email` output declared as a string cannot coalesce a known array or number
+candidate. The canvas validates known candidate types before save; change the
+output declaration or candidate mappings until the validation passes.
+
+For each upstream `{{variable}}` in a reference candidate, add a
+`sourceBindings` entry keyed by that exact variable name. Its value contains
+the `sourceNodeId` and `sourcePath`. Sculptor converts these bindings into the
+merge node's internal `inputRefs`; without a binding, the expression is treated
+as a workflow-context variable instead of a reference to the named node output.
+
+After saving, read the node back to confirm the schemas and mappings persisted,
+then run `clay workflows graph validate <workflowId>`.
 
 **Pipe keys (`parent|sub`):** grouped/nested action parameters are addressed
 with a pipe. A `fields` group with `domain` and `fieldsToFilterBy` sub-fields is
@@ -232,6 +344,13 @@ To discover the exact field names, in order of preference:
 <json|file|->` and look at the fields under `.result` — those keys will be available as
    `$.result.<field>`. Needed when the action declares no output schema, so `outputParameters`
    comes back empty.
+
+Declared outputs include object and array containers as well as known child fields, with a
+`type` for each entry. Every `outputPath` is absolute from the action payload, so prefix it
+with `$.result.` as-is. A container with no declared children has unknown contents; it does
+not promise an empty object or array. Array child paths use `[0]` as a first-element template.
+For the full list, select the container path instead: `parent_companies` is the array,
+while `parent_companies[0].name` describes one element's name.
 
 **Example:** if `clay workflows actions test` returns
 `{ "result": { "name": "Acme", "domain": "acme.com" } }`, the correct paths are `$.result.name`

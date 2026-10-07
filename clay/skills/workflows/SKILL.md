@@ -33,6 +33,10 @@ You are helping users build and edit Clay workflows.
   running `clay workflows create`. Do not rename an existing non-blank workflow unless the user asks
   you to.
 - Follow the host agent's planning, user-input, and approval policies when building or editing workflows.
+- **Do not add Audiences writeback to an Audiences export workflow.** For workflows that
+  start with an Audiences-related trigger and export its records, omit Write to Audiences
+  to avoid a redundant no-op loop. This takes precedence over the default writeback guidance
+  below; see `audiences.md`.
 - **Choose Audiences writeback from the whole workflow and the user's intent.** Inspect the
   source, upstream steps, outputs, and existing destinations. Enrichment of existing Audiences
   records should write results back; for new records from searches or CSV uploads, recommend
@@ -86,6 +90,12 @@ Common node types (not just agent/tool — pick the type that fits the step):
   `code`. Code runs on the Python standard library only, with no network access and no Clay
   actions, and each run is stopped after 1 second: use a tool node for enrichment or HTTP calls
   and a delay node to wait, never `time.sleep()`. Prefer `clay workflows code test` before wiring.
+- **Merge nodes** (`nodeType: "merge"`) — coalesce ordered candidate values into named outputs
+  for downstream reuse. Prefer these when branch convergence or fallback selection is only
+  coalescing; use a code node when computation or a non-trivial transformation is also needed.
+  Read `data-passing.md` before configuring a merge node. If creating a merge node is rejected
+  because the workspace does not have merge nodes enabled, do not retry; use a code node to
+  produce the same named outputs.
 - **Delay nodes** (`nodeType: "delay"`) — pause a run before the next step without producing
   data. Set integer `delaySeconds` from 1 to 86400 (24 hours) in the create or update `--input`. To
   wait for a duration computed upstream instead, add a `delaySeconds` property to `inputSchema` with

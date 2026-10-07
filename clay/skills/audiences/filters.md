@@ -5,10 +5,40 @@ For ad-hoc record searches and counts, prefer `--query` using `queries.md`,
 including activity and signal criteria. Use an AST search only when DSL cannot
 express the criteria or when checking the exact filter you will save.
 
-A filter is a `ConditionalExpressionGroup` AST — the same shape an audience
-stores, `records search-ids` / `search-count` accept ad hoc, and the Clay UI's
-filter editor produces. `clay audiences create --help` carries the full node and
+A filter is a `ConditionalExpressionGroup` AST. Saved audiences and ad-hoc
+`records search-ids` / `search-count` use this shape, but the Clay UI's filter
+editor supports only a subset. `clay audiences create --help` carries the full node and
 operator reference; read it once instead of guessing at the shape.
+
+## Saved segment restrictions
+
+**Search support does not imply saved-segment support.** A valid AST accepted by
+`search-count` may not be supported by the segment editor. Save only filters the
+frontend can faithfully represent and apply, including when updating or cloning
+an existing segment. Unsupported clauses may be ignored by frontend record queries.
+
+Read [Frontend AST filter support](frontend-ast-filters.md) when choosing a saved filter's
+fields, operators, or collection shape. It lists the supported forms and their
+limits, including the predefined “any of” exceptions.
+
+If the proposed filter is unsupported, first try to rewrite it into a supported
+shape that preserves the user's intended criteria. If no equivalent filter is
+available, give a short, plain-language explanation: name the unsupported part,
+propose a supported simplification, and say which additional records it could
+include or which intended records it could exclude. Ask whether that change in
+selection is acceptable before creating or changing the segment. If no useful
+simplification exists, say so and ask what criteria the user wants to change.
+Do not silently drop conditions or substitute a fixed cohort; use a fixed cohort
+only when the user explicitly requests one.
+
+Keep this to a few sentences, not a technical explanation or a list of unrelated
+alternatives. Avoid AST jargon and repeated counts or status summaries. After
+the user declines, briefly acknowledge and stop without repeating the limitation.
+
+For example: “The segment editor can't require the title and date to match the
+same task. I can use separate title and recency filters, but that could include
+people whose matching task is older and whose recent task is unrelated. Is that
+broader audience OK?”
 
 The parts that cost the most time:
 
@@ -104,13 +134,13 @@ fill-rate plus a zero date count means the window may legitimately be empty.
 - `BinOp` — compares one field to a `value`: `{ key, dataPath, operator, value, entityType }`.
 - `ColOp` — a collection/subquery: `{ key, dataPath, operator, condition, entityType }`,
   where `condition` is a `GroupOp` and `operator` is `AllItems` / `AnyItems` / `NoItems`.
-  Only valid with `dataPath` rooted at `signal_events` or `activities`. Never wrap
+  Signal and activity collections use `dataPath` rooted at `signal_events` or `activities`. Never wrap
   related-object predicates (e.g. `opportunity`) in a `ColOp` — those are plain `BinOp`s
   in the enclosing group (see `custom_objects.md`); the server rejects such a `ColOp`
-  with a validation error. One exception exists in the wild: UI-built source-sync-status
+  with a validation error. Another supported shape is UI-built source-sync-status:
   filters are `ColOp`s rooted at `*_entity_field_values` with an
-  `external_source_sync_status_v3` path — valid to read in an existing segment's filter,
-  but never author that shape yourself.
+  `external_source_sync_status_v3` path. Preserve the UI-generated source-specific shape; do not
+  generalize it to arbitrary collections over record fields.
 - `AggOp` — an aggregate over a group: `{ aggregation: { groupByPath, operator, value }, expression, entityType }`.
 
 ## Copy-paste starting point
@@ -137,7 +167,7 @@ Swap `email` for any field id from `clay audiences fields list`, and swap the
 `CONTACT` / `contact_entity_field_values` pair for `ACCOUNT` /
 `account_entity_field_values` to filter companies.
 
-## Filter by email, meeting, or other activities
+## Query email, meeting, or other activities (ad hoc only)
 
 Read `clay audiences activities get` or `summary` to discover the returned
 `activityTypeId`. It is distinct from the `activityType` enum (`email`, `meeting`,
@@ -188,7 +218,7 @@ For **email OR meeting**, combine two `AnyItems` collections in an outer `Or`.
 For **neither email NOR meeting**, combine two `NoItems` collections in an outer
 `And`. Keep the target audience's existing filter in the outer `And` so the
 result stays within the requested population. Validate with `search-count`,
-then save the same rolling filter instead of a snapshot of matching ids/names.
+but do not save these collection filters as segments.
 
 ## Filter by signal activity
 
@@ -198,7 +228,9 @@ is how "companies with a job posting in the last 30 days" is expressed, and it
 is what the app's signal-based segments store.
 
 For payload arrays such as funding-news topics, read **Primitive-array payloads**
-below before saving; a News type/window clause alone includes every news topic.
+below before querying; a News type/window clause alone includes every news topic.
+The specific-signal results shape below is UI-supported. The compound payload
+and rolling News topics examples are ad-hoc only; do not save those as segments.
 
 Every example below is a whole filter, rooted at a `GroupOp` — `--filter` runs
 `ConditionalExpressionGroup.safeParse`, so a bare `BinOp` or `ColOp` is rejected as
@@ -231,7 +263,7 @@ The key is `signal_<Type>_aggregate_occurrences` where `<Type>` is the
 `CompanyTopicIntent`, `WebsiteVisitorTracking`. `Custom` and `FakeSignal`
 events are not filterable this way.
 
-**Events from one specific signal** — put the window clause and a `signal_id`
+**Events from one specific signal (UI-supported shape)** — put the window clause and a `signal_id`
 equality inside a `ColOp` over `signal_events`. The id is the `sig_…` value
 (`signal.id` in `clay signals list` output — one of the few places that id,
 rather than `td_…`, is what you need):
@@ -273,8 +305,8 @@ rather than `td_…`, is what you need):
 }
 ```
 
-**Event payload predicates go inside the same `ColOp` condition as the window
-clause — never beside it in the root group.** Deeper `dataPath`s reach into the
+**Ad-hoc compound payload queries:** event payload predicates go inside the same `ColOp` condition as the window
+clause — never beside it in the root group. Deeper `dataPath`s reach into the
 event's data, e.g. `["signal_events", "data", "confidence"]` or
 `["signal_events", "data", "jobPostData", "title"]`.
 
@@ -326,7 +358,7 @@ Payload shapes differ per signal type; read a real event's shape (or an existing
 segment's filter) before authoring one, and always keep the aggregate-occurrences
 clause in the condition so the scan stays scoped to that signal type and window.
 
-### Primitive-array payloads
+### Primitive-array payloads with recency (ad hoc only)
 
 For an array such as `newsData.newsTopics`, the `ColOp` path must name the full
 array, and the element `BinOp` uses `["."]`. Put the type/window clause in the
@@ -373,31 +405,28 @@ Fundraising news in the rolling last 30 days:
 ```
 
 A signal `ColOp` does compose with ordinary **field** predicates in the root group —
-ICP fit AND recent signal activity is the standard signal-based-play segment, and a
+ICP fit AND recent signal activity can be queried together, and a
 field predicate is evaluated against the record rather than an event, so there is no
 event for it to disagree about. The rule above is only about two `signal_events`
 clauses: those belong in one condition, not side by side. Validate with
 `records search-count --filter` like any other filter.
 
-**Run `records search-count --filter` before `audiences create`.** One call tells
-you both that the AST is valid and that it selects a sane number of records —
-cheaper than create → inspect → archive, and it catches an inverted operator
-(`Empty` vs `NotEmpty`) that a successful create would not.
+## CLI counts do not validate frontend results
 
-```bash
-clay audiences records search-count --entity-type people --filter ./missing-email.json
-clay audiences create --entity-type people --name "Missing emails" --filter ./missing-email.json
-```
+`records search-count --filter` evaluates the AST on the backend. With
+`--audience-id`, it evaluates the saved segment's AST. Neither runs the frontend
+cleanup that removes unsupported filters, so neither verifies the count shown
+in the segment UI. Comparing DSL and AST counts cannot detect this mismatch.
 
-Report the count to the user before creating the audience — a filter that matches
-0 or matches everything is usually a mistake worth catching together.
+Use CLI counts to inspect backend query results, not as a saved-segment
+compatibility check. Establish frontend support from the filter shape instead.
 
 ## Copy a filter you know works
 
-An existing audience is the most reliable reference for a workspace-specific
-field, since `get` returns the filter already stripped of editor ids:
+An existing audience can provide workspace-specific field references; `get`
+returns the filter stripped of editor ids. It can still contain unsupported
+clauses. Inspect the entire AST for frontend support before cloning it:
 
 ```bash
-clay audiences get <audienceId> | jq .filter        # inspect a known-good filter
-clay audiences get <audienceId> | jq .filter | clay audiences create --entity-type people --name "Copy" --filter -
+clay audiences get <audienceId> | jq .filter > /tmp/candidate-filter.json
 ```

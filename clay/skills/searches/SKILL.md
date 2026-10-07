@@ -77,8 +77,9 @@ When authoring a query here, resolve the audience yourself:
   `clay.exclude_people_identifiers(@audience_segment("SEGMENT_ID"))` to exclude a Contact
   audience, or `clay.filter_to_companies(@audience_segment("SEGMENT_ID"))` to target
   current employers from an Account audience.
-- Never invent a segment id. If the user names an audience you cannot resolve, ask
-  rather than guessing. Confirm with the user if multiple segments match the name.
+- Never invent a segment id. If the user names an audience you cannot resolve, or
+  several segments match, follow "Choosing a segment" in the `audiences` skill:
+  list segments, then ask with them as choices.
 
 ## When a criterion isn't supported
 
