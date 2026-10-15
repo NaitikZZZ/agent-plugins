@@ -20,7 +20,13 @@ For pricing and spending decisions, read `cost-and-budget.md`.
 Choose the plan yourself from search results; do not call `actions recommend` in
 this path.
 
-Search returns individual actions and reusable functions. Functions may encapsulate
+Search returns individual actions, table functions (`type: "function"`), and workflow
+functions (`type: "subworkflow"`). “Workflow function” is the user-facing term for
+“subworkflow”; both refer to the same reusable workflow. Use “workflow function”
+when speaking with users, and recognize “subworkflow” as the same concept. Use
+“table function” to distinguish table-backed functions, and preserve technical
+identifiers such as `subworkflow` and `subworkflow_call` in API payloads.
+Functions may encapsulate
 multiple steps, including installed waterfalls. Compare both against the requested
 inputs and outputs; a suitable function can satisfy a capability without composing
 several actions.
@@ -47,7 +53,7 @@ Prefer suitable Clay waterfalls over individual providers.
 
    ```bash
    clay workflows actions search "<capability>" --limit 10 > enrichment-search-work-email-1.json
-   jq '.candidates[] | {type, candidateId, name: (.displayName // .name), packageId, actionKey, functionId, description, score, creditCost, requiresApiKey, appAccountType, requiredInputNames, requiredInputCombinations, inputs: [.inputParameters[]? | {name, type: (.type // .typeSettings.type), optional}], functionInputs: ((.inputSchema.properties // {}) | keys), functionOutputs: ((.outputSchema.properties // {}) | keys), outputs: [.outputParameters[]? | {outputPath, semanticType}]}' enrichment-search-work-email-1.json
+   jq '.candidates[] | {type, candidateId, name: (.displayName // .name), packageId, actionKey, functionId, workflowId, description, score, creditCost, requiresApiKey, appAccountType, requiredInputNames, requiredInputCombinations, inputs: [.inputParameters[]? | {name, type: (.type // .typeSettings.type), optional}], functionInputs: ((.inputSchema.properties // {}) | keys), functionOutputs: ((.outputSchema.properties // {}) | keys), outputs: [.outputParameters[]? | {outputPath, semanticType}]}' enrichment-search-work-email-1.json
    ```
 
    The jq command is an optional compact-view convenience. If shell filtering
@@ -67,7 +73,13 @@ Prefer suitable Clay waterfalls over individual providers.
    Match output semantics to the request: a title field alone does not establish
    current employment, and a location field must refer to the requested entity.
    For actions, use `clay workflows actions schema <packageId> <actionKey>` for more detail.
-   For functions, inspect the saved candidate’s `inputSchema` and `outputSchema`;
+   For workflow function (`type: "subworkflow"`) candidates, inspect the saved published `inputSchema` and `outputSchema`.
+   Create a `subworkflow_call` node using the candidate’s `workflowId` as `subworkflowId`;
+   wire upstream inputs with `inputSchema` sourceNodeId/sourcePath and map values with `inputMappingConfig`.
+   Top-level `inputMappingConfig` currently supports only `subworkflow_call` nodes, not code or conditional nodes.
+   For tool nodes, keep mappings inside `tools[].inputMappingConfig`.
+   Do not redefine its schemas or convert it to a `clay_function` tool.
+   For table functions (`type: "function"`), inspect the saved candidate’s `inputSchema` and `outputSchema`;
    use `clay functions get <functionId>` before rejecting a promising function or
    adding steps when its outputs or validation behavior are unclear. If inspection
    establishes the requested validation, use the function's result without another
@@ -101,7 +113,10 @@ Prefer suitable Clay waterfalls over individual providers.
    not a builder payload. For search and catalog selections, pass the extracted
    `actionKey` and `packageId` as the builder’s `actionKey` and `actionPackageId`
    for `toolType: "clay_action"`; pass `functionId` as `tableId` for
-   `toolType: "clay_function"`.
+   `toolType: "clay_function"`. For `type: "subworkflow"`, create a `subworkflow_call`
+   node with `subworkflowId` and optional `inputMappingConfig`. Copy the
+   workflowId from the response. Output references use `$.result.<publishedOutput>`.
+   Never select the caller itself. Set `subworkflowId` when creating the call; changing its target afterward is not supported.
    Check every handed-off identifier against this extracted list; a plausible-looking
    identifier is not sufficient.
    Explain the fit and any remaining gap. The user's multi-part request already

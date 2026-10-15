@@ -83,7 +83,7 @@ the cap is a smell that it has absorbed things that do not belong in it:
   "value": {
     "customPeriodType": "weeks",
     "customPeriodInterval": 1,
-    "timesOfDay": ["09:00:00"],
+    "timesOfDay": ["09:00"],
     "daysOfWeek": [1, 2, 3, 4, 5],
     "startDate": "2026-09-01T09:00:00",
     "timezone": "UTC"
@@ -115,7 +115,7 @@ Set `timezone` to the zone the user means. For a simple recurrence, write `start
 as local wall time without an offset, for example `2026-09-01T09:00:00` with
 `America/New_York`. For a custom recurrence, write `timesOfDay` as local wall time in
 `timezone`, never converted to UTC. For example, 9 AM in `America/New_York` is
-`"09:00:00"` in `timesOfDay`.
+`"09:00"` in `timesOfDay`.
 
 Read the prompt for cadence and compare it with `scheduleConfig` — on `create`, and on any
 `update` that touches the prompt. When they agree, remove the cadence sentence from the prompt

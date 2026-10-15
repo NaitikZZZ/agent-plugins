@@ -18,6 +18,16 @@ the function does not preserve the reference. Read back the node after creation 
 confirm the function ID and input mappings were persisted. Function nodes expose
 their referenced table IDs in `subroutineIds`.
 
+Bring a Send table data (`route-row`) column's destination table into the workflow
+instead of writing to it, so each result that would have been a destination row stays in
+the workflow, and recreate the destination table's columns as nodes. A list column
+(`type: "list"`) sends one row per item, so use list mode (in `SKILL.md`); a row column
+(`type: "row"`, the default) needs none. Each row from a list column also gets the
+column's shared `rowData` and `nestedData` under `parent`, so give the per-item nodes
+those values too. Workflows can't add rows to a Clay table, so don't use `route-row`,
+and say so when you report the conversion. If something relies on the destination table
+receiving new rows, tell the user.
+
 Translate legacy Use AI columns into native agent nodes using the original prompt,
 model, input bindings, and structured output schema. Inspect supported settings;
 disclose any table-only setting that cannot be represented instead of claiming all

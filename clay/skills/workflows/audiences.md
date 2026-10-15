@@ -123,6 +123,22 @@ When attaching this action to a tool node, use:
 
 Every id in a `selected*` array MUST have a matching `<group>|<id>` binding, or the action returns `ERROR_BAD_REQUEST`.
 
+### Search writeback defaults
+
+On the first configuration of a V2 Write to Audiences node downstream of search triggers,
+the server adds matching default search fields before saving, alongside your explicit mappings.
+Set `entityType` to `ACCOUNT` for companies or `CONTACT` for people; the server chooses the
+corresponding defaults using the same matching rules as the field mapping editor. Defaults are
+added only for existing Audience fields with one matching upstream search field. For example,
+"Company name" can map to `org_name` for `ACCOUNT`, and "Full name" to `name` for `CONTACT`.
+
+Connect its incoming edges before configuring mappings, or include `incomingEdges` in that same
+node edit. Read the node after saving to discover the exact mappings that were added, and retain
+them when adding more fields. Explicit sources and write rules take precedence over defaults.
+Saved selections, including an explicitly empty selection, are not supplemented with defaults
+on later edits. If the Audience field catalog is unavailable, the save keeps your explicit
+mappings and skips defaults. These defaults do not apply to enrichment of existing Audiences records.
+
 ### Discover real field IDs
 
 Run `clay audiences fields list` with `--entity-type people` or `--entity-type companies` first — schema ids and English names often differ (account "company name" is `org_name`). For planning-only requests that prohibit workspace queries, use the supplied catalog and defer ID discovery until editing is authorized. It returns the workspace's record field catalog; lookup keys are fixed (CONTACT → `email`, `linkedin_url`, `phone`; ACCOUNT → `domain`, `linkedin_url`).
