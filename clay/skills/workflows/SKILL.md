@@ -89,7 +89,11 @@ Common node types (not just agent/tool — pick the type that fits the step):
   and filtering; use an agent when the step needs LLM judgment. The handler goes in top-level
   `code`. Code runs on the Python standard library only, with no network access and no Clay
   actions, and each run is stopped after 1 second: use a tool node for enrichment or HTTP calls
-  and a delay node to wait, never `time.sleep()`. Prefer `clay workflows code test` before wiring.
+  and a delay node to wait, never `time.sleep()`. Standard-library modules that need networking,
+  processes, threads, files, or time zone data are unavailable (`socket`, `http`,
+  `urllib.request`, `subprocess`, `threading`, `asyncio`, `logging`, `pathlib`, `zoneinfo`). Use
+  `print()` instead of `logging`, and a fixed UTC offset instead of `zoneinfo`. Prefer
+  `clay workflows code test` before wiring.
 - **Merge nodes** (`nodeType: "merge"`) — coalesce ordered candidate values into named outputs
   for downstream reuse. Prefer these when branch convergence or fallback selection is only
   coalescing; use a code node when computation or a non-trivial transformation is also needed.
@@ -101,18 +105,10 @@ Common node types (not just agent/tool — pick the type that fits the step):
   wait for a duration computed upstream instead, add a `delaySeconds` property to `inputSchema` with
   type `number`, `sourceNodeId`, and `sourcePath`; it must resolve to a number of seconds from 1 to
   86400 and overrides `delaySeconds`.
-- **Map / reduce** (`nodeType: "map"` / `"reduce"`) — fan-out over a list and aggregate the
-  results. Use these when the fan-out itself has to be a graph step: per-item concurrency or
-  retry settings, or a downstream aggregation. For the same per-record work inline on one node,
-  use list mode instead (see "List mode (Repeat)"). A map node needs `mapConfig` with
-  `mode: "code"` or `"agent"` plus `maxConcurrency` and `maxRetries`; a reduce node needs
-  `reduceConfig` with the same `mode` plus `batchSize`. Send those every time — the create call
-  accepts a config without them and `graph validate` then rejects the node. Code-mode Python goes
-  in top-level `code`; agent mode takes `agentConfig.prompt`, required on `reduceConfig` and
-  needed on `mapConfig` unless the node already has a Claygent linked. Every node feeding a reduce
-  must be a map node with `outputKey: true` and a `keyExpressionPath`. Gathering is on by default (`gatherResults`
-  inside `mapConfig` / `reduceConfig`) — do **not** create a `collect` node (`nodes create`
-  rejects it; `collect` is legacy/read-only).
+- **Map / reduce / collect** (`nodeType: "map"` / `"reduce"` / `"collect"`) are retired: `nodes create`
+  rejects them and existing ones fail when they run. For per-record work over a list, use list mode
+  (see "List mode (Repeat)"); to aggregate the results, add a node downstream of the Repeat node,
+  which receives the whole list.
 - **Trigger nodes** (`nodeType: "trigger"`) — canvas entry points. Create/bind them with
   `clay workflows triggers …` (see Triggers below); do not invent a bare trigger node
   without a trigger row.
@@ -123,7 +119,9 @@ Do not collapse branching or deterministic transforms into Claygent/tool-only gr
 (`nodes get`) and copy writable fields from `.node` when the shape is unfamiliar.
 
 Wiring a node's inputs — `inputSchema` with `sourceNodeId`/`sourcePath`, and `inputMappingConfig`
-on tool nodes — is covered in `data-passing.md`. Read it before wiring the first input.
+on tool nodes — is covered in `data-passing.md`. Read it before wiring the first input, and
+before reading or editing a tool node whose action has dynamic fields (resolving them needs
+the node's current static inputs).
 
 ### Conditional nodes
 
@@ -330,8 +328,10 @@ don't guess at flags.
   server-side.
 - Test one node: `clay workflows nodes test <workflowId> <nodeId> --source-run <runId>`
   or `--inputs <json|file|->` — starts a partial run of only that node, then terminates.
-  Returns immediately (does not poll); inspect with `clay workflows runs get`. Exactly one of
-  `--source-run` or `--inputs` is required.
+  Nothing downstream of the node runs, so this is for debugging a node, never for recovering
+  failed runs — see "Recovering failed runs" in `testing.md` for that. Returns immediately (does
+  not poll); inspect with `clay workflows runs get`. Exactly one of `--source-run` or `--inputs`
+  is required.
 - Account agents (agent nodes backed by a platform-managed Claygent with account context):
   `clay workflows nodes create-account-agent <workflowId> <nodeId> [--name <name>]` links a new
   one, from the platform template, to an agent node that has no linked agent — create the node
@@ -372,6 +372,11 @@ for the user before changing them.
   from creation). `runs get`, `runs steps`, `runs list`, `runs pause`, `runs resume` inspect and control
   runs, and `clay workflows publish <workflowId>` ships the draft. Flags, the `--wait` poll, and
   which runs exercise draft vs live are in `testing.md` and `publishing.md`.
+- `clay workflows runs rerun <workflowId> <runId...>` recovers failed runs: each one restarts at
+  the node it failed on and continues through the rest of the workflow, on the published version.
+  It spends credits, so run it with `--dry-run` first and confirm `rerunCount` and
+  `estimatedCredits` with the user. The estimate is approximate; see `testing.md` for when it
+  runs low. See "Recovering failed runs" in `testing.md`.
 
 ### Testing actions and code
 
@@ -386,8 +391,9 @@ for the user before changing them.
   — runs Python in the code-node runtime to test code before adding it to a node. The file must
   define `handler(context)` returning a dict. `--inputs` backs named calls such as
   `context.get_input("email")`; `get_input()` requires a key and has no zero-argument form. The
-  same limits as code nodes apply: standard library only, no network, 1 second. **Before saving
-  code with declared outputs, pass `--output-schema` with the exact flat `outputSchema` you will
+  same limits as code nodes apply: standard library only (without the modules listed under code
+  nodes), no network, 1 second. **Before saving code with declared outputs, pass
+  `--output-schema` with the exact flat `outputSchema` you will
   save on the node when the installed CLI offers that flag.** Check `clay workflows code test --help`;
   if the flag is unavailable, test the saved node with `clay workflows nodes test` instead until the
   CLI is updated. Without the flag, success only means execution succeeded. Exits 0 even on handler
@@ -436,7 +442,8 @@ than retrying or treating it as invalid workflow input. The CLI may label this r
   pattern as nodes. When no trigger of the target type exists to read, the core writable fields per
   type: `audience_segment` = `triggerType, segmentId, entityType ("CONTACT"|"ACCOUNT")`;
   `audience_signal` = `triggerType, signalId (signal.id, "sig_…"), entityType`;
-  `audience_scheduled` = those plus `scheduleConfig`; `scheduled` = `triggerType, scheduleConfig`;
+  `audience_scheduled` = those plus `scheduleConfig` (optional `batchProcessing`, below);
+  `scheduled` = `triggerType, scheduleConfig`;
   `webhook` / `manual` = `triggerType, inputSchema`. `clay_table` triggers cannot be created
   from here — they are wired from inside a Clay table ("Invoke Workflow" action).
   For the `scheduleConfig` shape and the remaining trigger types, read
@@ -461,6 +468,17 @@ Multiple `audience_scheduled` triggers may share a node when they also have the 
 Pass an explicit `workflowNodeId` to bind/share; omit it (or pass `createTriggerNode: true`) to get
 a new node. Do not mix `audience_segment` with `audience_scheduled` on one node. `audience_manual`
 is a run companion created by the UI/run path — do not create it via the CLI.
+
+**Audience batch processing:** on `audience_scheduled`, `batchProcessing: {"batchSize": <n>}`
+makes each scheduled run process the next `<n>` segment members not yet processed in this pass,
+instead of rerunning every member, and the trigger pauses itself once all members are done.
+`null` (or no field) means every run reruns the whole segment. `triggers get` returns
+`{batchSize, startedAt?, completedAt?}` or `null`. Before publishing a scheduled audience trigger
+the user wants to process incrementally, set `batchProcessing`, then `triggers get` and quote the
+returned `batchSize` back. Never describe per-run behavior the read-back does not show: with
+`batchProcessing: null`, publishing reruns the whole segment on every run.
+Turning batching back on after `null` reruns every member unless the pass was unfinished and the
+disable unpublished; treat it as a full-segment run for the cost policy and confirm with the user first.
 
 ### Enabling batching on a tool node
 
@@ -504,13 +522,13 @@ Always set `listEntriesRef` when turning list mode on: without it the node looks
 
 For tool nodes, map each input that should vary per item with `inputMappingConfig` `item`
 (`{ "type": "item", "path": "$.field" }`) — not a `reference` to the upstream list (that
-resolves to the whole aggregate). See `data-passing.md`. `listFailureMode` is
-`"fail_at_end"` (default) or `"ignore_errors"`.
+resolves to the whole aggregate). See `data-passing.md`. For code nodes, the current
+item is `context.input`. `listFailureMode` is `"fail_at_end"` (default) or
+`"ignore_errors"`.
 
 **When to use it:** the same per-record work over a list (enrich each row, draft one message
 per lead), inline on one node. **When not:** a single aggregate step over the whole list — leave
-`listMode` off; and when the fan-out needs its own graph step (per-item concurrency or retries, or
-a downstream reduce), use map/reduce nodes instead.
+`listMode` off.
 Unsupported on account agent nodes and on trigger/conditional/map/reduce/collect/fork/join.
 If the workspace has list mode disabled, the update rejects — relay that rather than retrying.
 

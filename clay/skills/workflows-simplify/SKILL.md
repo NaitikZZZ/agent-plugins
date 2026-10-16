@@ -58,10 +58,9 @@ When a downstream node needs specific typed data from an upstream node:
 - If a node has tools it never uses, remove them (reduces prompt size and cost)
 - If a node calls one Clay action and passes the result, make it a tool node rather than an agent node
 
-### Use code mode for conditional and map nodes
+### Use code mode for conditional nodes
 
 - Conditional nodes: prefer `rules` or `code` mode over `agentic` mode when the decision logic is expressible programmatically
-- Map nodes: prefer `code` mode over `agent` mode when processing is deterministic
 
 ## Output Format
 

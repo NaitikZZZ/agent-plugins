@@ -25,9 +25,13 @@ clay workflows runs test <workflowId> --trigger <triggerId> --replay     # Find 
 clay workflows runs test <workflowId> --trigger <triggerId> --limit 5    # audience segment trigger: --limit or --record-ids required
 clay workflows runs list <workflowId>
 
-# Partial single-node test (exactly one of --source-run or --inputs)
+# Partial single-node test (exactly one of --source-run or --inputs); nothing downstream runs
 clay workflows nodes test <workflowId> <nodeId> --source-run <runId>
 clay workflows nodes test <workflowId> <nodeId> --inputs '{"param":"value"}'
+
+# Recover failed runs: restart each at its failed node and run the rest of the workflow
+clay workflows runs rerun <workflowId> <runId...> --dry-run
+clay workflows runs rerun <workflowId> <runId...>
 ```
 
 ### Draft vs live when testing
@@ -141,6 +145,52 @@ terminal (async work is still in flight). If `--wait` returns `status: waiting`,
 human intervention is required somewhere. With `--wait <seconds>`, any other
 non-terminal status means the budget ran out — check `.status` before treating
 the run as done.
+
+## Recovering failed runs
+
+When runs failed partway through, for example during an outage at an integration, never recover
+them with `nodes test`. It runs only the one node and then ends the run, so every node after it is
+skipped — anything those nodes write (CRM updates, campaign or sequence enrollment, attribution)
+silently never happens, while the run reports `completed`.
+
+Use `clay workflows runs rerun` instead. If `clay workflows runs rerun --help` fails, the CLI
+predates the command: ask the user to update it, or to open the workflow's Runs view in Clay,
+select the failed runs, and choose Re-run > Resume from failed node.
+
+```bash
+# Collect the failed runs, preview the re-run, then start it
+clay workflows runs list <workflowId> --status failed --created-after <outageStart> | jq -r '.data[].runId' > failed.txt
+clay workflows runs rerun <workflowId> $(cat failed.txt) --dry-run | jq '{rerunCount, estimatedCredits}'
+SUBMISSION_ID=$(uuidgen)
+clay workflows runs rerun <workflowId> $(cat failed.txt) --submission-id "$SUBMISSION_ID"
+
+# Watch the re-runs it created (newest first)
+clay workflows runs list <workflowId>
+```
+
+- The default, `--from failed`, restarts each run at the node it failed on and continues through
+  every node after it. Runs that did not fail are skipped. `--from node --node <nodeId>` starts
+  every listed run at one node, and `--from trigger` starts each run over from its trigger.
+- `--from node` and `--from trigger` run every step from the start point again, including steps
+  that already succeeded, so their effects (emails, CRM writes, sequence enrollments) happen a
+  second time. For recovery, use the default `--from failed`, and only pick another start point
+  when the user has confirmed those steps should repeat.
+- Re-runs use the **published** version, so publish any fix before re-running. A workflow that
+  was never published can't be re-run this way.
+- Each record re-runs once, from its latest run, so `rerunCount` can be lower than the number of
+  run ids passed.
+- `estimatedCredits` is approximate. It counts every branch a run could take, but a step that
+  repeats per list item (a node in Repeat mode) counts once, so for those workflows the actual cost
+  can be much higher. Say so when you present the estimate for such a workflow.
+- `runs list --status failed` returns one page; follow `cursor` to collect every failed run before
+  re-running.
+- The re-run can be held for approval (`approval_required`). Present it as the error says.
+  Approving starts the re-runs, so don't run the command again afterwards.
+- Never retry a failed re-run with a new submission id: the server may have queued the first one
+  before the error. Rerun with the same id instead. An id that was already accepted starts nothing
+  new, so the retry can't start a second set of runs. A failed submit names its id in the error's
+  `details.submissionId`. Minting it yourself, as above, also covers a command that dies before
+  printing anything.
 
 ## Inspecting what a run did (instead of "logs")
 

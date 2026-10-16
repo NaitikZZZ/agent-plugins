@@ -383,6 +383,14 @@ clay workflows actions dynamic-fields pkg_abc123 hubspot-create-object fields --
   `inputMappingConfig` (`objectTypeId` as a `static` value, `fields|<sub>` keys).
 - It's iterative: fill one input, then re-run with it in `--inputs` to resolve the
   next dependent parameter.
+- A revealed field can itself be a dynamic select. It isn't listed in
+  `dynamicParameters`; resolve it at the container's path plus its key (revealed
+  `excluded_reps|<key>` → `excluded_reps.<key>`). Parameter descriptions may name
+  other derived paths — check them.
+- When reading or editing an existing tool node, pass the node's current `static`
+  `inputMappingConfig` values as `--inputs`, keyed exactly as stored (e.g.
+  `fields|name`). Resolvers that depend on earlier selections return empty
+  results, often with no error, when those inputs are missing or shaped differently.
 - Preconditions: the driver must be a concrete value in `--inputs` (a
   `{{reference}}` won't resolve at design time), and `--account` is required for
   actions that authenticate. Reuse the selected account, or list accessible connections

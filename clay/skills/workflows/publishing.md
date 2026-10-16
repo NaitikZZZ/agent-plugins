@@ -21,6 +21,12 @@ Users **can** pause and resume an individual trigger with
 fields). Resuming a paused trigger returns it to live; it is not a publish, and
 going live for the first time is only ever through publishing.
 
+A trigger's `dataSource` is also outside draft vs live. It configures the source that feeds the
+trigger, which is not part of the workflow's versions, so changing it with `triggers update`
+applies **immediately**, with no publish: a live trigger's next run (scheduled or requested)
+uses the new source settings. Tell the user that, and confirm before changing the `dataSource`
+of a live trigger.
+
 ## Concepts
 
 | Concept                    | Meaning                                                                                                                                                             |
