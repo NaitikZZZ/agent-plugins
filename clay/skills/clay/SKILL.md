@@ -1,6 +1,6 @@
 ---
 name: clay
-description: Clay — start here. A table of contents for working with Clay and which skill to use for each thing — audiences (the workspace's own people/companies/deals), campaigns (create, improve, and analyze outbound email sequences), ad syncs (push audience segments to ad platforms), search (find net-new people/companies), routines (run Clay-managed and custom functions), tables (query/export data), the CLI (ephemeral programmatic access), the Public API (build services on Clay), workflows (build automations), feedback, and getting help — reaching Clay support or a human about billing, refunds, or account problems. Read this first to answer "what can I do with Clay?"
+description: Clay — start here. A table of contents for working with Clay and which skill to use for each thing — audiences (the workspace's own people/companies/deals), sequences (formerly campaigns; create, improve, and analyze outbound email sequences in Sequencer), ad syncs (push audience segments to ad platforms), search (find net-new people/companies), routines (run Clay-managed and custom functions), tables (query/export data), the CLI (ephemeral programmatic access), the Public API (build services on Clay), workflows (build automations), feedback, and getting help — reaching Clay support or a human about billing, refunds, or account problems. Read this first to answer "what can I do with Clay?"
 ---
 
 # Working with Clay
@@ -44,7 +44,7 @@ Whatever you're doing in Clay, work transparently so the user can follow along:
   (see "Getting help and reporting problems") instead.
 - **Managed sessions can't manage the install.** Inside the Clay app your Clay session
   and CLI version are provisioned for you, for one workspace: `clay login`, `clay logout`,
-  `clay update`, `clay workspaces` and the `setup` / `update` skills are unavailable. If auth fails or the CLI is out of
+  `clay update`, `clay workspaces` and the `cli-setup` / `update` skills are unavailable. If auth fails or the CLI is out of
   date there, tell the user rather than trying to fix it.
 
 - **Read business context when relevant.** When company knowledge, ICPs, buyer personas,
@@ -53,26 +53,29 @@ Whatever you're doing in Clay, work transparently so the user can follow along:
   returns `not_found` or `auth_forbidden`, do not retry through another path. If context is empty
   or unavailable, use what the user supplied and ask for missing criteria when needed.
 
-- **Review Knowledge Hub proposals before deciding.** Workspace admins can use
-  `clay knowledge-hub business-context propose`, then `suggestions list` and
-  `suggestions get <id>` under the same business-context group. Render `changes[]`
-  conversationally; show `.patch` only for literal-diff requests or plain terminals.
-  Refer to suggestions by title; IDs and revisions are for commands, not for display.
-  Offer the review. In an external terminal, wait for an explicit accept or reject decision,
-  then execute it without a second approval request. In managed Clay sessions requiring
-  approval, use the approval request as the single confirmation instead of asking for a
-  separate chat decision. If managed permissions allow immediate execution, wait for an
-  explicit chat decision first. Requesting a
-  proposal does not authorize acceptance. Use `suggestions accept <id> --review-revision <rev>`
-  with the exact revision the user reviewed, or `suggestions reject <id> --reason "..."`.
-  If acceptance conflicts, review again and obtain a fresh decision. A stale proposal
-  requires a new proposal. To revise, propose a replacement and reject the old one.
-  New proposals require fewer than 5 open suggestions in the workspace. At the limit,
-  help the user review and accept or reject existing suggestions before proposing another;
-  never dismiss suggestions without their decision. Retrying the same proposal is allowed.
-  Follow `nextStep` on proposal retries: report an already-decided result without
-  offering it for review. Stop on `auth_forbidden`; workspace admin rights are required
-  for proposing and deciding. Do not report changes as applied until acceptance succeeds.
+- **Review Knowledge Hub proposals before deciding.** Workspace admins can propose with
+  `clay knowledge-hub business-context propose` and review with
+  `clay knowledge-hub business-context suggestions list` or
+  `clay knowledge-hub business-context suggestions get <id>`.
+  Explain `changes[]` conversationally; show `.patch` only for literal-diff requests or plain terminals.
+  Refer to suggestions by title; IDs and revisions are for commands.
+  In external terminals or managed sessions without approval enforcement, wait for an explicit user
+  decision, then execute without a second confirmation. When managed approval is required, use that
+  approval request as the single confirmation. Proposing does not authorize acceptance.
+  Accept with `clay knowledge-hub business-context suggestions accept <id> --review-revision <rev>`
+  using the exact revision reviewed. Reject with `clay knowledge-hub business-context suggestions reject <id>`;
+  `--reason "..."` is optional. On acceptance conflict, review again and obtain a fresh decision.
+  A stale proposal requires a new proposal.
+  To revise your own open or stale proposal, reject that specific ID successfully before proposing
+  the full revision with a new `--request-id`. The revision request
+  authorizes withdrawing that draft; managed approval requirements still apply.
+  Do not choose a suggestion just because it is the most recent, or dismiss others to make room.
+  New proposals require fewer than 5 open suggestions. At the limit, help the user review and decide
+  existing suggestions; dismiss only the draft being revised or suggestions the user explicitly rejects.
+  Reuse request IDs only for retries: they return the original suggestion even if the input changes.
+  Follow `nextStep` on retries; report saved decisions without offering them for review again.
+  Stop on `auth_forbidden`; proposing and deciding require workspace admin access.
+  Report changes as applied only after acceptance succeeds.
 
 ## CLI readiness in external agents
 
@@ -80,7 +83,7 @@ Before the first CLI task in Claude Code, Codex, Cursor, or Cowork, follow any
 session-start readiness message. Resolve `<PLUGIN_ROOT>` as two levels above this
 skill’s directory. If no hook message was available, run
 `bash "<PLUGIN_ROOT>/scripts/check-cli.sh" plain` from this plugin copy. Follow
-`setup` if it reports a missing, old, or plugin-managed CLI; do not reinstall or
+`cli-setup` if it reports a missing, old, or plugin-managed CLI; do not reinstall or
 check for latest releases on every command. Skip this in managed Clay sessions.
 
 ## Answering "what can I do with Clay?"
@@ -101,7 +104,7 @@ abilities. Get the framing right:
   - "Find decision-makers by title and seniority, then enrich them with verified work emails and phone numbers."
   - "Enrich a list of leads or accounts with firmographics and contact data."
   - "Score a list of records against my ideal-customer profile."
-  - "Create an outbound campaign, draft its sequence, and compare variants or reply performance."
+  - "Create an outbound email sequence, draft its emails, and compare variants or reply performance."
   - "Sync a saved segment to an ad platform as a custom audience, then check its match rate."
   - "Run a saved Clay function or workflow over a batch of inputs and collect the results."
   - "Query a table and export the rows matching a filter."
@@ -116,7 +119,7 @@ Clay exposes these core primitives (callable from the plugin/CLI/API):
 | Primitive               | What it's for                                                                       |
 | ----------------------- | ----------------------------------------------------------------------------------- |
 | **Audiences**           | The workspace's own people, companies, and deals — read and segment what they have  |
-| **Campaigns**           | Create, improve, compare, and analyze outbound email sequences                      |
+| **Sequences**           | Create, improve, compare, and analyze outbound email sequences in Sequencer         |
 | **Ad syncs**            | Push an audience segment to ad platforms as a custom audience to advertise to       |
 | **Searches**            | Find companies and people using Clay's GTM database                                 |
 | **Routines**            | Run Clay-managed functions, custom functions, and existing Workflows                |
@@ -192,9 +195,10 @@ question about the rest.
 | Skill                 | Use it for                                                                                                                                                                                                                                                                                                                     |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `audiences`           | Any question about the workspace's own people/companies/deals — counts, fill rates, lookups, and segments. `--entity-type deals` works on `records` and `fields list` only; other commands accepting that flag support only `people`/`companies`. Singular `deal` is invalid. See the audiences skill's command support table. |
-| `campaigns`           | Creating and improving outbound email campaigns, sequence copy, variants, and analytics.                                                                                                                                                                                                                                       |
+| `sequences`           | Creating and improving outbound email sequences (formerly campaigns), sequence copy, variants, and analytics.                                                                                                                                                                                                                  |
 | `ad-syncs`            | Pushing an audience segment to ad platforms as a custom audience, and checking a sync's status, match rate, or run history.                                                                                                                                                                                                    |
 | `searches`            | Finding net-new people or companies in Clay's GTM database — prospects and accounts that aren't already in the workspace.                                                                                                                                                                                                      |
+| `searches-advanced`   | Geography, industry, growth, employer history, audiences, counts and other advanced search criteria; full reference and quota/error handling.                                                                                                                                                                                  |
 | `routines`            | Creating a routine from an existing function/workflow, running a saved routine, and fetching its results.                                                                                                                                                                                                                      |
 | `tables-cli`          | Reading, querying, and exporting data from an existing Clay table via the CLI (creating tables is not supported).                                                                                                                                                                                                              |
 | `cli`                 | Ephemeral, programmatic access to Clay capabilities from a shell — run a routine, query a table, search, etc.                                                                                                                                                                                                                  |
@@ -243,17 +247,9 @@ Default to solving the problem with the skills above. When that isn't the answer
   the relevant skill's guidance and point the user to the Clay app. That's a product
   boundary, not a bug and not a support case.
 
-## If another Clay MCP is connected
-
-If `clay-for-reps` (the Clay MCP for sales reps) is also connected in your session,
-ignore its tools entirely. That server is designed for interactive conversational prospecting
-in chat apps (ChatGPT, Claude.ai) — it shares the same Clay workspace but is a completely
-different product. Use the `clay` CLI and these skills for all automation, data enrichment,
-and GTM operations.
-
 ## First-time setup
 
-Run the `setup` skill.
+Run the `cli-setup` skill.
 
 ## Keeping Clay up to date
 
